@@ -1038,11 +1038,39 @@ export default function App() {
     const unsub = onSnapshot(doc(db, 'settings', 'lists'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        if (data.personnelList) setPersonnelList(data.personnelList);
-        if (data.prefixoVtList) setPrefixoVtList(data.prefixoVtList);
-        if (data.patrimonioVtList) setPatrimonioVtList(data.patrimonioVtList);
-        if (data.moList) setMoList(data.moList);
-        if (data.patrimonioMoList) setPatrimonioMoList(data.patrimonioMoList);
+        console.log("Settings loaded from Firestore:", data);
+        
+        if (data.personnelList && Array.isArray(data.personnelList) && data.personnelList.length > 0) {
+          setPersonnelList(data.personnelList);
+        } else {
+          console.warn("Personnel list from Firestore is empty or invalid, using default.");
+          setPersonnelList(PERSONNEL_LIST);
+        }
+
+        if (data.prefixoVtList && Array.isArray(data.prefixoVtList) && data.prefixoVtList.length > 0) {
+          setPrefixoVtList(data.prefixoVtList);
+        } else {
+          setPrefixoVtList(PREFIXO_VT_LIST);
+        }
+
+        if (data.patrimonioVtList && Array.isArray(data.patrimonioVtList) && data.patrimonioVtList.length > 0) {
+          setPatrimonioVtList(data.patrimonioVtList);
+        } else {
+          setPatrimonioVtList(PATRIMONIO_VT_LIST);
+        }
+
+        if (data.moList && Array.isArray(data.moList) && data.moList.length > 0) {
+          setMoList(data.moList);
+        } else {
+          setMoList(MO_LIST);
+        }
+
+        if (data.patrimonioMoList && Array.isArray(data.patrimonioMoList) && data.patrimonioMoList.length > 0) {
+          setPatrimonioMoList(data.patrimonioMoList);
+        } else {
+          setPatrimonioMoList(PATRIMONIO_LIST);
+        }
+        
         if (data.cityList) setCityList(data.cityList);
         if (data.funcaoLinhaList) setFuncaoLinhaList(data.funcaoLinhaList);
         if (data.horarioLinhaList) setHorarioLinhaList(data.horarioLinhaList);
@@ -1782,6 +1810,7 @@ export default function App() {
         adminList,
         authorizedList
       };
+      console.log("Saving settings to Firestore:", updatedSettings);
       await setDoc(doc(db, 'settings', 'lists'), updatedSettings);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
@@ -1790,6 +1819,19 @@ export default function App() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleRestoreDefaults = () => {
+    if (!window.confirm("Deseja restaurar todas as listas para os valores padrão do sistema? Isso substituirá as configurações atuais.")) return;
+    
+    setPersonnelList(PERSONNEL_LIST);
+    setPrefixoVtList(PREFIXO_VT_LIST);
+    setPatrimonioVtList(PATRIMONIO_VT_LIST);
+    setMoList(MO_LIST);
+    setPatrimonioMoList(PATRIMONIO_LIST);
+    
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 2000);
   };
 
   const handleSisCOpILogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -3448,14 +3490,24 @@ export default function App() {
                         </p>
                       </div>
 
-                      <button 
-                        type="submit"
-                        disabled={submitting}
-                        className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-50"
-                      >
-                        {submitting ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} />}
-                        Salvar Configurações
-                      </button>
+                      <div className="pt-8 border-t border-slate-100 flex flex-col sm:flex-row gap-4">
+                        <button 
+                          type="button"
+                          onClick={handleRestoreDefaults}
+                          className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-lg hover:bg-slate-200 transition-all flex items-center justify-center gap-3"
+                        >
+                          <RefreshCw size={24} />
+                          Restaurar Padrões
+                        </button>
+                        <button 
+                          type="submit"
+                          disabled={submitting}
+                          className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-50"
+                        >
+                          {submitting ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} />}
+                          Salvar Configurações
+                        </button>
+                      </div>
                     </form>
                   )}
                 </div>
@@ -3688,9 +3740,15 @@ function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredOptions = options.filter(opt => 
-    opt.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredOptions = (options || []).filter(opt => 
+    String(opt || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      console.log(`[SearchableSelect:${name}] Opened with ${options?.length || 0} options`);
+    }
+  }, [isOpen, options, name]);
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
