@@ -1,8 +1,9 @@
-const CACHE_NAME = 'siscop-v3';
+const CACHE_NAME = 'siscop-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
 ];
 
 self.addEventListener('install', (event) => {
