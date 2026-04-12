@@ -2604,7 +2604,7 @@ export default function App() {
                               <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
-                                className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-6 overflow-hidden"
+                                className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-6 relative z-[20]"
                               >
                                 <h3 className="font-bold text-orange-900 flex items-center gap-2">
                                   <div className="w-6 h-6 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs">3</div>
@@ -2658,7 +2658,7 @@ export default function App() {
                               <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
-                                className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-6 overflow-hidden"
+                                className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-6 relative z-[10]"
                               >
                                 <h3 className="font-bold text-slate-900 flex items-center gap-2">
                                   <div className="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">4</div>
@@ -2854,7 +2854,7 @@ export default function App() {
                           </div>
 
                           {/* Comandante Section */}
-                          <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-6">
+                          <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-6 relative z-[70]">
                             <h3 className="font-bold text-blue-900">Comandante da Viatura</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <div className="space-y-2">
@@ -2878,7 +2878,7 @@ export default function App() {
                           </div>
 
                           {/* Condutor Section */}
-                          <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100 space-y-6">
+                          <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100 space-y-6 relative z-[60]">
                             <div className="flex items-center justify-between">
                               <h3 className="font-bold text-emerald-900">Condutor</h3>
                               <label className="flex items-center gap-2 cursor-pointer group">
@@ -2949,7 +2949,7 @@ export default function App() {
                               <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
-                                className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-6 overflow-hidden"
+                                className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-6 relative z-[50]"
                               >
                                 <h3 className="font-bold text-orange-900">Patrulheiro 01</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2991,7 +2991,7 @@ export default function App() {
                               <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
-                                className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-6 overflow-hidden"
+                                className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-6 relative z-[40]"
                               >
                                 <h3 className="font-bold text-slate-900">Patrulheiro 02</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3033,7 +3033,7 @@ export default function App() {
                               <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
-                                className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-6 overflow-hidden"
+                                className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-6 relative z-[30]"
                               >
                                 <h3 className="font-bold text-orange-900">Patrulheiro 03</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3075,7 +3075,7 @@ export default function App() {
                               <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
-                                className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-6 overflow-hidden"
+                                className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-6 relative z-[20]"
                               >
                                 <h3 className="font-bold text-slate-900">Patrulheiro 04</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3117,7 +3117,7 @@ export default function App() {
                               <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
-                                className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-6 overflow-hidden"
+                                className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-6 relative z-[10]"
                               >
                                 <h3 className="font-bold text-orange-900">Patrulheiro 05</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3764,7 +3764,7 @@ function SearchableSelect({
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
           <div className="p-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
             <Search size={16} className="text-slate-400" />
             <input 
@@ -4505,7 +4505,7 @@ function CadChecking({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden border border-slate-200 my-auto"
+              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl flex flex-col border border-slate-200 my-auto"
             >
               {/* Modal Header */}
               <div className={`p-8 text-white relative overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
