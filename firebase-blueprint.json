@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "AtividadeLinha": {
+      "title": "Atividade Linha",
+      "description": "Registro de atividades de linha",
+      "type": "object",
+      "properties": {
+        "data": { "type": "string", "format": "date", "description": "Data da atividade" },
+        "funcao": { "type": "string", "description": "Função exercida" },
+        "graduacaoNomeMatricula": { "type": "string", "description": "Graduação, Nome e Matrícula" },
+        "tipoServico": { "type": "string", "enum": ["Ordinário", "PJES", "PE SEGURO"], "description": "Tipo de serviço" },
+        "telefone": { "type": "string", "description": "Telefone de contato" },
+        "cidade": { "type": "string", "description": "Cidade da atividade" },
+        "horario": { "type": "string", "description": "Horário da atividade" },
+        "permutaSubstituicao": { "type": "boolean", "description": "Houve permuta ou substituição?" },
+        "especificacaoEfetivo": { "type": "string", "description": "Especificação do efetivo" },
+        "noSei": { "type": "string", "description": "Número do SEI" },
+        "observacao": { "type": "string", "description": "Observações gerais" },
+        "adicionais": { "type": "string", "description": "Informações adicionais (Central)" },
+        "createdBy": { "type": "string", "description": "UID do usuário que criou o registro" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Data de criação" }
+      },
+      "required": ["data", "funcao", "graduacaoNomeMatricula", "tipoServico", "telefone", "cidade", "horario", "permutaSubstituicao", "especificacaoEfetivo", "noSei", "createdBy", "createdAt"]
+    },
+    "EfetivoViatura": {
+      "title": "Efetivo das Viaturas",
+      "description": "Registro do efetivo das viaturas",
+      "type": "object",
+      "properties": {
+        "data": { "type": "string", "format": "date", "description": "Data do registro" },
+        "chamada": { "type": "string", "enum": ["1ª Chamada", "2ª Chamada", "3ª Chamada", "Outros"], "description": "Tipo de chamada" },
+        "prefixo": { "type": "string", "description": "Prefixo da viatura" },
+        "patrimonio": { "type": "string", "description": "Patrimônio da viatura" },
+        "comandante": { "type": "string", "description": "Nome do comandante do condutor" },
+        "tipoServicoCmt": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro", "FECHA BATALHÃO"], "description": "Tipo de serviço do Cmt" },
+        "condutor": { "type": "string", "description": "Nome do condutor" },
+        "tipoServicoCondutor": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro", "FECHA BATALHÃO"], "description": "Tipo de serviço do Condutor" },
+        "hasPatrulheiro01": { "type": "boolean", "description": "Possui Patrulheiro 01?" },
+        "patrulheiro01": { "type": "string", "description": "Nome do Patrulheiro 01" },
+        "tipoServicoPatrulheiro01": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro", "FECHA BATALHÃO"], "description": "Tipo de serviço do Patrulheiro 01" },
+        "hasPatrulheiro02": { "type": "boolean", "description": "Possui Patrulheiro 02?" },
+        "patrulheiro02": { "type": "string", "description": "Nome do Patrulheiro 02" },
+        "tipoServicoPatrulheiro02": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro", "FECHA BATALHÃO"], "description": "Tipo de serviço do Patrulheiro 02" },
+        "hasPatrulheiro03": { "type": "boolean", "description": "Possui Patrulheiro 03?" },
+        "patrulheiro03": { "type": "string", "description": "Nome do Patrulheiro 03" },
+        "tipoServicoPatrulheiro03": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro", "FECHA BATALHÃO"], "description": "Tipo de serviço do Patrulheiro 03" },
+        "hasPatrulheiro04": { "type": "boolean", "description": "Possui Patrulheiro 04?" },
+        "patrulheiro04": { "type": "string", "description": "Nome do Patrulheiro 04" },
+        "tipoServicoPatrulheiro04": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro", "FECHA BATALHÃO"], "description": "Tipo de serviço do Patrulheiro 04" },
+        "hasPatrulheiro05": { "type": "boolean", "description": "Possui Patrulheiro 05?" },
+        "patrulheiro05": { "type": "string", "description": "Nome do Patrulheiro 05" },
+        "tipoServicoPatrulheiro05": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro", "FECHA BATALHÃO"], "description": "Tipo de serviço do Patrulheiro 05" },
+        "horarioEntrada": { "type": "string", "description": "Horário de Entrada" },
+        "horarioTermino": { "type": "string", "description": "Horário de Término" },
+        "cidade": { "type": "string", "description": "Cidade" },
+        "celularCmt": { "type": "string", "description": "Número do Celular do Cmt" },
+        "celularFuncional": { "type": "string", "description": "Número do Celular Funcional" },
+        "permuta": { "type": "boolean", "description": "Houve permuta?" },
+        "especificacaoEfetivo": { "type": "string", "description": "Especificação do Efetivo" },
+        "noSei": { "type": "string", "description": "Nº do SEI" },
+        "hsh": { "type": "string", "description": "HSH (Central)" },
+        "observacoes": { "type": "string", "description": "Observações" },
+        "createdBy": { "type": "string", "description": "UID do usuário que criou o registro" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Data de criação" }
+      },
+      "required": ["data", "chamada", "prefixo", "patrimonio", "comandante", "tipoServicoCmt", "condutor", "tipoServicoCondutor", "createdBy", "createdAt"]
+    },
+    "EfetivoMO": {
+      "title": "Efetivo das MO's",
+      "description": "Registro do efetivo das Motocicletas Operacionais",
+      "type": "object",
+      "properties": {
+        "data": { "type": "string", "format": "date", "description": "Data do registro" },
+        "chamada": { "type": "string", "enum": ["1ª Chamada", "2ª Chamada", "3ª Chamada", "Outros"], "description": "Tipo de chamada" },
+        "prefixo": { "type": "string", "description": "Prefixo da MO" },
+        "cmtR1": { "type": "string", "description": "Comandante / R1" },
+        "r1Type": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro"], "description": "Tipo de serviço R1" },
+        "patrimonioR1": { "type": "string", "description": "Patrimônio da moto R1" },
+        "r2": { "type": "string", "description": "Policial R2" },
+        "r2Type": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro"], "description": "Tipo de serviço R2" },
+        "patrimonioR2": { "type": "string", "description": "Patrimônio da moto R2" },
+        "hasR3": { "type": "boolean", "description": "Possui R3?" },
+        "r3": { "type": "string", "description": "Policial R3" },
+        "r3Type": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro", "OP São João"], "description": "Tipo de serviço R3" },
+        "patrimonioR3": { "type": "string", "description": "Patrimônio da moto R3" },
+        "hasR4": { "type": "boolean", "description": "Possui R4?" },
+        "r4": { "type": "string", "description": "Policial R4" },
+        "r4Type": { "type": "string", "enum": ["Ordinário", "PJES", "PE Seguro"], "description": "Tipo de serviço R4" },
+        "patrimonioR4": { "type": "string", "description": "Patrimônio da moto R4" },
+        "celularCmt": { "type": "string", "description": "Número do Celular do Cmt" },
+        "celularFuncional": { "type": "string", "description": "Número do Celular Funcional" },
+        "horarioEntrada": { "type": "string", "description": "Horário de Entrada" },
+        "horarioTermino": { "type": "string", "description": "Horário de Término" },
+        "cidade": { "type": "string", "description": "Cidade" },
+        "permuta": { "type": "boolean", "description": "Houve permuta?" },
+        "especificacaoEfetivo": { "type": "string", "description": "Especificação do Efetivo" },
+        "noSei": { "type": "string", "description": "Nº do SEI" },
+        "observacoes": { "type": "string", "description": "Observações" },
+        "hsh": { "type": "string", "description": "HSH (Central)" },
+        "createdBy": { "type": "string", "description": "UID do usuário que criou o registro" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Data de criação" }
+      },
+      "required": ["data", "chamada", "prefixo", "cmtR1", "r1Type", "patrimonioR1", "createdBy", "createdAt"]
+    },
+    "Settings": {
+      "title": "Configurações do Sistema",
+      "description": "Listas de pessoal, viaturas e outras configurações",
+      "type": "object",
+      "properties": {
+        "personnelList": { "type": "array", "items": { "type": "string" } },
+        "prefixoVtList": { "type": "array", "items": { "type": "string" } },
+        "patrimonioVtList": { "type": "array", "items": { "type": "string" } },
+        "moList": { "type": "array", "items": { "type": "string" } },
+        "patrimonioMoList": { "type": "array", "items": { "type": "string" } },
+        "cityList": { "type": "array", "items": { "type": "string" } },
+        "funcaoLinhaList": { "type": "array", "items": { "type": "string" } },
+        "horarioLinhaList": { "type": "array", "items": { "type": "string" } },
+        "tipoServicoList": { "type": "array", "items": { "type": "string" } },
+        "tipoServicoVtList": { "type": "array", "items": { "type": "string" } },
+        "adminList": { "type": "array", "items": { "type": "string" }, "description": "Lista de e-mails dos administradores" },
+        "authorizedList": { "type": "array", "items": { "type": "string" }, "description": "Lista de e-mails dos usuários autorizados a visualizar dados" }
+      }
+    },
+    "Vehicle": {
+      "title": "Viatura (CadChecking)",
+      "description": "Cadastro de viatura para o sistema CadChecking",
+      "type": "object",
+      "properties": {
+        "plate": { "type": "string", "description": "Placa da viatura" },
+        "model": { "type": "string", "description": "Modelo da viatura" },
+        "prefix": { "type": "string", "description": "Patrimônio/Prefixo" },
+        "status": { "type": "string", "enum": ["available", "in_use", "maintenance"], "description": "Status atual" },
+        "lastMileage": { "type": "number", "description": "Última quilometragem registrada" },
+        "currentDriver": { "type": "string", "description": "Motorista atual (se em uso)" },
+        "currentDriverEmail": { "type": "string", "description": "E-mail do motorista atual" }
+      },
+      "required": ["plate", "model", "prefix", "status", "lastMileage"]
+    },
+    "Checklist": {
+      "title": "Registro de Checklist (CadChecking)",
+      "description": "Registro de check-in/check-out de viaturas",
+      "type": "object",
+      "properties": {
+        "vehicleId": { "type": "string", "description": "ID da viatura (placa)" },
+        "type": { "type": "string", "enum": ["check-out", "check-in", "maintenance-in", "maintenance-out"], "description": "Tipo de registro" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Data e hora do registro" },
+        "userEmail": { "type": "string", "description": "E-mail do operador" },
+        "userName": { "type": "string", "description": "Nome do operador" },
+        "identification": {
+          "type": "object",
+          "properties": {
+            "prefix": { "type": "string" },
+            "operationalPrefix": { "type": "string" },
+            "plate": { "type": "string" },
+            "model": { "type": "string" },
+            "date": { "type": "string" },
+            "time": { "type": "string" }
+          }
+        },
+        "drivers": {
+          "type": "object",
+          "properties": {
+            "driverName": { "type": "string" },
+            "serviceType": { "type": "string" }
+          }
+        },
+        "mileage": {
+          "type": "object",
+          "properties": {
+            "currentMileage": { "type": "number" },
+            "notes": { "type": "string" }
+          }
+        }
+      },
+      "required": ["vehicleId", "type", "timestamp", "userEmail", "identification", "drivers", "mileage"]
+    },
+    "User": {
+      "title": "Usuário",
+      "description": "Perfil de usuário e permissões",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "displayName": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/atividades_linha": {
+      "schema": "AtividadeLinha",
+      "description": "Coleção de registros de atividade linha"
+    },
+    "/efetivo_viaturas": {
+      "schema": "EfetivoViatura",
+      "description": "Coleção de registros de efetivo de viaturas"
+    },
+    "/efetivo_mos": {
+      "schema": "EfetivoMO",
+      "description": "Coleção de registros de efetivo de MOs"
+    },
+    "/settings": {
+      "schema": "Settings",
+      "description": "Configurações globais do sistema"
+    },
+    "/vehicles": {
+      "schema": "Vehicle",
+      "description": "Coleção de viaturas do CadChecking"
+    },
+    "/checklists": {
+      "schema": "Checklist",
+      "description": "Coleção de registros de uso (CadChecking)"
+    },
+    "/users": {
+      "schema": "User",
+      "description": "Coleção de perfis de usuários"
+    }
+  }
+}

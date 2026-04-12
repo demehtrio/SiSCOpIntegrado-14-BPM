@@ -1,0 +1,5 @@
+{
+  "name": "Sistema de Cadastramento Operacional Integrado",
+  "description": "Aplicativo para cadastramento de atividades de linha, efetivo de viaturas e MOs, com geração de relatórios em PDF.",
+  "requestFramePermissions": []
+}

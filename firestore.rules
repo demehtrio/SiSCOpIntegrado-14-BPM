@@ -1,0 +1,223 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: atividades_linha
+    // Fields: data, funcao, graduacaoNomeMatricula, tipoServico, telefone, cidade, horario, permutaSubstituicao, especificacaoEfetivo, noSei, observacao, adicionais, createdBy, createdAt
+    //
+    // Collection: efetivo_viaturas
+    // Fields: data, chamada, prefixo, patrimonio, comandante, tipoServicoCmt, celularCmt, condutor, tipoServicoCondutor, hasPatrulheiro01, patrulheiro01, tipoServicoPatrulheiro01, hasPatrulheiro02, patrulheiro02, tipoServicoPatrulheiro02, hasPatrulheiro03, patrulheiro03, tipoServicoPatrulheiro03, hasPatrulheiro04, patrulheiro04, tipoServicoPatrulheiro04, hasPatrulheiro05, patrulheiro05, tipoServicoPatrulheiro05, horarioEntrada, horarioTermino, cidade, celularFuncional, permuta, especificacaoEfetivo, noSei, hsh, createdBy, createdAt
+    //
+    // Collection: efetivo_mos
+    // Fields: data, chamada, prefixo, cmtR1, r1Type, patrimonioR1, r2, r2Type, patrimonioR2, hasR3, r3, r3Type, patrimonioR3, hasR4, r4, r4Type, patrimonioR4, celularCmt, celularFuncional, horarioEntrada, horarioTermino, cidade, permuta, especificacaoEfetivo, noSei, hsh, createdBy, createdAt
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.createdBy;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == "demetriomarques@gmail.com" && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isAuthorized() {
+      return isAuthenticated() && request.auth.token.email_verified == true;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidString(field, maxLen) {
+      return request.resource.data[field] is string && request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, maxLen) {
+      return !(field in request.resource.data) || (request.resource.data[field] is string && request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidOptionalBool(field) {
+      return !(field in request.resource.data) || (request.resource.data[field] is bool);
+    }
+
+    function isValidVehicle(data) {
+      return hasRequiredFields(['plate', 'model', 'prefix', 'status', 'lastMileage']) &&
+             data.plate is string && data.plate.size() > 0 && data.plate.size() < 20 &&
+             data.model is string && data.model.size() > 0 && data.model.size() < 100 &&
+             data.prefix is string && data.prefix.size() > 0 && data.prefix.size() < 50 &&
+             data.status in ['available', 'in_use', 'maintenance'] &&
+             data.lastMileage is number && data.lastMileage >= 0;
+    }
+
+    function isValidChecklist(data) {
+      return hasRequiredFields(['vehicleId', 'type', 'timestamp', 'userEmail', 'identification', 'drivers', 'mileage']) &&
+             data.vehicleId is string &&
+             data.type in ['check-out', 'check-in', 'maintenance-in', 'maintenance-out'] &&
+             data.userEmail == request.auth.token.email &&
+             data.identification is map &&
+             data.drivers is map &&
+             data.mileage is map &&
+             (data.mileage.currentMileage is number || data.mileage.currentMileage == '');
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['email', 'role']) &&
+             data.email is string &&
+             data.email == request.auth.token.email &&
+             data.role in ['admin', 'user'];
+    }
+
+    function isValidAtividadeLinha(data) {
+      return hasRequiredFields(['data', 'funcao', 'graduacaoNomeMatricula', 'tipoServico', 'telefone', 'cidade', 'horario', 'permutaSubstituicao', 'especificacaoEfetivo', 'noSei', 'createdBy', 'createdAt']) &&
+             data.data is string &&
+             data.funcao is string && data.funcao.size() < 100 &&
+             data.graduacaoNomeMatricula is string && data.graduacaoNomeMatricula.size() < 200 &&
+             data.tipoServico is string &&
+             data.telefone is string && data.telefone.size() < 30 &&
+             data.cidade is string &&
+             data.horario is string &&
+             data.permutaSubstituicao is bool &&
+             data.especificacaoEfetivo is string && data.especificacaoEfetivo.size() < 1000 &&
+             data.noSei is string && data.noSei.size() < 100 &&
+             isValidOptionalString('observacao', 2000) &&
+             isValidOptionalString('adicionais', 1000);
+    }
+
+    function isValidEfetivoViatura(data) {
+      return hasRequiredFields(['data', 'chamada', 'prefixo', 'patrimonio', 'comandante', 'tipoServicoCmt', 'condutor', 'tipoServicoCondutor', 'createdBy', 'createdAt']) &&
+             data.data is string &&
+             data.chamada is string &&
+             data.prefixo is string &&
+             data.patrimonio is string &&
+             data.comandante is string && data.comandante.size() < 200 &&
+             data.tipoServicoCmt is string &&
+             data.condutor is string && data.condutor.size() < 200 &&
+             data.tipoServicoCondutor is string &&
+             isValidOptionalString('horarioEntrada', 10) &&
+             isValidOptionalString('horarioTermino', 10) &&
+             isValidOptionalString('cidade', 100) &&
+             isValidOptionalString('celularCmt', 30) &&
+             isValidOptionalString('celularFuncional', 30) &&
+             isValidOptionalString('especificacaoEfetivo', 1000) &&
+             isValidOptionalString('noSei', 100) &&
+             isValidOptionalString('hsh', 100) &&
+             isValidOptionalString('observacoes', 2000) &&
+             isValidOptionalBool('permuta') &&
+             isValidOptionalBool('hasPatrulheiro01') &&
+             isValidOptionalBool('hasPatrulheiro02') &&
+             isValidOptionalBool('hasPatrulheiro03') &&
+             isValidOptionalBool('hasPatrulheiro04') &&
+             isValidOptionalBool('hasPatrulheiro05');
+    }
+
+    function isValidEfetivoMO(data) {
+      return hasRequiredFields(['data', 'chamada', 'prefixo', 'cmtR1', 'r1Type', 'patrimonioR1', 'createdBy', 'createdAt']) &&
+             data.data is string &&
+             data.chamada is string &&
+             data.prefixo is string &&
+             data.cmtR1 is string && data.cmtR1.size() < 200 &&
+             data.r1Type is string &&
+             data.patrimonioR1 is string &&
+             isValidOptionalString('r2', 200) &&
+             isValidOptionalString('r2Type', 100) &&
+             isValidOptionalString('patrimonioR2', 100) &&
+             isValidOptionalString('horarioEntrada', 10) &&
+             isValidOptionalString('horarioTermino', 10) &&
+             isValidOptionalString('cidade', 100) &&
+             isValidOptionalString('celularCmt', 30) &&
+             isValidOptionalString('celularFuncional', 30) &&
+             isValidOptionalString('especificacaoEfetivo', 1000) &&
+             isValidOptionalString('noSei', 100) &&
+             isValidOptionalString('hsh', 100) &&
+             isValidOptionalString('observacoes', 2000) &&
+             isValidOptionalBool('permuta') &&
+             isValidOptionalBool('hasR3') &&
+             isValidOptionalBool('hasR4');
+    }
+
+    // Rules for collections
+    match /atividades_linha/{docId} {
+      allow read: if isAuthorized();
+      allow create: if isAuthorized() && isValidAtividadeLinha(request.resource.data) && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated() && (isDocOwner() || isAdmin()) && isValidAtividadeLinha(request.resource.data) && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isAuthenticated() && (isDocOwner() || isAdmin());
+    }
+
+    match /efetivo_viaturas/{docId} {
+      allow read: if isAuthorized();
+      allow create: if isAuthorized() && isValidEfetivoViatura(request.resource.data) && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated() && (isDocOwner() || isAdmin()) && isValidEfetivoViatura(request.resource.data) && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isAuthenticated() && (isDocOwner() || isAdmin());
+    }
+
+    match /efetivo_mos/{docId} {
+      allow read: if isAuthorized();
+      allow create: if isAuthorized() && isValidEfetivoMO(request.resource.data) && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated() && (isDocOwner() || isAdmin()) && isValidEfetivoMO(request.resource.data) && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isAuthenticated() && (isDocOwner() || isAdmin());
+    }
+
+    match /settings/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    match /vehicles/{docId} {
+      allow read: if isAuthorized();
+      allow create: if isAdmin() && isValidVehicle(request.resource.data);
+      allow update: if isAuthorized() && (
+        isAdmin() || 
+        (
+          // Non-admins can only update status and mileage during check-in/out
+          isValidVehicle(request.resource.data) &&
+          request.resource.data.plate == resource.data.plate &&
+          request.resource.data.model == resource.data.model &&
+          request.resource.data.prefix == resource.data.prefix
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /checklists/{docId} {
+      allow read: if isAuthorized() && (isAdmin() || (resource != null && resource.data.userEmail == request.auth.token.email));
+      allow create: if isAuthorized() && isValidChecklist(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthorized() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
+      allow update: if isAdmin() && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
