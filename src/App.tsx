@@ -101,6 +101,7 @@ import {
 
 // --- Constants ---
 const LOGO_14BPM_URL = "https://i.pinimg.com/originals/28/33/bd/2833bdc504f4fc4f3cb3c2817a664fc9.png";
+const LOGO_SISCOPI_URL = "https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png";
 const FALLBACK_LOGO = "https://cdn-icons-png.flaticon.com/512/1022/1022330.png";
 
 const removeWhiteBackground = (base64: string): Promise<string> => {
@@ -1837,7 +1838,7 @@ export default function App() {
   const handleSisCOpILogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
     const currentSrc = target.src;
-    const originalUrl = "https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png";
+    const originalUrl = LOGO_SISCOPI_URL;
     
     if (currentSrc.includes('wsrv.nl')) {
       target.src = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
@@ -1882,7 +1883,7 @@ export default function App() {
           <p className="text-slate-500 font-black text-xs uppercase tracking-widest mb-2">PMPE</p>
           <p className="text-slate-400 font-medium mb-2 text-[10px]">Batalhão Cel. PM Manoel de Souza Ferraz</p>
           <img 
-            src={`https://wsrv.nl/?url=${encodeURIComponent("https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png")}`} 
+            src={`https://wsrv.nl/?url=${encodeURIComponent(LOGO_SISCOPI_URL)}`} 
             alt="SisCOpI Logo" 
             className="h-10 w-auto object-contain mx-auto mb-8" 
             referrerPolicy="no-referrer"
@@ -2089,7 +2090,7 @@ export default function App() {
                 <span className="font-black text-xl tracking-tighter leading-none">14º BPM</span>
                 <span className="text-[10px] font-bold opacity-80 uppercase tracking-tighter">PMPE</span>
                 <img 
-                  src={`https://wsrv.nl/?url=${encodeURIComponent("https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png")}`} 
+                  src={`https://wsrv.nl/?url=${encodeURIComponent(LOGO_SISCOPI_URL)}`} 
                   alt="SisCOpI Logo" 
                   className="h-4 w-auto object-contain mt-0.5" 
                   referrerPolicy="no-referrer"
@@ -2196,7 +2197,7 @@ export default function App() {
               <span className="font-black text-lg tracking-tighter leading-none">14º BPM</span>
               <span className="text-[9px] font-bold opacity-80 uppercase">PMPE</span>
               <img 
-                src={`https://wsrv.nl/?url=${encodeURIComponent("https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png")}`} 
+                src={`https://wsrv.nl/?url=${encodeURIComponent(LOGO_SISCOPI_URL)}`} 
                 alt="SisCOpI Logo" 
                 className="h-3.5 w-auto object-contain mt-0.5" 
                 referrerPolicy="no-referrer"
@@ -2261,7 +2262,7 @@ export default function App() {
                       <div className="flex items-center justify-center gap-4">
                         <div className="h-px w-12 bg-slate-200"></div>
                         <img 
-                          src={`https://wsrv.nl/?url=${encodeURIComponent("https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png")}`} 
+                          src={`https://wsrv.nl/?url=${encodeURIComponent(LOGO_SISCOPI_URL)}`} 
                           alt="SisCOpI Logo" 
                           className="h-12 w-auto object-contain" 
                           referrerPolicy="no-referrer"
@@ -2318,7 +2319,7 @@ export default function App() {
                     title="Gestão de Serviços"
                     description="Acesso ao sistema externo de gestão de serviços (Base44)."
                     color="indigo"
-                    icon={<img src="https://i.pinimg.com/originals/f6/7c/d6/f67cd60fb3862f17be0f3c3a61281b11.png" alt="Brasão 14º BPM" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
+                    icon={<img src={LOGO_14BPM_URL} alt="Brasão 14º BPM" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
                     onClick={() => window.open('https://14-bpm.base44.app/AppLogin', '_blank')}
                   />
                   <DashboardCard 

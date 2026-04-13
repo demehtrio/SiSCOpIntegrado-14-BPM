@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siscop-v4';
+const CACHE_NAME = 'siscop-v6';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
