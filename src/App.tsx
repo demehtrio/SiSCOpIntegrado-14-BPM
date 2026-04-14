@@ -842,8 +842,11 @@ export default function App() {
 
   const handleResendWhatsApp = (record: RecordEntry) => {
     const message = formatWhatsAppMessage(record);
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const w = window.open(whatsappUrl, '_blank');
+    if (!w) {
+      window.location.assign(whatsappUrl);
+    }
   };
 
   const handleSaveCadcheckingRecord = async (skipWhatsApp = false) => {
@@ -892,8 +895,13 @@ export default function App() {
           timestamp: new Date()
         };
         const finalMessage = formatWhatsAppMessage(recordToFormat);
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(finalMessage)}`;
-        window.open(whatsappUrl, '_blank');
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
+        
+        // Use a more robust way to open WhatsApp, especially after async calls
+        const w = window.open(whatsappUrl, '_blank');
+        if (!w) {
+          window.location.assign(whatsappUrl);
+        }
       }
       // Reset form
       setSelectedVehicle(null);
