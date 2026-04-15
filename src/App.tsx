@@ -444,6 +444,10 @@ export default function App() {
   const [cadcheckingSearchTerm, setCadcheckingSearchTerm] = useState('');
   const [cadcheckingStatusFilter, setCadcheckingStatusFilter] = useState<'all' | 'available' | 'in_use' | 'maintenance'>('all');
   const [cadcheckingHistoryFilter, setCadcheckingHistoryFilter] = useState<'all' | 'check-out' | 'check-in' | 'maintenance'>('all');
+  const [cadcheckingDateFilter, setCadcheckingDateFilter] = useState({
+    start: format(new Date(), 'yyyy-MM-dd'),
+    end: format(new Date(), 'yyyy-MM-dd')
+  });
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -910,6 +914,103 @@ export default function App() {
     } catch (err: any) {
       handleFirestoreError(err, OperationType.WRITE, 'checklists');
       addNotification("Erro ao salvar registro.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const generateCadcheckingHistoryPDF = async () => {
+    if (!user) return;
+    setSubmitting(true);
+    try {
+      const doc = new jsPDF();
+      const APP_BLUE_DARK = [30, 58, 138];
+      const APP_RED = [220, 38, 38];
+      
+      const logoPM = await loadImage(LOGO_14BPM_URL);
+      
+      // Header
+      doc.setFillColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
+      doc.rect(0, 0, 210, 40, 'F');
+      doc.setFillColor(APP_RED[0], APP_RED[1], APP_RED[2]);
+      doc.rect(0, 0, 210, 2, 'F');
+
+      if (logoPM) {
+        doc.addImage(logoPM, 'PNG', 11, 6, 28, 28);
+      }
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('14º BPM', 45, 15);
+      doc.setFontSize(9);
+      doc.text('SERRA TALHADA', 45, 20);
+      doc.setTextColor(APP_RED[0], APP_RED[1], APP_RED[2]);
+      doc.text('SisCOpI', 45, 25);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.text('RELATÓRIO DE HISTÓRICO - CADCHECKING', 45, 32);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      
+      const period = `Período: ${format(new Date(cadcheckingDateFilter.start + 'T00:00:00'), 'dd/MM/yyyy')} até ${format(new Date(cadcheckingDateFilter.end + 'T00:00:00'), 'dd/MM/yyyy')}`;
+      doc.text(period, 45, 37);
+
+      const tableData = cadcheckingHistory.filter((h: any) => {
+        const matchesType = cadcheckingHistoryFilter === 'all' || 
+                           (cadcheckingHistoryFilter === 'maintenance' ? h.type.includes('maintenance') : h.type === cadcheckingHistoryFilter);
+        const recordDate = h.timestamp?.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+        const start = new Date(cadcheckingDateFilter.start + 'T00:00:00');
+        const end = new Date(cadcheckingDateFilter.end + 'T23:59:59');
+        const matchesDate = recordDate >= start && recordDate <= end;
+        return matchesType && matchesDate;
+      }).map((record: any) => {
+        const date = record.timestamp?.toDate ? record.timestamp.toDate() : new Date(record.timestamp);
+        const typeLabel = record.type === 'check-in' ? 'SAÍDA' : 
+                         record.type === 'check-out' ? 'RETORNO' : 
+                         record.type.includes('maintenance') ? 'MANUTENÇÃO' : record.type;
+        
+        return [
+          format(date, 'dd/MM/yy HH:mm'),
+          record.identification.prefix,
+          record.identification.plate,
+          typeLabel,
+          record.drivers.driverName || '---',
+          `${record.mileage.currentMileage} km`
+        ];
+      });
+
+      if (typeof (doc as any).autoTable === 'function') {
+        (doc as any).autoTable({
+          startY: 50,
+          head: [['Data/Hora', 'Prefixo', 'Placa', 'Tipo', 'Motorista', 'KM']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: { fillColor: APP_BLUE_DARK, textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 8, cellPadding: 2 },
+          alternateRowStyles: { fillColor: [245, 247, 250] },
+          margin: { left: 10, right: 10 }
+        });
+      }
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Página ${i} de ${pageCount}`, 105, 285, { align: 'center' });
+        doc.text('14º BPM - POLÍCIA MILITAR DE PERNAMBUCO | CadChecking', 10, 285);
+      }
+
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      setPdfPreviewUrl(url);
+      setShowPdfPreview(true);
+    } catch (error) {
+      console.error("Error generating history PDF:", error);
+      addNotification("Erro ao gerar o PDF do histórico.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -3558,6 +3659,9 @@ export default function App() {
                   formData={cadcheckingFormData}
                   setFormData={setCadcheckingFormData}
                   submitting={submitting}
+                  dateFilter={cadcheckingDateFilter}
+                  setDateFilter={setCadcheckingDateFilter}
+                  onGeneratePDF={generateCadcheckingHistoryPDF}
                   currentTab={currentCadcheckingTab}
                   setCurrentTab={setCurrentCadcheckingTab}
                   personnelList={personnelList}
@@ -4118,6 +4222,9 @@ function CadChecking({
   formData,
   setFormData,
   submitting,
+  dateFilter,
+  setDateFilter,
+  onGeneratePDF,
   maintenanceModal,
   setMaintenanceModal,
   currentTab,
@@ -4154,10 +4261,18 @@ function CadChecking({
   console.log(`[CadChecking] Filtered to ${filteredVehicles.length} vehicles (Search: "${searchTerm}", Status: "${statusFilter}")`);
 
   const filteredHistory = React.useMemo(() => history.filter((h: any) => {
-    if (historyFilter === 'all') return true;
-    if (historyFilter === 'maintenance') return h.type.includes('maintenance');
-    return h.type === historyFilter;
-  }), [history, historyFilter]);
+    // Type filter
+    const matchesType = historyFilter === 'all' || 
+                       (historyFilter === 'maintenance' ? h.type.includes('maintenance') : h.type === historyFilter);
+    
+    // Date filter
+    const recordDate = h.timestamp?.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+    const start = new Date(dateFilter.start + 'T00:00:00');
+    const end = new Date(dateFilter.end + 'T23:59:59');
+    const matchesDate = recordDate >= start && recordDate <= end;
+
+    return matchesType && matchesDate;
+  }), [history, historyFilter, dateFilter]);
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">
@@ -4287,16 +4402,51 @@ function CadChecking({
             className="space-y-6"
           >
             {/* History Filters */}
-            <div className="flex flex-wrap gap-2 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-              {['all', 'check-in', 'check-out', 'maintenance'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setHistoryFilter(f as any)}
-                  className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${historyFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+            <div className="flex flex-col lg:flex-row gap-4 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+              <div className="flex-1 space-y-4">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Filtrar por Tipo</label>
+                <div className="flex flex-wrap gap-2">
+                  {['all', 'check-in', 'check-out', 'maintenance'].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setHistoryFilter(f as any)}
+                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${historyFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                    >
+                      {f === 'all' ? 'Todos' : f === 'check-in' ? 'Saídas' : f === 'check-out' ? 'Retornos' : 'Manutenção'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-4">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Filtrar por Período</label>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="date"
+                    value={dateFilter.start}
+                    onChange={(e) => setDateFilter({...dateFilter, start: e.target.value})}
+                    className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-sm"
+                  />
+                  <span className="text-slate-400 font-bold">até</span>
+                  <input 
+                    type="date"
+                    value={dateFilter.end}
+                    onChange={(e) => setDateFilter({...dateFilter, end: e.target.value})}
+                    className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-end">
+                <button 
+                  onClick={onGeneratePDF}
+                  disabled={submitting}
+                  className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                 >
-                  {f === 'all' ? 'Todos' : f === 'check-in' ? 'Saídas (Check-in)' : f === 'check-out' ? 'Retornos (Check-out)' : 'Manutenção'}
+                  <FileText size={20} />
+                  Gerar PDF
                 </button>
-              ))}
+              </div>
             </div>
 
             {/* History List */}
