@@ -3553,37 +3553,11 @@ export default function App() {
                   setMaintenanceModal={setMaintenanceModal}
                   onSaveRecord={handleSaveCadcheckingRecord}
                   onResendWhatsApp={handleResendWhatsApp}
-                  onEditVehicle={(v: any) => {
-                    setEditingVehicle(v);
-                    setVehicleForm({
-                      prefix: v.prefix,
-                      plate: v.plate,
-                      model: v.model,
-                      status: v.status,
-                      lastMileage: v.lastMileage
-                    });
-                    setIsVehicleModalOpen(true);
-                  }}
-                  onDeleteVehicle={handleDeleteVehicle}
                   onBootstrap={bootstrapVehicles}
                   isSyncing={isSyncing}
                   formData={cadcheckingFormData}
                   setFormData={setCadcheckingFormData}
                   submitting={submitting}
-                  adminUsers={adminUsers}
-                  onAddAdmin={handleAddAdmin}
-                  onRemoveAdmin={handleRemoveAdmin}
-                  isUserModalOpen={isUserModalOpen}
-                  setIsUserModalOpen={setIsUserModalOpen}
-                  newUserEmail={newUserEmail}
-                  setNewUserEmail={setNewUserEmail}
-                  isVehicleModalOpen={isVehicleModalOpen}
-                  setIsVehicleModalOpen={setIsVehicleModalOpen}
-                  vehicleForm={vehicleForm}
-                  setVehicleForm={setVehicleForm}
-                  onSaveVehicle={handleSaveVehicle}
-                  editingVehicle={editingVehicle}
-                  setEditingVehicle={setEditingVehicle}
                   currentTab={currentCadcheckingTab}
                   setCurrentTab={setCurrentCadcheckingTab}
                   personnelList={personnelList}
@@ -4139,27 +4113,11 @@ function CadChecking({
   onToggleMaintenance,
   onSaveRecord,
   onResendWhatsApp,
-  onEditVehicle,
-  onDeleteVehicle,
   onBootstrap,
   isSyncing,
   formData,
   setFormData,
   submitting,
-  adminUsers,
-  onAddAdmin,
-  onRemoveAdmin,
-  isUserModalOpen,
-  setIsUserModalOpen,
-  newUserEmail,
-  setNewUserEmail,
-  isVehicleModalOpen,
-  setIsVehicleModalOpen,
-  vehicleForm,
-  setVehicleForm,
-  onSaveVehicle,
-  editingVehicle,
-  setEditingVehicle,
   maintenanceModal,
   setMaintenanceModal,
   currentTab,
@@ -4235,11 +4193,13 @@ function CadChecking({
           </button>
           {isAdmin && (
             <button 
-              onClick={() => setView('admin')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${view === 'admin' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              onClick={() => onBootstrap(true)}
+              disabled={isSyncing}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 active:scale-95 ml-2"
             >
-              <ShieldCheck size={18} />
-              Painel
+              <RefreshCw className={isSyncing ? "animate-spin" : ""} size={16} />
+              <span className="hidden sm:inline">Sincronizar Frota</span>
+              <span className="sm:hidden">Sincronizar</span>
             </button>
           )}
         </div>
@@ -4303,8 +4263,6 @@ function CadChecking({
                   currentUserEmail={user?.email}
                   onStartRecord={onStartRecord}
                   onToggleMaintenance={onToggleMaintenance}
-                  onEdit={onEditVehicle}
-                  onDelete={onDeleteVehicle}
                 />
               ))}
               {filteredVehicles.length === 0 && (
@@ -4362,146 +4320,6 @@ function CadChecking({
                 </div>
               )}
             </div>
-          </motion.div>
-        )}
-
-        {view === 'admin' && isAdmin && (
-          <motion.div 
-            key="admin"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-8"
-          >
-            {/* Fleet Management */}
-            <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                    <Truck className="text-blue-600" size={24} />
-                    Gestão da Frota
-                  </h3>
-                  <p className="text-slate-500 text-sm font-medium">Cadastre e gerencie as viaturas da unidade.</p>
-                </div>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => onBootstrap(true)}
-                    disabled={isSyncing}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all disabled:opacity-50"
-                  >
-                    <RefreshCw className={isSyncing ? "animate-spin" : ""} size={18} />
-                    Sincronizar Frota
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setEditingVehicle(null);
-                      setVehicleForm({ prefix: '', plate: '', model: '', status: 'available', lastMileage: 0 });
-                      setIsVehicleModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
-                  >
-                    <Plus size={20} />
-                    Nova Viatura
-                  </button>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-separate border-spacing-y-2">
-                  <thead>
-                    <tr className="text-slate-400 text-xs font-black uppercase tracking-widest">
-                      <th className="px-4 py-2">Patrimônio</th>
-                      <th className="px-4 py-2">Placa</th>
-                      <th className="px-4 py-2">Modelo</th>
-                      <th className="px-4 py-2">Status</th>
-                      <th className="px-4 py-2">Última KM</th>
-                      <th className="px-4 py-2 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vehicles.map((v: any) => (
-                      <tr key={v.id} className="bg-slate-50/50 hover:bg-slate-50 transition-colors group">
-                        <td className="px-4 py-4 rounded-l-2xl">
-                          <span className="text-xs font-black text-blue-700 bg-blue-50 border border-blue-100 px-2 py-1 rounded-md uppercase tracking-wider">
-                            {v.prefix}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 font-mono font-bold text-blue-600">{v.plate}</td>
-                        <td className="px-4 py-4 text-slate-600 font-medium">{v.model}</td>
-                        <td className="px-4 py-4">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            v.status === 'available' ? 'bg-emerald-100 text-emerald-700' :
-                            v.status === 'in_use' ? 'bg-blue-100 text-blue-700' :
-                            'bg-amber-100 text-amber-700'
-                          }`}>
-                            {v.status === 'available' ? 'Disponível' : v.status === 'in_use' ? 'Em Uso' : 'Manutenção'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 font-mono font-bold text-slate-500">{v.lastMileage} km</td>
-                        <td className="px-4 py-4 rounded-r-2xl text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button 
-                              onClick={() => onEditVehicle(v)}
-                              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                            <button 
-                              onClick={() => onDeleteVehicle(v.id, v.plate)}
-                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* Admin Users Management */}
-            <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                    <ShieldCheck className="text-blue-600" size={24} />
-                    Administradores do Sistema
-                  </h3>
-                  <p className="text-slate-500 text-sm font-medium">Gerencie quem pode cadastrar viaturas e ver todo o histórico.</p>
-                </div>
-                <button 
-                  onClick={() => setIsUserModalOpen(true)}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
-                >
-                  <UserPlus size={20} />
-                  Adicionar Admin
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {adminUsers.filter((u: any) => u.role === 'admin').map((admin: any) => (
-                  <div key={admin.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-black">
-                        {admin.displayName?.[0] || admin.email[0].toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">{admin.displayName || 'Usuário'}</p>
-                        <p className="text-xs text-slate-500 truncate">{admin.email}</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => onRemoveAdmin(admin.id, admin.email)}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                    >
-                      <UserMinus size={18} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
           </motion.div>
         )}
       </AnimatePresence>
@@ -4706,167 +4524,58 @@ function CadChecking({
         )}
       </AnimatePresence>
 
-      {/* Vehicle Admin Modal */}
+      {/* Maintenance Observation Modal */}
       <AnimatePresence>
-        {isVehicleModalOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        {maintenanceModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
             >
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                  {editingVehicle ? 'Editar Viatura' : 'Nova Viatura'}
-                </h3>
-                <button onClick={() => setIsVehicleModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><X size={24} /></button>
-              </div>
-              <div className="p-8 space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Patrimônio</label>
-                    <SearchableSelect 
-                      name="prefix"
-                      defaultValue={vehicleForm.prefix}
-                      onChange={(val: string) => setVehicleForm({...vehicleForm, prefix: val})}
-                      options={[...patrimonioVtList, ...patrimonioMoList]}
-                      placeholder="Selecione o patrimônio"
-                      className="w-full"
-                    />
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-amber-50">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
+                    <Wrench size={24} />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Placa</label>
-                      <input 
-                        type="text"
-                        value={vehicleForm.plate}
-                        onChange={(e) => setVehicleForm({...vehicleForm, plate: e.target.value.toUpperCase()})}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono font-bold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Modelo / Marca</label>
-                      <input 
-                        type="text"
-                        value={vehicleForm.model}
-                        onChange={(e) => setVehicleForm({...vehicleForm, model: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
-                      />
-                    </div>
-                  </div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                    Baixar para Manutenção
+                  </h3>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Quilometragem Inicial</label>
-                  <input 
-                    type="number"
-                    value={vehicleForm.lastMileage}
-                    onChange={(e) => setVehicleForm({...vehicleForm, lastMileage: Number(e.target.value)})}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                <button onClick={() => setMaintenanceModal(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><X size={24} /></button>
+              </div>
+              <div className="p-8 space-y-6">
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Viatura</p>
+                  <p className="font-bold text-slate-700">{maintenanceModal.vehicle.prefix} - {maintenanceModal.vehicle.model} ({maintenanceModal.vehicle.plate})</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observação / Motivo da Baixa</label>
+                  <textarea 
+                    placeholder="Descreva o motivo da manutenção (ex: Troca de óleo, pneu furado, revisão...)"
+                    value={maintenanceModal.notes}
+                    onChange={(e) => setMaintenanceModal({...maintenanceModal, notes: e.target.value})}
+                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700 min-h-[120px]"
+                    autoFocus
                   />
                 </div>
-                <button 
-                  onClick={onSaveVehicle}
-                  className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 mt-4"
-                >
-                  Salvar Viatura
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
-        {/* Maintenance Observation Modal */}
-        <AnimatePresence>
-          {maintenanceModal && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
-              >
-                <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-amber-50">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-                      <Wrench size={24} />
-                    </div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                      Baixar para Manutenção
-                    </h3>
-                  </div>
-                  <button onClick={() => setMaintenanceModal(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><X size={24} /></button>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setMaintenanceModal(null)}
+                    className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={() => onToggleMaintenance(maintenanceModal.vehicle, maintenanceModal.notes)}
+                    className="flex-[2] py-4 bg-amber-600 text-white rounded-2xl font-bold hover:bg-amber-700 transition-all shadow-lg shadow-amber-100"
+                  >
+                    Confirmar Baixa
+                  </button>
                 </div>
-                <div className="p-8 space-y-6">
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Viatura</p>
-                    <p className="font-bold text-slate-700">{maintenanceModal.vehicle.prefix} - {maintenanceModal.vehicle.model} ({maintenanceModal.vehicle.plate})</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observação / Motivo da Baixa</label>
-                    <textarea 
-                      placeholder="Descreva o motivo da manutenção (ex: Troca de óleo, pneu furado, revisão...)"
-                      value={maintenanceModal.notes}
-                      onChange={(e) => setMaintenanceModal({...maintenanceModal, notes: e.target.value})}
-                      className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700 min-h-[120px]"
-                      autoFocus
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button 
-                      onClick={() => setMaintenanceModal(null)}
-                      className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
-                    >
-                      Cancelar
-                    </button>
-                    <button 
-                      onClick={() => onToggleMaintenance(maintenanceModal.vehicle, maintenanceModal.notes)}
-                      className="flex-[2] py-4 bg-amber-600 text-white rounded-2xl font-bold hover:bg-amber-700 transition-all shadow-lg shadow-amber-100"
-                    >
-                      Confirmar Baixa
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* User Admin Modal */}
-      <AnimatePresence>
-        {isUserModalOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
-            >
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Adicionar Administrador</h3>
-                <button onClick={() => setIsUserModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"><X size={24} /></button>
-              </div>
-              <div className="p-8 space-y-4">
-                <p className="text-slate-500 text-sm font-medium">O usuário deve ter feito login no sistema pelo menos uma vez para ser promovido a administrador.</p>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail do Usuário</label>
-                  <input 
-                    type="email"
-                    placeholder="exemplo@gmail.com"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
-                  />
-                </div>
-                <button 
-                  onClick={onAddAdmin}
-                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg mt-4"
-                >
-                  Promover a Administrador
-                </button>
               </div>
             </motion.div>
           </div>
@@ -4878,7 +4587,7 @@ function CadChecking({
 
 // --- CadChecking Sub-components ---
 
-function VehicleCard({ vehicle, isAdmin, currentUserEmail, onStartRecord, onToggleMaintenance, onEdit, onDelete }: any) {
+function VehicleCard({ vehicle, isAdmin, currentUserEmail, onStartRecord, onToggleMaintenance }: any) {
   const isAvailable = vehicle.status === 'available';
   const isInUse = vehicle.status === 'in_use';
   const isMaintenance = vehicle.status === 'maintenance';
