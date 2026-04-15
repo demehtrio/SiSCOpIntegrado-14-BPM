@@ -639,70 +639,61 @@ export default function App() {
     
     isBootstrapping.current = true;
     if (force) setIsSyncing(true);
-    console.log("[CadChecking] Starting bootstrap of 47 vehicles...");
     
-    const initialVehicles = [
-      { plate: 'SNZ8F51', model: 'CHEVROLET/S-10', prefix: '640150', status: 'available', lastMileage: 0 },
-      { plate: 'SNZ4C21', model: 'CHEVROLET/S-10', prefix: '640151', status: 'available', lastMileage: 0 },
-      { plate: 'SNZ4C61', model: 'CHEVROLET/S-10', prefix: '640152', status: 'available', lastMileage: 0 },
-      { plate: 'SOG4H29', model: 'CHEVROLET/S-10', prefix: '640153', status: 'available', lastMileage: 0 },
-      { plate: 'SOG4I59', model: 'CHEVROLET/S-10', prefix: '640154', status: 'available', lastMileage: 0 },
-      { plate: 'SOG4G99', model: 'CHEVROLET/S-10', prefix: '640155', status: 'available', lastMileage: 0 },
-      { plate: 'SOH6A98', model: 'CHEVROLET/S-10', prefix: '640156', status: 'available', lastMileage: 0 },
-      { plate: 'UHL2H45', model: 'HILLUX', prefix: '640161', status: 'available', lastMileage: 0 },
-      { plate: 'RZZ8G50', model: 'RENALT/DUSTER', prefix: '640135', status: 'available', lastMileage: 0 },
-      { plate: 'RZZ6G90', model: 'RENALT/DUSTER', prefix: '640136', status: 'available', lastMileage: 0 },
-      { plate: 'RZZ0F43', model: 'RENALT/DUSTER', prefix: '640137', status: 'available', lastMileage: 0 },
-      { plate: 'RZZ0F83', model: 'RENALT/DUSTER', prefix: '640138', status: 'available', lastMileage: 0 },
-      { plate: 'RZZ0G33', model: 'RENALT/DUSTER', prefix: '640139', status: 'available', lastMileage: 0 },
-      { plate: 'RZZ6E00', model: 'RENALT/DUSTER', prefix: '640140', status: 'available', lastMileage: 0 },
-      { plate: 'RZZ8H00', model: 'RENALT/DUSTER', prefix: '640141', status: 'available', lastMileage: 0 },
-      { plate: 'RZY4G58', model: 'RENALT/DUSTER', prefix: '640142', status: 'available', lastMileage: 0 },
-      { plate: 'RZZ2E03', model: 'RENALT/DUSTER', prefix: '640143', status: 'available', lastMileage: 0 },
-      { plate: 'RZY1G98', model: 'RENALT/DUSTER', prefix: '640157', status: 'available', lastMileage: 0 },
-      { plate: 'SNN5E90', model: 'RENALT/DUSTER', prefix: '1210097', status: 'available', lastMileage: 0 },
-      { plate: 'PBG5G37', model: 'FORD/RANGER', prefix: '64110', status: 'available', lastMileage: 0 },
-      { plate: 'QYV7F75', model: 'MMC/L200', prefix: '64107', status: 'available', lastMileage: 0 },
-      { plate: 'SNO0C99', model: 'VOLKSWAGENPOLO', prefix: '640144', status: 'available', lastMileage: 0 },
-      { plate: 'SOB5F10', model: 'FIAT/ARGO', prefix: '1210105', status: 'available', lastMileage: 0 },
-      { plate: 'SOA9C08', model: 'FIAT/ARGO', prefix: '1210153', status: 'available', lastMileage: 0 },
-      { plate: 'PFA5246', model: 'VOLKSWAGEN/VOLARE', prefix: '6489', status: 'available', lastMileage: 0 },
-      { plate: 'PCK8556', model: 'FIAT/DOBLO', prefix: '6491', status: 'available', lastMileage: 0 },
-      { plate: 'PDS6365', model: 'HONDA/XRE300', prefix: '6492', status: 'available', lastMileage: 0 },
-      { plate: 'PDS6435', model: 'HONDA/XRE300', prefix: '6493', status: 'available', lastMileage: 0 },
-      { plate: 'PDS6455', model: 'HONDA/XRE300', prefix: '6494', status: 'available', lastMileage: 0 },
-      { plate: 'PDS6475', model: 'HONDA/XRE300', prefix: '6495', status: 'available', lastMileage: 0 },
-      { plate: 'PDS6485', model: 'HONDA/XRE300', prefix: '6496', status: 'available', lastMileage: 0 },
-      { plate: 'PDS6845', model: 'HONDA/XRE300', prefix: '6497', status: 'available', lastMileage: 0 },
-      { plate: 'PEC8506', model: 'HONDA/XRE300', prefix: '6498', status: 'available', lastMileage: 0 },
-      { plate: 'PEC8526', model: 'HONDA/XRE300', prefix: '6499', status: 'available', lastMileage: 0 },
-      { plate: 'PEC8576', model: 'HONDA/XRE300', prefix: '64100', status: 'available', lastMileage: 0 },
-      { plate: 'PEC9726', model: 'HONDA/XRE300', prefix: '64103', status: 'available', lastMileage: 0 },
-      { plate: 'PEC9736', model: 'HONDA/XRE300', prefix: '64104', status: 'available', lastMileage: 0 },
-      { plate: 'PDS1785', model: 'HONDA/XRE300', prefix: '64105', status: 'available', lastMileage: 0 },
-      { plate: 'PDS1795', model: 'HONDA/XRE300', prefix: '64106', status: 'available', lastMileage: 0 },
-      { plate: 'SNR1I38', model: 'HONDA/XRE300', prefix: '640145', status: 'available', lastMileage: 0 },
-      { plate: 'SNR8D25', model: 'HONDA/XRE300', prefix: '640146', status: 'available', lastMileage: 0 },
-      { plate: 'SNR8A05', model: 'HONDA/XRE300', prefix: '640147', status: 'available', lastMileage: 0 },
-      { plate: 'SNT5I45', model: 'HONDA/XRE300', prefix: '640148', status: 'available', lastMileage: 0 },
-      { plate: 'SNT5I46', model: 'HONDA/XRE300', prefix: '640149', status: 'available', lastMileage: 0 },
-      { plate: 'SOJ6C78', model: 'HONDA/XRE300', prefix: '640158', status: 'available', lastMileage: 0 },
-      { plate: 'SOJ6D28', model: 'HONDA/XRE300', prefix: '640159', status: 'available', lastMileage: 0 },
-      { plate: 'SOJ6D78', model: 'HONDA/XRE300', prefix: '640160', status: 'available', lastMileage: 0 },
-    ];
+    const allPatrimonio = [...PATRIMONIO_VT_LIST, ...PATRIMONIO_LIST];
+    console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} vehicles from SisCOpI...`);
+    
     try {
-      for (const v of initialVehicles) {
-        const docRef = doc(db, 'vehicles', v.plate);
-        await setDoc(docRef, v);
+      for (const s of allPatrimonio) {
+        // Flexible parsing for "PREFIX - PLATE - MODEL"
+        // Standardize separators
+        const normalized = s.replace(/\s*-\s*/g, ' - ').replace(/\s*-\s*/, ' - ');
+        const parts = normalized.split(' - ').map(p => p.trim());
+        
+        if (parts.length >= 2) {
+          const prefix = parts[0];
+          const plate = parts[1];
+          const model = parts[2] || 'Viatura';
+          const vehicleId = plate.replace(/\s/g, '').toUpperCase();
+          
+          const docRef = doc(db, 'vehicles', vehicleId);
+          const snap = await getDoc(docRef);
+          
+          // Fix model name if it's HILUX or HILLUX
+          let correctedModel = model;
+          if (model.toUpperCase().includes('HILUX') || model.toUpperCase().includes('HILLUX')) {
+            correctedModel = 'TOYOTA/HILUX';
+          }
+
+          const vehicleData = {
+            prefix,
+            plate,
+            model: correctedModel,
+            status: 'available' as const,
+            lastMileage: 0
+          };
+
+          if (snap.exists()) {
+            // Update metadata but preserve status and mileage
+            await updateDoc(docRef, { 
+              prefix: vehicleData.prefix, 
+              model: vehicleData.model,
+              plate: vehicleData.plate
+            });
+          } else {
+            // Create new vehicle
+            await setDoc(docRef, { ...vehicleData, id: vehicleId });
+          }
+        }
       }
+      if (force) addNotification("Frota sincronizada com o SisCOpI!", "success");
     } catch (err) {
+      console.error("[CadChecking] Sync error:", err);
       handleFirestoreError(err, OperationType.WRITE, 'vehicles');
+      if (force) addNotification("Erro ao sincronizar frota.", "error");
     } finally {
+      setIsSyncing(false);
       isBootstrapping.current = false;
-      if (force) {
-        setIsSyncing(false);
-        addNotification("Frota sincronizada com sucesso!", "success");
-      }
     }
   };
 
