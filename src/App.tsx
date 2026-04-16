@@ -77,13 +77,24 @@ import {
   FileText,
   Pencil,
   ExternalLink,
-  Wrench
+  Wrench,
+  ChevronDown,
+  Sparkles,
+  Settings,
+  Lightbulb,
+  Camera,
+  MessageCircle,
+  ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+const APP_BLUE_DARK = [30, 58, 138];
+const logoPM = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Bras%C3%A3o_da_PMPE.svg/1200px-Bras%C3%A3o_da_PMPE.svg.png';
+
 import { 
   MO_LIST, 
   PERSONNEL_LIST, 
@@ -96,8 +107,13 @@ import {
   TIPO_SERVICO_LIST, 
   TIPO_SERVICO_VT_LIST,
   OPERATIONAL_PREFIXES,
-  CADCHECKING_SERVICE_TYPES
+  CADCHECKING_SERVICE_TYPES,
+  EQUIPAMENTOS_VTR,
+  PARTES_INTERNAS,
+  PARTES_EXTERNAS,
+  LUZES_TRASEIRAS
 } from './constants';
+import { parseChecklistDescription, extractLicensePlateFromImage } from './services/geminiService';
 
 // --- Constants ---
 const LOGO_14BPM_URL = "https://i.pinimg.com/originals/28/33/bd/2833bdc504f4fc4f3cb3c2817a664fc9.png";
@@ -277,6 +293,25 @@ interface RecordEntry {
     currentMileage: number | '';
     notes: string;
   };
+  checklist?: {
+    mapaDiario: 'SIM' | 'NÃO';
+    equipamentos: string[];
+    luzFarolAlto: string;
+    luzFarolBaixo: string;
+    luzLanterna: string;
+    luzFreioLanternaTraseira: string[];
+    luzPlaca: string;
+    pneus: string;
+    sistemaFreio: string;
+    oleoMotor: string;
+    proxTrocaOleoKm: string;
+    partesInternas: string[];
+    sistemaTracao: string;
+    partesExternas: string[];
+    limpeza: string;
+    descricaoAlteracoes: string;
+    fotos: string[];
+  };
 }
 
 // --- Error Handling ---
@@ -414,6 +449,133 @@ const LoadingOverlay = ({ isVisible }: { isVisible: boolean }) => (
   </AnimatePresence>
 );
 
+const SummaryItem = ({ label, value }: { label: string, value: string | string[] }) => (
+  <div className="flex flex-col gap-1 p-3 bg-blue-50 rounded-2xl border border-blue-100">
+    <span className="text-[9px] font-bold uppercase opacity-40 text-blue-600">{label}</span>
+    <span className="text-sm font-medium text-blue-900 truncate">
+      {Array.isArray(value) ? value.join(', ') : value || '---'}
+    </span>
+  </div>
+);
+
+const ChecklistSearchableSelect = ({ 
+  label, 
+  value, 
+  onChange, 
+  options, 
+  placeholder = "Selecione...", 
+  rightElement = null,
+  variant = 'default'
+}: { 
+  label: string, 
+  value: string, 
+  onChange: (val: string) => void, 
+  options: string[],
+  placeholder?: string,
+  rightElement?: React.ReactNode,
+  variant?: 'default' | 'dark' | 'blue'
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => 
+    opt.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getLabelStyles = () => {
+    if (variant === 'dark') return 'text-white/70';
+    if (variant === 'blue') return 'text-blue-600/60';
+    return 'opacity-50';
+  };
+
+  const getInputStyles = () => {
+    if (variant === 'dark') return 'bg-white/10 border-white/20 text-white focus:ring-white/20 placeholder:text-white/40';
+    if (variant === 'blue') return 'bg-white border-blue-200 text-blue-900 focus:ring-blue-500/20 placeholder:text-blue-400';
+    return 'bg-slate-50 border-slate-200 text-slate-900 focus:ring-blue-500/20';
+  };
+
+  const getIconStyles = () => {
+    if (variant === 'dark') return 'text-white';
+    return 'text-blue-600';
+  };
+
+  return (
+    <div className={`space-y-2 relative ${isOpen ? 'z-[100]' : 'z-10'}`} ref={containerRef}>
+      <div className="flex items-center justify-between">
+        <label className={`text-xs font-bold uppercase ${getLabelStyles()}`}>{label}</label>
+        {rightElement}
+      </div>
+      <div className="relative">
+        <input 
+          type="text"
+          className={`w-full p-3 pr-10 border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all font-medium ${getInputStyles()}`}
+          placeholder={placeholder}
+          value={isOpen ? searchTerm : value}
+          onChange={(e) => {
+            const val = e.target.value;
+            setSearchTerm(val);
+            onChange(val);
+            if (!isOpen) setIsOpen(true);
+          }}
+          onFocus={() => {
+            setIsOpen(true);
+            setSearchTerm(value);
+          }}
+        />
+        <div 
+          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform ${getIconStyles()} ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
+      </div>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 space-y-1 overflow-hidden"
+          >
+            <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
+              {filteredOptions.length > 0 ? (
+                filteredOptions.slice(0, 100).map((opt, i) => (
+                  <button
+                    key={`${opt}-${i}`}
+                    type="button"
+                    className="w-full text-left p-3 hover:bg-blue-50 rounded-xl text-sm transition-colors font-medium text-slate-700"
+                    onClick={() => {
+                      onChange(opt);
+                      setIsOpen(false);
+                      setSearchTerm("");
+                    }}
+                  >
+                    {opt}
+                  </button>
+                ))
+              ) : (
+                <p className="text-xs text-center py-6 text-slate-400 font-medium">Nenhum resultado encontrado</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -429,7 +591,7 @@ export default function App() {
     day: '2-digit'
   }).format(new Date()).split('/').reverse().join('-');
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'form' | 'history' | 'reports' | 'settings' | 'cadchecking'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'form' | 'history' | 'reports' | 'settings' | 'cadchecking' | 'checklist'>('dashboard');
   const [formType, setFormType] = useState<'linha' | 'viatura' | 'mo' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -438,6 +600,7 @@ export default function App() {
   // --- CadChecking State ---
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [cadcheckingHistory, setCadcheckingHistory] = useState<RecordEntry[]>([]);
+  const [standaloneHistory, setStandaloneHistory] = useState<any[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [operationType, setOperationType] = useState<'check-out' | 'check-in' | null>(null);
   const [cadcheckingView, setCadcheckingView] = useState<'list' | 'history' | 'admin'>('list');
@@ -465,7 +628,9 @@ export default function App() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, type: 'vehicle' | 'admin', label?: string } | null>(null);
   const [maintenanceModal, setMaintenanceModal] = useState<{ vehicle: Vehicle, notes: string } | null>(null);
   const [currentCadcheckingTab, setCurrentCadcheckingTab] = useState<number>(0);
-  const [cadcheckingFormData, setCadcheckingFormData] = useState({
+  const [isParsing, setIsParsing] = useState(false);
+  const [isExtractingPlate, setIsExtractingPlate] = useState(false);
+  const [cadcheckingFormData, setCadcheckingFormData] = useState<any>({
     identification: {
       prefix: '',
       operationalPrefix: '',
@@ -481,6 +646,25 @@ export default function App() {
     mileage: {
       currentMileage: '' as number | '',
       notes: ''
+    },
+    checklist: {
+      mapaDiario: 'SIM',
+      equipamentos: [],
+      luzFarolAlto: 'Todos funcionam',
+      luzFarolBaixo: 'Todos funcionam',
+      luzLanterna: 'Todos funcionam',
+      luzFreioLanternaTraseira: ['TODAS FUNCIONANDO'],
+      luzPlaca: 'Funciona',
+      pneus: 'Novo',
+      sistemaFreio: 'Freio funcionando',
+      oleoMotor: 'Nível Normal',
+      proxTrocaOleoKm: '',
+      partesInternas: ['SEM ALTERAÇÃO'],
+      sistemaTracao: 'Kit de tração em condições',
+      partesExternas: ['Sem Alteração'],
+      limpeza: 'SIM',
+      descricaoAlteracoes: '',
+      fotos: []
     }
   });
   const isBootstrapping = useRef(false);
@@ -499,6 +683,18 @@ export default function App() {
       setVehicles(vehicleList);
     }, (err) => {
       console.error("Error fetching vehicles:", err);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'standalone_checklists'), orderBy('timestamp', 'desc'), limit(50));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setStandaloneHistory(historyData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'standalone_checklists');
     });
     return () => unsubscribe();
   }, [user]);
@@ -818,7 +1014,7 @@ export default function App() {
         ` *Km inic:* ${record.mileage?.currentMileage || '---'}\n` +
         ` *Data:* ${dateFormatted}\n` +
         ` *Hora que armou:* ${record.identification?.time || '---'}\n` +
-        ` *Condutor/Mat:* ${driverFormatted}`
+        ` *Condutor/Mat:* ${driverFormatted}${record.checklist?.fotos?.length ? `\n *Fotos:* ${record.checklist.fotos.length} anexadas` : ''}`
       : ` *CHECK-OUT VIATURA (RETORNO)*\n` +
         ` *Pat:* ${record.identification?.prefix || '---'}\n` +
         ` *Placa:* ${record.identification?.plate || '---'}\n` +
@@ -828,11 +1024,182 @@ export default function App() {
         ` *Km final:* ${record.mileage?.currentMileage || '---'}\n` +
         ` *Data:* ${dateFormatted}\n` +
         ` *Hora que desarmou:* ${record.identification?.time || '---'}\n` +
-        ` *Condutor/Mat:* ${driverFormatted}`;
+        ` *Condutor/Mat:* ${driverFormatted}${record.checklist?.fotos?.length ? `\n *Fotos:* ${record.checklist.fotos.length} anexadas` : ''}`;
     
     return record.mileage.notes 
       ? `${messageBody}\n\n *Obs:* ${record.mileage.notes}`
       : messageBody;
+  };
+
+  const generateDetailedChecklistPDF = async (record: RecordEntry) => {
+    setSubmitting(true);
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Header
+      doc.setFillColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      if (logoPM) {
+        doc.addImage(logoPM, 'PNG', 10, 5, 25, 25);
+      }
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.text('14º BPM - SERRA TALHADA', pageWidth / 2, 22, { align: 'center' });
+      doc.text('POLÍCIA MILITAR DE PERNAMBUCO', pageWidth / 2, 28, { align: 'center' });
+      
+      const timestamp = record.timestamp?.toDate ? record.timestamp.toDate() : new Date(record.timestamp);
+      doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, pageWidth / 2, 35, { align: 'center' });
+
+      let currentY = 50;
+      const addSection = (title: string, data: [string, string][]) => {
+        if (currentY > 260) {
+          doc.addPage();
+          currentY = 20;
+        }
+        doc.setFontSize(12);
+        doc.setTextColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title.toUpperCase(), 14, currentY);
+        currentY += 5;
+        
+        (doc as any).autoTable({
+          startY: currentY,
+          head: [['Campo', 'Informação']],
+          body: data,
+          theme: 'striped',
+          headStyles: { fillColor: APP_BLUE_DARK },
+          styles: { fontSize: 9, cellPadding: 3 },
+          margin: { left: 14, right: 14 },
+          didDrawPage: (data: any) => {
+            currentY = data.cursor.y;
+          }
+        });
+        currentY = (doc as any).lastAutoTable.finalY + 15;
+      };
+
+      // Identificação
+      addSection('Identificação', [
+        ['Viatura', record.identification.prefix],
+        ['Placa', record.identification.plate],
+        ['Modelo', record.identification.model],
+        ['Prefixo Operacional', record.identification.operationalPrefix],
+        ['Data/Hora', `${format(timestamp, 'dd/MM/yyyy')} ${record.identification.time}`],
+        ['Tipo de Registro', record.type === 'check-in' ? 'SAÍDA' : 'RETORNO']
+      ]);
+
+      // Condutor
+      addSection('Responsável', [
+        ['Condutor', record.drivers.driverName],
+        ['Modalidade', record.drivers.serviceType],
+        ['Quilometragem', `${record.mileage.currentMileage} km`]
+      ]);
+
+      if (record.checklist) {
+        const c = record.checklist;
+        
+        // Estado Técnico
+        addSection('Estado Técnico', [
+          ['Mapa Diário', c.mapaDiario],
+          ['Limpeza', c.limpeza],
+          ['Equipamentos', c.equipamentos.join(', ') || 'Nenhum']
+        ]);
+
+        // Iluminação
+        addSection('Iluminação', [
+          ['Farol Alto', c.luzFarolAlto],
+          ['Farol Baixo', c.luzFarolBaixo],
+          ['Lanterna/Pisca', c.luzLanterna],
+          ['Luz de Placa', c.luzPlaca],
+          ['Luz de Freio/Traseira', c.luzFreioLanternaTraseira.join(', ')]
+        ]);
+
+        // Mecânica
+        addSection('Mecânica e Pneus', [
+          ['Pneus', c.pneus],
+          ['Sistema de Freio', c.sistemaFreio],
+          ['Óleo Motor', c.oleoMotor],
+          ['Próx. Troca Óleo', c.proxTrocaOleoKm ? `${c.proxTrocaOleoKm} km` : '---'],
+          ['Sistema de Tração', c.sistemaTracao || '---']
+        ]);
+
+        // Conservação
+        addSection('Conservação', [
+          ['Partes Internas', c.partesInternas.join(', ')],
+          ['Partes Externas', c.partesExternas.join(', ')]
+        ]);
+
+        // Observações
+        if (c.descricaoAlteracoes || record.mileage.notes) {
+          addSection('Observações', [
+            ['Alterações', c.descricaoAlteracoes || 'Sem alterações registradas.'],
+            ['Notas Adicionais', record.mileage.notes || '---']
+          ]);
+        }
+
+        // Fotos
+        if (c.fotos && c.fotos.length > 0) {
+          if (currentY > 200) {
+            doc.addPage();
+            currentY = 20;
+          }
+          
+          doc.setFontSize(12);
+          doc.setTextColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
+          doc.setFont('helvetica', 'bold');
+          doc.text('FOTOS ANEXADAS', 14, currentY);
+          currentY += 10;
+
+          const imgWidth = 80;
+          const imgHeight = 60;
+          const margin = 14;
+          const spacing = 10;
+
+          c.fotos.forEach((foto, index) => {
+            if (currentY + imgHeight > 280) {
+              doc.addPage();
+              currentY = 20;
+            }
+            const x = index % 2 === 0 ? margin : margin + imgWidth + spacing;
+            try {
+              const format = foto.includes('png') ? 'PNG' : 'JPEG';
+              doc.addImage(foto, format, x, currentY, imgWidth, imgHeight);
+            } catch (err) {
+              console.error("Error adding image to PDF:", err);
+            }
+            
+            if (index % 2 !== 0 || index === c.fotos.length - 1) {
+              currentY += imgHeight + spacing;
+            }
+          });
+        }
+      }
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Página ${i} de ${pageCount} - SisCOpI 14º BPM`, pageWidth / 2, 285, { align: 'center' });
+      }
+
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      setPdfPreviewUrl(url);
+      setShowPdfPreview(true);
+    } catch (error) {
+      console.error("Error generating detailed PDF:", error);
+      addNotification("Erro ao gerar o PDF detalhado.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleResendWhatsApp = (record: RecordEntry) => {
@@ -866,7 +1233,8 @@ export default function App() {
         userName: user.displayName || user.email?.split('@')[0],
         identification: cadcheckingFormData.identification,
         drivers: cadcheckingFormData.drivers,
-        mileage: cadcheckingFormData.mileage
+        mileage: cadcheckingFormData.mileage,
+        checklist: cadcheckingFormData.checklist
       });
       // Update vehicle status
       await updateDoc(doc(db, 'vehicles', selectedVehicle.id), {
@@ -905,6 +1273,50 @@ export default function App() {
     } catch (err: any) {
       handleFirestoreError(err, OperationType.WRITE, 'checklists');
       addNotification("Erro ao salvar registro.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveStandaloneChecklist = async (formData: any, skipWhatsApp = false) => {
+    if (!user) return;
+    
+    setSubmitting(true);
+    try {
+      // Add record to database
+      const docRef = await addDoc(collection(db, 'standalone_checklists'), {
+        ...formData,
+        timestamp: serverTimestamp(),
+        userEmail: user.email,
+        userName: user.displayName || user.email?.split('@')[0],
+      });
+      
+      addNotification("Checklist salvo com sucesso!", "success");
+
+      if (!skipWhatsApp) {
+        // Format WhatsApp Message
+        const recordToFormat: RecordEntry = {
+          ...formData,
+          id: docRef.id,
+          vehicleId: '', 
+          type: 'check-in', 
+          userEmail: user.email || '',
+          userName: user.displayName || '',
+          timestamp: new Date()
+        };
+        const finalMessage = formatWhatsAppMessage(recordToFormat);
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
+        
+        const w = window.open(whatsappUrl, '_blank');
+        if (!w) {
+          window.location.assign(whatsappUrl);
+        }
+      }
+      return true;
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.WRITE, 'standalone_checklists');
+      addNotification("Erro ao salvar checklist.", "error");
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -1026,6 +1438,75 @@ export default function App() {
   // Conditional form states
   const [hasR3, setHasR3] = useState(false);
   const [hasR4, setHasR4] = useState(false);
+
+  const handleAiParse = async (aiInput: string) => {
+    if (!aiInput.trim()) return;
+    setIsParsing(true);
+    try {
+      const parsed = await parseChecklistDescription(aiInput);
+      setCadcheckingFormData((prev: any) => ({
+        ...prev,
+        checklist: {
+          ...prev.checklist,
+          ...parsed
+        }
+      }));
+      addNotification("Checklist preenchido pela IA!", "success");
+    } catch (error) {
+      console.error("Error parsing with AI:", error);
+      addNotification("Erro ao processar com IA.", "error");
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleExtractPlate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsExtractingPlate(true);
+    try {
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const plate = await extractLicensePlateFromImage(base64String);
+      if (plate && plate !== 'NONE') {
+        const normalizedPlate = plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        
+        // Find vehicle
+        const vehicle = vehicles.find((v: any) => v.plate.replace(/[^A-Z0-9]/g, '').toUpperCase() === normalizedPlate);
+        
+        setCadcheckingFormData((prev: any) => ({ 
+          ...prev, 
+          identification: {
+            ...prev.identification,
+            plate: normalizedPlate,
+            prefix: vehicle?.prefix || prev.identification.prefix,
+            model: vehicle?.model || prev.identification.model
+          },
+          checklist: {
+            ...prev.checklist,
+            fotos: [...prev.checklist.fotos, base64String]
+          }
+        }));
+        
+        if (!vehicle) {
+          addNotification(`Placa ${normalizedPlate} identificada, mas não encontrada na frota.`, "info");
+        } else {
+          addNotification(`Viatura ${vehicle.prefix} identificada!`, "success");
+        }
+      } else {
+        addNotification("Não foi possível identificar a placa.", "error");
+      }
+    } catch (error) {
+      console.error("Error extracting plate:", error);
+      addNotification("Erro ao processar imagem.", "error");
+    } finally {
+      setIsExtractingPlate(false);
+    }
+  };
   const [hasPatrulheiro01, setHasPatrulheiro01] = useState(false);
   const [hasPatrulheiro02, setHasPatrulheiro02] = useState(false);
   const [hasPatrulheiro03, setHasPatrulheiro03] = useState(false);
@@ -2229,6 +2710,12 @@ export default function App() {
               icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
               label="CadChecking"
             />
+            <SidebarLink 
+              active={activeTab === 'checklist'} 
+              onClick={() => setActiveTab('checklist')}
+              icon={<ClipboardList size={20} />}
+              label="Checklist VTR"
+            />
             {isAdmin && (
               <SidebarLink 
                 active={activeTab === 'settings'} 
@@ -2278,6 +2765,7 @@ export default function App() {
             icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />} 
             label="CadChecking" 
           />
+          <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist" />
           {isAdmin && <MobileNavLink active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<SettingsIcon size={20} />} label="Ajustes" />}
         </nav>
 
@@ -2375,6 +2863,30 @@ export default function App() {
                   </div>
                 </header>
 
+                {/* Checklist Banner */}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-10 relative overflow-hidden bg-gradient-to-r from-red-600 to-red-800 rounded-[2.5rem] p-8 shadow-2xl shadow-red-200 group cursor-pointer"
+                  onClick={() => setActiveTab('checklist')}
+                >
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover:scale-110 transition-transform duration-700" />
+                  <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-6">
+                      <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-white shadow-inner">
+                        <ClipboardList size={40} />
+                      </div>
+                      <div className="text-center md:text-left">
+                        <h2 className="text-3xl font-black text-white tracking-tight mb-1">Checklist de Viaturas</h2>
+                        <p className="text-red-100 font-bold opacity-80">Realize a conferência completa da sua viatura agora</p>
+                      </div>
+                    </div>
+                    <button className="px-8 py-4 bg-white text-red-700 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl hover:bg-red-50 transition-all active:scale-95">
+                      Iniciar Conferência
+                    </button>
+                  </div>
+                </motion.div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <DashboardCard 
                     title="Atividade Linha"
@@ -2409,11 +2921,11 @@ export default function App() {
                     }}
                   />
                   <DashboardCard 
-                    title="Checklist"
-                    description="Acesso ao sistema externo de checklist de viaturas do 14º BPM."
+                    title="Checklist VTR"
+                    description="Sistema integrado de checklist de viaturas do 14º BPM."
                     color="red"
-                    icon={<img src="https://i.pinimg.com/originals/44/e4/8c/44e48c5ff461edb7623bab64bd898d8d.png" alt="Checklist" className="w-10 h-10 object-contain transition-transform group-hover:scale-110" referrerPolicy="no-referrer" />}
-                    onClick={() => window.open('https://checklist-14-bpm.vercel.app/', '_blank')}
+                    icon={<ClipboardList size={32} />}
+                    onClick={() => setActiveTab('checklist')}
                   />
                   <DashboardCard 
                     title="Gestão de Serviços"
@@ -3653,6 +4165,7 @@ export default function App() {
                   dateFilter={cadcheckingDateFilter}
                   setDateFilter={setCadcheckingDateFilter}
                   onGeneratePDF={generateCadcheckingHistoryPDF}
+                  onGenerateDetailedPDF={generateDetailedChecklistPDF}
                   currentTab={currentCadcheckingTab}
                   setCurrentTab={setCurrentCadcheckingTab}
                   personnelList={personnelList}
@@ -3660,6 +4173,37 @@ export default function App() {
                   moList={moList}
                   patrimonioVtList={patrimonioVtList}
                   patrimonioMoList={patrimonioMoList}
+                  isParsing={isParsing}
+                  isExtractingPlate={isExtractingPlate}
+                  onAiParse={handleAiParse}
+                  onExtractPlate={handleExtractPlate}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'checklist' && (
+              <motion.div 
+                key="checklist"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <ChecklistModule 
+                  user={user}
+                  vehicles={vehicles}
+                  personnelList={personnelList}
+                  prefixoVtList={prefixoVtList}
+                  moList={moList}
+                  patrimonioVtList={patrimonioVtList}
+                  patrimonioMoList={patrimonioMoList}
+                  isParsing={isParsing}
+                  isExtractingPlate={isExtractingPlate}
+                  onAiParse={handleAiParse}
+                  onExtractPlate={handleExtractPlate}
+                  onGenerateDetailedPDF={generateDetailedChecklistPDF}
+                  onResendWhatsApp={handleResendWhatsApp}
+                  onSaveStandalone={handleSaveStandaloneChecklist}
+                  history={standaloneHistory}
                 />
               </motion.div>
             )}
@@ -4186,6 +4730,709 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
   );
 }
 
+function ChecklistHistoryItem({ 
+  record, 
+  isExpanded, 
+  onToggle, 
+  onResendWhatsApp, 
+  onGenerateDetailedPDF 
+}: any) {
+  const timestamp = record.timestamp?.toDate ? record.timestamp.toDate() : new Date(record.timestamp);
+  
+  return (
+    <div className={`bg-white rounded-3xl border transition-all ${isExpanded ? 'border-red-200 shadow-xl shadow-red-50' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}>
+      <div 
+        onClick={onToggle}
+        className="p-6 cursor-pointer flex items-center justify-between"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
+            <ClipboardList size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className="font-black text-slate-900">{record.identification.prefix}</h4>
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[10px] font-bold font-mono">{record.identification.plate}</span>
+            </div>
+            <p className="text-xs text-slate-500 font-bold">
+              {format(timestamp, "dd/MM/yyyy HH:mm")} • {record.drivers.driverName}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <ChevronDown size={20} className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-t border-slate-50"
+          >
+            <div className="p-6 space-y-6 bg-slate-50/30">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-2xl border border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsável</p>
+                  <p className="text-sm font-bold text-slate-700">{record.drivers.driverName}</p>
+                  <p className="text-[10px] text-slate-500">{record.drivers.serviceType}</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl border border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Quilometragem</p>
+                  <p className="text-sm font-bold text-slate-700">{record.mileage.currentMileage} km</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl border border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Estado Geral</p>
+                  <p className="text-sm font-bold text-slate-700">{record.checklist.mapaDiario === 'SIM' ? '✅ Mapa OK' : '❌ Sem Mapa'}</p>
+                  <p className="text-[10px] text-slate-500">{record.checklist.limpeza === 'SIM' ? '✅ Limpa' : '❌ Suja'}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100">
+                <button 
+                  onClick={() => onGenerateDetailedPDF(record)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                >
+                  <FileText size={18} />
+                  Gerar PDF Detalhado
+                </button>
+                <button 
+                  onClick={() => onResendWhatsApp(record)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                >
+                  <MessageCircle size={18} />
+                  WhatsApp
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// --- Checklist Module Component ---
+function ChecklistModule({ 
+  user, 
+  vehicles, 
+  personnelList, 
+  prefixoVtList, 
+  moList, 
+  patrimonioVtList, 
+  patrimonioMoList,
+  isParsing,
+  isExtractingPlate,
+  onAiParse,
+  onExtractPlate,
+  onGenerateDetailedPDF,
+  onResendWhatsApp,
+  onSaveStandalone,
+  history
+}: any) {
+  const [view, setView] = useState<'list' | 'form'>('list');
+  const [currentTab, setCurrentTab] = useState(0);
+  const [aiInput, setAiInput] = useState('');
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const initialFormData = {
+    identification: {
+      prefix: '',
+      operationalPrefix: '',
+      plate: '',
+      model: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      time: format(new Date(), 'HH:mm'),
+    },
+    drivers: {
+      driverName: '',
+      serviceType: '',
+    },
+    mileage: {
+      currentMileage: '',
+      notes: ''
+    },
+    checklist: {
+      mapaDiario: 'SIM',
+      limpeza: 'SIM',
+      equipamentos: [],
+      luzFarolAlto: 'Todos funcionam',
+      luzFarolBaixo: 'Todos funcionam',
+      luzLanterna: 'Todos funcionam',
+      luzPlaca: 'Funciona',
+      luzFreioLanternaTraseira: [],
+      pneus: 'Todos em bom estado',
+      sistemaFreio: 'Normal',
+      oleoMotor: 'Nível normal',
+      proxTrocaOleoKm: '',
+      sistemaTracao: 'Normal',
+      partesInternas: [],
+      partesExternas: [],
+      descricaoAlteracoes: '',
+      fotos: []
+    }
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
+
+  const handleStartNew = () => {
+    setFormData(initialFormData);
+    setCurrentTab(0);
+    setView('form');
+  };
+
+  const handleSave = async (skipWhatsApp = false) => {
+    setSubmitting(true);
+    const success = await onSaveStandalone(formData, skipWhatsApp);
+    if (success) {
+      setView('list');
+    }
+    setSubmitting(false);
+  };
+
+  const handleAiParseLocal = async () => {
+    if (!aiInput.trim()) return;
+    const parsed = await onAiParse(aiInput);
+    if (parsed) {
+      setFormData(prev => ({
+        ...prev,
+        checklist: {
+          ...prev.checklist,
+          ...parsed
+        }
+      }));
+      setAiInput('');
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Checklist de Viaturas</h2>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-60">Sistema de Conferência 14º BPM</p>
+        </div>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setView(view === 'list' ? 'form' : 'list')}
+            className="px-6 py-3 bg-white text-slate-700 rounded-2xl font-bold shadow-lg border border-slate-100 hover:bg-slate-50 transition-all flex items-center gap-2"
+          >
+            {view === 'list' ? <Plus size={20} /> : <History size={20} />}
+            {view === 'list' ? 'Novo Checklist' : 'Ver Histórico'}
+          </button>
+        </div>
+      </div>
+
+      {view === 'list' ? (
+        <div className="space-y-6">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/50">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-black text-slate-900">Histórico Recente</h3>
+              <button 
+                onClick={handleStartNew}
+                className="p-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-100 flex items-center gap-2"
+              >
+                <Plus size={20} />
+                Novo Checklist
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {history.map((record: any) => (
+                <ChecklistHistoryItem 
+                  key={record.id}
+                  record={record}
+                  isExpanded={expandedHistoryId === record.id}
+                  onToggle={() => setExpandedHistoryId(expandedHistoryId === record.id ? null : record.id)}
+                  onResendWhatsApp={onResendWhatsApp}
+                  onGenerateDetailedPDF={onGenerateDetailedPDF}
+                />
+              ))}
+              {history.length === 0 && (
+                <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-[2.5rem]">
+                  <p className="text-slate-400 font-bold">Nenhum checklist encontrado.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden">
+          {/* Multi-step Form Header */}
+          <div className="bg-slate-50 p-8 border-b border-slate-100">
+            <div className="flex gap-2 mb-8 overflow-x-auto pb-2 custom-scrollbar">
+              {[
+                { icon: <Siren size={18} />, label: 'Identificação' },
+                { icon: <UserRound size={18} />, label: 'Responsável' },
+                { icon: <ShieldCheck size={18} />, label: 'Estado Técnico' },
+                { icon: <Lightbulb size={18} />, label: 'Iluminação' },
+                { icon: <Settings size={18} />, label: 'Mecânica' },
+                { icon: <ShieldAlert size={18} />, label: 'Conservação' },
+                { icon: <Camera size={18} />, label: 'Fotos' }
+              ].map((step, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentTab(idx)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    currentTab === idx 
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-100' 
+                    : 'bg-white text-slate-400 hover:text-slate-600 border border-slate-100'
+                  }`}
+                >
+                  {step.icon}
+                  {step.label}
+                </button>
+              ))}
+            </div>
+
+            {/* AI Assistant Section */}
+            <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm mb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">Assistente de Checklist IA</h4>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Descreva as alterações por voz ou texto</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  placeholder="Ex: Giroflex quebrado, pneu dianteiro careca..."
+                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                />
+                <button 
+                  onClick={handleAiParseLocal}
+                  disabled={isParsing || !aiInput.trim()}
+                  className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isParsing ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+                  Processar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8">
+            <div className="min-h-[400px]">
+              {currentTab === 0 && (
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Placa</label>
+                      <ChecklistSearchableSelect 
+                        label="Placa"
+                        value={formData.identification.plate}
+                        onChange={(val: string) => {
+                          const vehicle = vehicles.find((v: any) => v.plate === val);
+                          setFormData({
+                            ...formData, 
+                            identification: {
+                              ...formData.identification, 
+                              plate: val, 
+                              prefix: vehicle?.prefix || formData.identification.prefix,
+                              model: vehicle?.model || formData.identification.model
+                            }
+                          });
+                        }}
+                        options={vehicles.map((v: any) => v.plate)}
+                        placeholder="Selecione a placa..."
+                        variant="blue"
+                        rightElement={
+                          <label className="cursor-pointer flex items-center gap-1 text-[10px] font-bold uppercase text-blue-600 hover:text-red-500 transition-colors">
+                            {isExtractingPlate ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Camera className="w-3 h-3" />
+                            )}
+                            {isExtractingPlate ? 'Extraindo...' : 'Extrair da Foto'}
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              capture="environment"
+                              className="hidden" 
+                              onChange={onExtractPlate}
+                              disabled={isExtractingPlate}
+                            />
+                          </label>
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Viatura</label>
+                      <ChecklistSearchableSelect 
+                        label="Viatura"
+                        value={formData.identification.prefix}
+                        onChange={(val: string) => {
+                          const vehicle = vehicles.find((v: any) => v.prefix === val);
+                          setFormData({
+                            ...formData, 
+                            identification: {
+                              ...formData.identification, 
+                              prefix: val, 
+                              plate: vehicle?.plate || formData.identification.plate,
+                              model: vehicle?.model || formData.identification.model
+                            }
+                          });
+                        }}
+                        options={vehicles.map((v: any) => v.prefix)}
+                        placeholder="Selecione a viatura..."
+                        variant="blue"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Prefixo Operacional</label>
+                      <ChecklistSearchableSelect 
+                        label="Prefixo Operacional"
+                        value={formData.identification.operationalPrefix}
+                        onChange={(val: string) => setFormData({...formData, identification: {...formData.identification, operationalPrefix: val}})}
+                        options={[...prefixoVtList, ...moList]}
+                        placeholder="Selecione o Prefixo..."
+                        variant="blue"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                      <input 
+                        type="date"
+                        value={formData.identification.date}
+                        onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentTab === 1 && (
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Motorista / Matrícula</label>
+                    <ChecklistSearchableSelect 
+                      label="Motorista"
+                      value={formData.drivers.driverName}
+                      onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, driverName: val}})}
+                      options={personnelList}
+                      placeholder="Selecione o Motorista..."
+                      variant="blue"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Modalidade de Emprego</label>
+                    <select 
+                      value={formData.drivers.serviceType}
+                      onChange={(e) => setFormData({...formData, drivers: {...formData.drivers, serviceType: e.target.value}})}
+                      className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
+                    >
+                      <option value="">Selecione o Emprego...</option>
+                      {CADCHECKING_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentTab === 2 && (
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                      <label className="text-xs font-bold uppercase text-red-600">Mapa Diário</label>
+                      <div className="flex gap-2 mt-2">
+                        {['SIM', 'NÃO'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setFormData({...formData, checklist: {...formData.checklist, mapaDiario: opt}})}
+                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
+                              formData.checklist.mapaDiario === opt 
+                              ? 'bg-red-600 text-white border-transparent shadow-md' 
+                              : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                      <label className="text-xs font-bold uppercase text-red-600">Limpeza</label>
+                      <div className="flex gap-2 mt-2">
+                        {['SIM', 'NÃO'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setFormData({...formData, checklist: {...formData.checklist, limpeza: opt}})}
+                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
+                              formData.checklist.limpeza === opt 
+                              ? 'bg-red-600 text-white border-transparent shadow-md' 
+                              : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Equipamentos Presentes</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {EQUIPAMENTOS_VTR.map(eq => (
+                        <button
+                          key={eq}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.checklist.equipamentos;
+                            const next = current.includes(eq) ? current.filter((i: string) => i !== eq) : [...current, eq];
+                            setFormData({...formData, checklist: {...formData.checklist, equipamentos: next}});
+                          }}
+                          className={`p-3 rounded-xl text-xs text-left transition-all border ${
+                            formData.checklist.equipamentos.includes(eq) 
+                            ? 'bg-red-600 text-white border-transparent shadow-lg scale-[1.02]' 
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          {eq}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentTab === 3 && (
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {[
+                      { label: 'Farol Alto', field: 'luzFarolAlto' },
+                      { label: 'Farol Baixo', field: 'luzFarolBaixo' },
+                      { label: 'Lanterna/Pisca', field: 'luzLanterna' },
+                      { label: 'Luz de Placa', field: 'luzPlaca' }
+                    ].map(item => (
+                      <div key={item.field} className="space-y-2">
+                        <label className="text-xs font-bold uppercase text-slate-400">{item.label}</label>
+                        <select 
+                          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                          value={formData.checklist[item.field]}
+                          onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, [item.field]: e.target.value}})}
+                        >
+                          <option value="Todos funcionam">Todos funcionam</option>
+                          <option value="Direito queimado">Direito queimado</option>
+                          <option value="Esquerdo queimado">Esquerdo queimado</option>
+                          <option value="Todas queimados">Todas queimados</option>
+                          <option value="Funciona">Funciona</option>
+                          <option value="Queimada">Queimada</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Luz de Freio e Lanterna Traseira</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {LUZES_TRASEIRAS.map(item => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.checklist.luzFreioLanternaTraseira;
+                            const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                            setFormData({...formData, checklist: {...formData.checklist, luzFreioLanternaTraseira: next}});
+                          }}
+                          className={`p-3 rounded-xl text-xs text-left transition-all border ${
+                            formData.checklist.luzFreioLanternaTraseira.includes(item) 
+                            ? 'bg-red-600 text-white border-transparent shadow-md' 
+                            : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-red-200'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentTab === 4 && (
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-slate-400">Pneus</label>
+                      <select 
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                        value={formData.checklist.pneus}
+                        onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, pneus: e.target.value}})}
+                      >
+                        <option value="Novo">Novo</option>
+                        <option value="Meia vida">Meia vida</option>
+                        <option value="Inutilizável (Motivo de baixa)">Inutilizável (Motivo de baixa)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-slate-400">Sistema de Freio</label>
+                      <select 
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                        value={formData.checklist.sistemaFreio}
+                        onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, sistemaFreio: e.target.value}})}
+                      >
+                        <option value="Freio funcionando">Freio funcionando</option>
+                        <option value="Freio falhando">Freio falhando</option>
+                        <option value="Sem Freios (Motivo de baixa)">Sem Freios (Motivo de baixa)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-slate-400">Óleo Motor</label>
+                      <select 
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                        value={formData.checklist.oleoMotor}
+                        onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, oleoMotor: e.target.value}})}
+                      >
+                        <option value="Nível Normal">Nível Normal</option>
+                        <option value="Nível Baixo">Nível Baixo</option>
+                        <option value="Nível sem condições (Baixar VTR)">Nível sem condições (Baixar VTR)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-slate-400">Próx. Troca Óleo KM</label>
+                      <input 
+                        type="number"
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                        value={formData.checklist.proxTrocaOleoKm}
+                        onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, proxTrocaOleoKm: e.target.value}})}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentTab === 5 && (
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Partes Internas</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {PARTES_INTERNAS.map(item => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.checklist.partesInternas;
+                            const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                            setFormData({...formData, checklist: {...formData.checklist, partesInternas: next}});
+                          }}
+                          className={`p-3 rounded-xl text-xs text-left transition-all border ${
+                            formData.checklist.partesInternas.includes(item) 
+                            ? 'bg-red-600 text-white border-transparent shadow-md' 
+                            : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-red-200'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Partes Externas</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {PARTES_EXTERNAS.map(item => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.checklist.partesExternas;
+                            const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                            setFormData({...formData, checklist: {...formData.checklist, partesExternas: next}});
+                          }}
+                          className={`p-3 rounded-xl text-xs text-left transition-all border ${
+                            formData.checklist.partesExternas.includes(item) 
+                            ? 'bg-red-600 text-white border-transparent shadow-md' 
+                            : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-red-200'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentTab === 6 && (
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Quilometragem Atual</label>
+                    <input 
+                      type="number"
+                      placeholder="Digite a KM do painel..."
+                      value={formData.mileage.currentMileage}
+                      onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value}})}
+                      className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 focus:ring-red-500/20 outline-none font-black text-3xl text-slate-900 text-center"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observações Adicionais</label>
+                    <textarea 
+                      placeholder="Relate qualquer observação importante..."
+                      value={formData.mileage.notes}
+                      onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, notes: e.target.value}})}
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700 min-h-[120px]"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="flex gap-4 mt-10">
+              {currentTab > 0 && (
+                <button 
+                  onClick={() => setCurrentTab(currentTab - 1)}
+                  className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                >
+                  <ChevronLeft size={20} />
+                  Anterior
+                </button>
+              )}
+              {currentTab < 6 ? (
+                <button 
+                  onClick={() => setCurrentTab(currentTab + 1)}
+                  className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-xl"
+                >
+                  Próximo
+                  <ChevronRight size={20} />
+                </button>
+              ) : (
+                <div className="flex-[2] flex flex-col sm:flex-row gap-3">
+                  <button 
+                    onClick={() => handleSave(true)}
+                    disabled={submitting}
+                    className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                    Salvar
+                  </button>
+                  <button 
+                    onClick={() => handleSave(false)}
+                    disabled={submitting}
+                    className="flex-[2] py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-100 disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="animate-spin" size={20} /> : <MessageCircle size={20} />}
+                    Salvar e Enviar WhatsApp
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- CadChecking Component ---
 function CadChecking({ 
   user, 
@@ -4224,8 +5471,15 @@ function CadChecking({
   prefixoVtList,
   moList,
   patrimonioVtList,
-  patrimonioMoList
+  patrimonioMoList,
+  isParsing,
+  isExtractingPlate,
+  onAiParse,
+  onExtractPlate,
+  onGenerateDetailedPDF
 }: any) {
+  
+  const [aiInput, setAiInput] = useState('');
   
   console.log(`[CadChecking] Rendering with ${vehicles.length} total vehicles`);
   
@@ -4449,6 +5703,7 @@ function CadChecking({
                   isExpanded={expandedHistoryId === record.id}
                   onToggle={() => setExpandedHistoryId(expandedHistoryId === record.id ? null : record.id)}
                   onResendWhatsApp={onResendWhatsApp}
+                  onGenerateDetailedPDF={onGenerateDetailedPDF}
                 />
               ))}
               {filteredHistory.length === 0 && (
@@ -4497,122 +5752,494 @@ function CadChecking({
 
               {/* Modal Body - Multi-step Form */}
               <div className="p-8">
-                <div className="flex gap-2 mb-8 bg-slate-50 p-1.5 rounded-2xl">
-                  {[
-                    { icon: <Siren size={18} />, label: 'Identificação' },
-                    { icon: <UserRound size={18} />, label: 'Condutor' },
-                    { icon: <RefreshCw size={18} />, label: 'Quilometragem' }
-                  ].map((step, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentTab(idx)}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${currentTab === idx ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                      {step.icon}
-                      <span className="hidden sm:inline">{step.label}</span>
-                    </button>
-                  ))}
-                </div>
+                  {/* AI Assistant Section */}
+                  <section className="bg-blue-50/50 rounded-3xl p-6 mb-8 border border-blue-100">
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-blue-600" />
+                        <h2 className="font-bold text-sm text-blue-900 uppercase tracking-widest">Assistente de Preenchimento</h2>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-4 italic">
+                      Descreva o estado da viatura em linguagem natural e eu preencho o formulário para você.
+                    </p>
+                    <div className="relative">
+                      <textarea
+                        className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all min-h-[80px]"
+                        placeholder="Ex: Viatura 6491 está com o farol direito queimado, pneu meia vida e o rádio não funciona..."
+                        value={aiInput}
+                        onChange={(e) => setAiInput(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onAiParse(aiInput);
+                          setAiInput('');
+                        }}
+                        disabled={isParsing || !aiInput.trim()}
+                        className="absolute bottom-3 right-3 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-blue-700 disabled:opacity-50 transition-all shadow-md"
+                      >
+                        {isParsing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        {isParsing ? 'Analisando...' : 'Preencher com IA'}
+                      </button>
+                    </div>
+                  </section>
 
-                <div className="min-h-[300px]">
-                  {currentTab === 0 && (
-                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="flex gap-2 mb-8 bg-slate-50 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar">
+                    {[
+                      { icon: <Siren size={18} />, label: 'Identificação' },
+                      { icon: <UserRound size={18} />, label: 'Condutor' },
+                      { icon: <Settings size={18} />, label: 'Estado Técnico' },
+                      { icon: <Lightbulb size={18} />, label: 'Iluminação' },
+                      { icon: <Wrench size={18} />, label: 'Mecânica' },
+                      { icon: <Sparkles size={18} />, label: 'Conservação' },
+                      { icon: <RefreshCw size={18} />, label: 'Quilometragem' }
+                    ].map((step, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentTab(idx)}
+                        className={`flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${currentTab === idx ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        {step.icon}
+                        <span className="hidden sm:inline">{step.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="min-h-[400px]">
+                    {currentTab === 0 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Placa</label>
+                            <ChecklistSearchableSelect 
+                              label="Placa"
+                              value={formData.identification.plate}
+                              onChange={(val: string) => {
+                                const vehicle = vehicles.find((v: any) => v.plate === val);
+                                setFormData({
+                                  ...formData, 
+                                  identification: {
+                                    ...formData.identification, 
+                                    plate: val, 
+                                    prefix: vehicle?.prefix || formData.identification.prefix,
+                                    model: vehicle?.model || formData.identification.model
+                                  }
+                                });
+                              }}
+                              options={vehicles.map((v: any) => v.plate)}
+                              placeholder="Selecione a placa..."
+                              variant="blue"
+                              rightElement={
+                                <label className="cursor-pointer flex items-center gap-1 text-[10px] font-bold uppercase text-blue-600 hover:text-red-500 transition-colors">
+                                  {isExtractingPlate ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Camera className="w-3 h-3" />
+                                  )}
+                                  {isExtractingPlate ? 'Extraindo...' : 'Extrair da Foto'}
+                                  <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    capture="environment"
+                                    className="hidden" 
+                                    onChange={onExtractPlate}
+                                    disabled={isExtractingPlate}
+                                  />
+                                </label>
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Viatura</label>
+                            <ChecklistSearchableSelect 
+                              label="Viatura"
+                              value={formData.identification.prefix}
+                              onChange={(val: string) => {
+                                const vehicle = vehicles.find((v: any) => v.prefix === val);
+                                setFormData({
+                                  ...formData, 
+                                  identification: {
+                                    ...formData.identification, 
+                                    prefix: val, 
+                                    plate: vehicle?.plate || formData.identification.plate,
+                                    model: vehicle?.model || formData.identification.model
+                                  }
+                                });
+                              }}
+                              options={vehicles.map((v: any) => v.prefix)}
+                              placeholder="Selecione a viatura..."
+                              variant="blue"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Prefixo Operacional</label>
+                            <ChecklistSearchableSelect 
+                              label="Prefixo Operacional"
+                              value={formData.identification.operationalPrefix}
+                              onChange={(val: string) => setFormData({...formData, identification: {...formData.identification, operationalPrefix: val}})}
+                              options={[...prefixoVtList, ...moList]}
+                              placeholder="Selecione o Prefixo..."
+                              variant="blue"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                            <input 
+                              type="date"
+                              value={formData.identification.date}
+                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {currentTab === 1 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Prefixo Operacional</label>
-                          <SearchableSelect 
-                            name="operationalPrefix"
-                            defaultValue={formData.identification.operationalPrefix}
-                            onChange={(val: string) => setFormData({...formData, identification: {...formData.identification, operationalPrefix: val}})}
-                            options={[...prefixoVtList, ...moList]}
-                            placeholder="Selecione o Prefixo..."
-                            className="w-full"
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Motorista / Matrícula</label>
+                          <ChecklistSearchableSelect 
+                            label="Motorista"
+                            value={formData.drivers.driverName}
+                            onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, driverName: val}})}
+                            options={personnelList}
+                            placeholder="Selecione o Motorista..."
+                            variant="blue"
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                          <input 
-                            type="date"
-                            value={formData.identification.date}
-                            onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Modalidade de Emprego</label>
+                          <select 
+                            value={formData.drivers.serviceType}
+                            onChange={(e) => setFormData({...formData, drivers: {...formData.drivers, serviceType: e.target.value}})}
                             className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
-                          />
+                          >
+                            <option value="">Selecione o Emprego...</option>
+                            {CADCHECKING_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
                         </div>
+                      </motion.div>
+                    )}
+
+                    {currentTab === 2 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                            <label className="text-xs font-bold uppercase text-blue-600">Mapa Diário</label>
+                            <div className="flex gap-2 mt-2">
+                              {['SIM', 'NÃO'].map(opt => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => setFormData({...formData, checklist: {...formData.checklist, mapaDiario: opt}})}
+                                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
+                                    formData.checklist.mapaDiario === opt 
+                                    ? 'bg-blue-600 text-white border-transparent shadow-md' 
+                                    : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                            <label className="text-xs font-bold uppercase text-blue-600">Limpeza</label>
+                            <div className="flex gap-2 mt-2">
+                              {['SIM', 'NÃO'].map(opt => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => setFormData({...formData, checklist: {...formData.checklist, limpeza: opt}})}
+                                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
+                                    formData.checklist.limpeza === opt 
+                                    ? 'bg-blue-600 text-white border-transparent shadow-md' 
+                                    : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Equipamentos Presentes</label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {EQUIPAMENTOS_VTR.map(eq => (
+                              <button
+                                key={eq}
+                                type="button"
+                                onClick={() => {
+                                  const current = formData.checklist.equipamentos;
+                                  const next = current.includes(eq) ? current.filter((i: string) => i !== eq) : [...current, eq];
+                                  setFormData({...formData, checklist: {...formData.checklist, equipamentos: next}});
+                                }}
+                                className={`p-3 rounded-xl text-xs text-left transition-all border ${
+                                  formData.checklist.equipamentos.includes(eq) 
+                                  ? 'bg-blue-600 text-white border-transparent shadow-lg scale-[1.02]' 
+                                  : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                                }`}
+                              >
+                                {eq}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {currentTab === 3 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          {[
+                            { label: 'Farol Alto', field: 'luzFarolAlto' },
+                            { label: 'Farol Baixo', field: 'luzFarolBaixo' },
+                            { label: 'Lanterna/Pisca', field: 'luzLanterna' },
+                            { label: 'Luz de Placa', field: 'luzPlaca' }
+                          ].map(item => (
+                            <div key={item.field} className="space-y-2">
+                              <label className="text-xs font-bold uppercase text-slate-400">{item.label}</label>
+                              <select 
+                                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                                value={formData.checklist[item.field]}
+                                onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, [item.field]: e.target.value}})}
+                              >
+                                <option value="Todos funcionam">Todos funcionam</option>
+                                <option value="Direito queimado">Direito queimado</option>
+                                <option value="Esquerdo queimado">Esquerdo queimado</option>
+                                <option value="Todas queimados">Todas queimados</option>
+                                <option value="Funciona">Funciona</option>
+                                <option value="Queimada">Queimada</option>
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="space-y-4">
+                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Luz de Freio e Lanterna Traseira</label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {LUZES_TRASEIRAS.map(item => (
+                              <button
+                                key={item}
+                                type="button"
+                                onClick={() => {
+                                  const current = formData.checklist.luzFreioLanternaTraseira;
+                                  const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                                  setFormData({...formData, checklist: {...formData.checklist, luzFreioLanternaTraseira: next}});
+                                }}
+                                className={`p-3 rounded-xl text-xs text-left transition-all border ${
+                                  formData.checklist.luzFreioLanternaTraseira.includes(item) 
+                                  ? 'bg-blue-600 text-white border-transparent shadow-md' 
+                                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'
+                                }`}
+                              >
+                                {item}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {currentTab === 4 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-slate-400">Pneus</label>
+                            <select 
+                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                              value={formData.checklist.pneus}
+                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, pneus: e.target.value}})}
+                            >
+                              <option value="Novo">Novo</option>
+                              <option value="Meia vida">Meia vida</option>
+                              <option value="Inutilizável (Motivo de baixa)">Inutilizável (Motivo de baixa)</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-slate-400">Sistema de Freio</label>
+                            <select 
+                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                              value={formData.checklist.sistemaFreio}
+                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, sistemaFreio: e.target.value}})}
+                            >
+                              <option value="Freio funcionando">Freio funcionando</option>
+                              <option value="Freio falhando">Freio falhando</option>
+                              <option value="Sem Freios (Motivo de baixa)">Sem Freios (Motivo de baixa)</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-slate-400">Óleo Motor</label>
+                            <select 
+                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                              value={formData.checklist.oleoMotor}
+                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, oleoMotor: e.target.value}})}
+                            >
+                              <option value="Nível Normal">Nível Normal</option>
+                              <option value="Nível Baixo">Nível Baixo</option>
+                              <option value="Nível sem condições (Baixar VTR)">Nível sem condições (Baixar VTR)</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-slate-400">Próx. Troca Óleo KM</label>
+                            <input 
+                              type="number"
+                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                              value={formData.checklist.proxTrocaOleoKm}
+                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, proxTrocaOleoKm: e.target.value}})}
+                            />
+                          </div>
+                        </div>
+                        {(formData.identification.model.toLowerCase().includes('moto') || 
+                          formData.identification.model.toLowerCase().includes('xre')) && (
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-slate-400">Sistema de Tração (Motos)</label>
+                            <select 
+                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
+                              value={formData.checklist.sistemaTracao}
+                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, sistemaTracao: e.target.value}})}
+                            >
+                              <option value="Kit de tração em condições">Kit de tração em condições</option>
+                              <option value="Kit de tração desgastado">Kit de tração desgastado</option>
+                              <option value="Kit de tração sem condições (Baixar VTR)">Kit de tração sem condições (Baixar VTR)</option>
+                            </select>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {currentTab === 5 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="space-y-4">
+                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Partes Internas</label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {PARTES_INTERNAS.map(item => (
+                              <button
+                                key={item}
+                                type="button"
+                                onClick={() => {
+                                  const current = formData.checklist.partesInternas;
+                                  const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                                  setFormData({...formData, checklist: {...formData.checklist, partesInternas: next}});
+                                }}
+                                className={`p-3 rounded-xl text-xs text-left transition-all border ${
+                                  formData.checklist.partesInternas.includes(item) 
+                                  ? 'bg-blue-600 text-white border-transparent shadow-md' 
+                                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'
+                                }`}
+                              >
+                                {item}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Partes Externas</label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {PARTES_EXTERNAS.map(item => (
+                              <button
+                                key={item}
+                                type="button"
+                                onClick={() => {
+                                  const current = formData.checklist.partesExternas;
+                                  const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                                  setFormData({...formData, checklist: {...formData.checklist, partesExternas: next}});
+                                }}
+                                className={`p-3 rounded-xl text-xs text-left transition-all border ${
+                                  formData.checklist.partesExternas.includes(item) 
+                                  ? 'bg-blue-600 text-white border-transparent shadow-md' 
+                                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'
+                                }`}
+                              >
+                                {item}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {currentTab === 6 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-center gap-4">
+                          <div className="bg-blue-600 p-3 rounded-2xl text-white">
+                            <RefreshCw size={24} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-blue-600 uppercase tracking-widest">KM Anterior</p>
+                            <p className="text-2xl font-black text-blue-900">{selectedVehicle?.lastMileage} <span className="text-sm font-bold opacity-60">km</span></p>
+                          </div>
+                        </div>
+
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Quilometragem Atual</label>
                           <input 
-                            type="time"
-                            value={formData.identification.time}
-                            onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
-                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
+                            type="number"
+                            placeholder="Digite a KM do painel..."
+                            value={formData.mileage.currentMileage}
+                            onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value === '' ? '' : Number(e.target.value)}})}
+                            className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-3xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none font-black text-3xl text-slate-900 transition-all"
                           />
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
 
-                  {currentTab === 1 && (
-                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Motorista / Matrícula</label>
-                        <SearchableSelect 
-                          name="driverName"
-                          defaultValue={formData.drivers.driverName}
-                          onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, driverName: val}})}
-                          options={personnelList}
-                          placeholder="Selecione o Motorista..."
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Modalidade de Emprego</label>
-                        <select 
-                          value={formData.drivers.serviceType}
-                          onChange={(e) => setFormData({...formData, drivers: {...formData.drivers, serviceType: e.target.value}})}
-                          className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
-                        >
-                          <option value="">Selecione o Emprego...</option>
-                          {CADCHECKING_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {currentTab === 2 && (
-                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                      <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-center gap-4">
-                        <div className="bg-blue-600 p-3 rounded-2xl text-white">
-                          <RefreshCw size={24} />
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observações / Avarias</label>
+                          <textarea 
+                            placeholder="Descreva aqui qualquer detalhe adicional, avarias em lataria, vidros, bancos, etc."
+                            value={formData.checklist.descricaoAlteracoes}
+                            onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, descricaoAlteracoes: e.target.value}})}
+                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700 min-h-[100px]"
+                          />
                         </div>
-                        <div>
-                          <p className="text-xs font-black text-blue-600 uppercase tracking-widest">KM Anterior</p>
-                          <p className="text-2xl font-black text-blue-900">{selectedVehicle?.lastMileage} <span className="text-sm font-bold opacity-60">km</span></p>
+
+                        <div className="space-y-4">
+                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Fotos da Viatura</label>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {formData.checklist.fotos.map((foto: string, index: number) => (
+                              <div key={index} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
+                                <img src={foto} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = formData.checklist.fotos.filter((_: any, i: number) => i !== index);
+                                    setFormData({...formData, checklist: {...formData.checklist, fotos: next}});
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            ))}
+                            {formData.checklist.fotos.length < 8 && (
+                              <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all text-slate-400 hover:text-blue-600">
+                                <Camera size={24} />
+                                <span className="text-[10px] font-bold uppercase">Adicionar Foto</span>
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  multiple 
+                                  className="hidden" 
+                                  onChange={async (e) => {
+                                    const files = Array.from(e.target.files || []);
+                                    const newFotos = await Promise.all(files.map((file: Blob) => {
+                                      return new Promise<string>((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onload = () => resolve(reader.result as string);
+                                        reader.readAsDataURL(file);
+                                      });
+                                    }));
+                                    setFormData({...formData, checklist: {...formData.checklist, fotos: [...formData.checklist.fotos, ...newFotos]}});
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Quilometragem Atual</label>
-                        <input 
-                          type="number"
-                          placeholder="Digite a KM do painel..."
-                          value={formData.mileage.currentMileage}
-                          onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value === '' ? '' : Number(e.target.value)}})}
-                          className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-3xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none font-black text-3xl text-slate-900 transition-all"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observações (Opcional)</label>
-                        <textarea 
-                          placeholder="Alguma avaria ou observação sobre a viatura?"
-                          value={formData.mileage.notes}
-                          onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, notes: e.target.value}})}
-                          className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700 min-h-[100px]"
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
+                      </motion.div>
+                    )}
+                  </div>
 
                 <div className="mt-10 flex gap-4">
                   {currentTab > 0 ? (
@@ -4631,7 +6258,7 @@ function CadChecking({
                     </button>
                   )}
                   
-                  {currentTab < 2 ? (
+                  {currentTab < 6 ? (
                     <button 
                       onClick={() => setCurrentTab(currentTab + 1)}
                       className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
@@ -4834,7 +6461,7 @@ function VehicleCard({ vehicle, isAdmin, currentUserEmail, onStartRecord, onTogg
   );
 }
 
-function CadcheckingHistoryItem({ record, isExpanded, onToggle, onResendWhatsApp }: any) {
+function CadcheckingHistoryItem({ record, isExpanded, onToggle, onResendWhatsApp, onGenerateDetailedPDF }: any) {
   const isCheckIn = record.type === 'check-in';
   const isMaintenance = record.type.includes('maintenance');
   
@@ -4911,13 +6538,22 @@ function CadcheckingHistoryItem({ record, isExpanded, onToggle, onResendWhatsApp
             )}
 
             {!isMaintenance && (
-              <button 
-                onClick={() => onResendWhatsApp(record)}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
-              >
-                <ExternalLink size={18} />
-                Reenviar para WhatsApp
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={() => onResendWhatsApp(record)}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                >
+                  <ExternalLink size={18} />
+                  WhatsApp
+                </button>
+                <button 
+                  onClick={() => onGenerateDetailedPDF(record)}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+                >
+                  <FileDown size={18} />
+                  PDF Detalhado
+                </button>
+              </div>
             )}
           </motion.div>
         )}

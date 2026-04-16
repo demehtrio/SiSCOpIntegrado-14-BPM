@@ -170,3 +170,24 @@ export const OPERATIONAL_PREFIXES = [
   "GEM 14211- ROCAM BELMONTE",
   "GEM 14212- ROCAM BELMONTE"
 ];
+
+export const EQUIPAMENTOS_VTR = [
+  "Giroflex", "Sirene", "Rádio Transceptor", "Chave de Roda", "Macaco", 
+  "Triângulo", "Estepe", "Bateria", "Buzina", "Mapa Mensal VTR", 
+  "Bauleto (Moto)", "Chave do Bauleto (Moto)"
+];
+
+export const PARTES_INTERNAS = [
+  "SEM ALTERAÇÃO", "BANCOS", "PAINEL", "TAPETES", "FORRO DE TETO", 
+  "MAÇANETAS", "VIDROS"
+];
+
+export const PARTES_EXTERNAS = [
+  "Sem Alteração", "PINTURA", "LATARIA", "PARA-CHOQUE DIANTEIRO", 
+  "PARA CHOQUE TRASEIRO", "RETROVISORES", "ANTENA"
+];
+
+export const LUZES_TRASEIRAS = [
+  "TODAS FUNCIONANDO", "Luz de Freio Dir. Queimada", "Luz de Freio Esq. Queimada", 
+  "Lanterna Traseira Dir. Queimada", "Lanterna Traseira Esq. Queimada"
+];

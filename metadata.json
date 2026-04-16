@@ -1,5 +1,5 @@
 {
   "name": "Sistema de Cadastramento Operacional Integrado",
-  "description": "Aplicativo para cadastramento de atividades de linha, efetivo de viaturas e MOs, com geração de relatórios em PDF.",
+  "description": "Sistema de Cadastramento Operacional Integrado (SisCOpI) com gestão de efetivo, CadChecking e Checklist de Viaturas independente.",
   "requestFramePermissions": []
 }
