@@ -5023,24 +5023,6 @@ function ChecklistModule({
                         options={vehicles.map((v: any) => v.plate)}
                         placeholder="Selecione a placa..."
                         variant="blue"
-                        rightElement={
-                          <label className="cursor-pointer flex items-center gap-1 text-[10px] font-bold uppercase text-blue-600 hover:text-red-500 transition-colors">
-                            {isExtractingPlate ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Camera className="w-3 h-3" />
-                            )}
-                            {isExtractingPlate ? 'Extraindo...' : 'Extrair da Foto'}
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              capture="environment"
-                              className="hidden" 
-                              onChange={onExtractPlate}
-                              disabled={isExtractingPlate}
-                            />
-                          </label>
-                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -5855,24 +5837,6 @@ function CadChecking({
                               options={vehicles.map((v: any) => v.plate)}
                               placeholder="Selecione a placa..."
                               variant="blue"
-                              rightElement={
-                                <label className="cursor-pointer flex items-center gap-1 text-[10px] font-bold uppercase text-blue-600 hover:text-red-500 transition-colors">
-                                  {isExtractingPlate ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <Camera className="w-3 h-3" />
-                                  )}
-                                  {isExtractingPlate ? 'Extraindo...' : 'Extrair da Foto'}
-                                  <input 
-                                    type="file" 
-                                    accept="image/*" 
-                                    capture="environment"
-                                    className="hidden" 
-                                    onChange={onExtractPlate}
-                                    disabled={isExtractingPlate}
-                                  />
-                                </label>
-                              }
                             />
                           </div>
                           <div className="space-y-2">
