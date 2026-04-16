@@ -708,7 +708,9 @@ export default function App() {
         await updateDoc(doc(db, 'vehicles', editingVehicle.id), vehicleForm);
         addNotification("Viatura atualizada com sucesso!", "success");
       } else {
-        await addDoc(collection(db, 'vehicles'), vehicleForm);
+        // Standardize ID: remove spaces and dashes
+        const vehicleId = vehicleForm.plate.replace(/[\s-]/g, '').toUpperCase();
+        await setDoc(doc(db, 'vehicles', vehicleId), { ...vehicleForm, id: vehicleId });
         addNotification("Viatura cadastrada com sucesso!", "success");
       }
       setIsVehicleModalOpen(false);
@@ -795,7 +797,8 @@ export default function App() {
           const prefix = parts[0];
           const plate = parts[1];
           const model = parts[2] || 'Viatura';
-          const vehicleId = plate.replace(/\s/g, '').toUpperCase();
+          // Standardize ID: remove spaces and dashes
+          const vehicleId = plate.replace(/[\s-]/g, '').toUpperCase();
           
           const docRef = doc(db, 'vehicles', vehicleId);
           const snap = await getDoc(docRef);
@@ -5507,14 +5510,26 @@ function CadChecking({
   
   console.log(`[CadChecking] Rendering with ${vehicles.length} total vehicles`);
   
-  const counts = React.useMemo(() => ({
-    all: vehicles.length,
-    available: vehicles.filter((v: Vehicle) => v.status === 'available').length,
-    in_use: vehicles.filter((v: Vehicle) => v.status === 'in_use').length,
-    maintenance: vehicles.filter((v: Vehicle) => v.status === 'maintenance').length
-  }), [vehicles]);
+  const uniqueVehicles = React.useMemo(() => {
+    const unique = new Map<string, Vehicle>();
+    vehicles.forEach(v => {
+      const plateKey = (v.plate || '').replace(/[\s-]/g, '').toUpperCase();
+      // Se já existe, preferimos o que tem o ID padrão (igual à placa normalizada)
+      if (!unique.has(plateKey) || v.id === plateKey) {
+        unique.set(plateKey, v);
+      }
+    });
+    return Array.from(unique.values());
+  }, [vehicles]);
 
-  const filteredVehicles = React.useMemo(() => vehicles.filter((v: Vehicle) => {
+  const counts = React.useMemo(() => ({
+    all: uniqueVehicles.length,
+    available: uniqueVehicles.filter((v: Vehicle) => v.status === 'available').length,
+    in_use: uniqueVehicles.filter((v: Vehicle) => v.status === 'in_use').length,
+    maintenance: uniqueVehicles.filter((v: Vehicle) => v.status === 'maintenance').length
+  }), [uniqueVehicles]);
+
+  const filteredVehicles = React.useMemo(() => uniqueVehicles.filter((v: Vehicle) => {
     const plate = (v.plate || '').toLowerCase();
     const model = (v.model || '').toLowerCase();
     const prefix = (v.prefix || '').toLowerCase();
@@ -5525,7 +5540,7 @@ function CadChecking({
                          prefix.includes(search);
     const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
     return matchesSearch && matchesStatus;
-  }), [vehicles, searchTerm, statusFilter]);
+  }), [uniqueVehicles, searchTerm, statusFilter]);
 
   console.log(`[CadChecking] Filtered to ${filteredVehicles.length} vehicles (Search: "${searchTerm}", Status: "${statusFilter}")`);
 
