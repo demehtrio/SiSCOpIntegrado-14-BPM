@@ -114,6 +114,7 @@ import {
   LUZES_TRASEIRAS
 } from './constants';
 import { parseChecklistDescription, extractLicensePlateFromImage } from './services/geminiService';
+import { Vehicle, RecordEntry, UserProfile, ChecklistData } from './types';
 
 // --- Constants ---
 const LOGO_14BPM_URL = "https://i.pinimg.com/originals/28/33/bd/2833bdc504f4fc4f3cb3c2817a664fc9.png";
@@ -256,62 +257,6 @@ interface FirestoreErrorInfo {
       photoUrl: string | null;
     }[];
   }
-}
-
-// --- CadChecking Types ---
-interface Vehicle {
-  id: string;
-  plate: string;
-  model: string;
-  prefix: string;
-  status: 'available' | 'in_use' | 'maintenance';
-  lastMileage: number;
-  currentDriver?: string;
-  currentDriverEmail?: string;
-}
-
-interface RecordEntry {
-  id: string;
-  vehicleId: string;
-  type: 'check-out' | 'check-in' | 'maintenance-in' | 'maintenance-out';
-  timestamp: any;
-  userEmail: string;
-  userName?: string;
-  identification: {
-    prefix: string;
-    operationalPrefix: string;
-    plate: string;
-    model: string;
-    date: string;
-    time: string;
-  };
-  drivers: {
-    driverName: string;
-    serviceType: string;
-  };
-  mileage: {
-    currentMileage: number | '';
-    notes: string;
-  };
-  checklist?: {
-    mapaDiario: 'SIM' | 'NÃO';
-    equipamentos: string[];
-    luzFarolAlto: string;
-    luzFarolBaixo: string;
-    luzLanterna: string;
-    luzFreioLanternaTraseira: string[];
-    luzPlaca: string;
-    pneus: string;
-    sistemaFreio: string;
-    oleoMotor: string;
-    proxTrocaOleoKm: string;
-    partesInternas: string[];
-    sistemaTracao: string;
-    partesExternas: string[];
-    limpeza: string;
-    descricaoAlteracoes: string;
-    fotos: string[];
-  };
 }
 
 // --- Error Handling ---
@@ -600,7 +545,7 @@ export default function App() {
   // --- CadChecking State ---
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [cadcheckingHistory, setCadcheckingHistory] = useState<RecordEntry[]>([]);
-  const [standaloneHistory, setStandaloneHistory] = useState<any[]>([]);
+  const [standaloneHistory, setStandaloneHistory] = useState<RecordEntry[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [operationType, setOperationType] = useState<'check-out' | 'check-in' | null>(null);
   const [cadcheckingView, setCadcheckingView] = useState<'list' | 'history' | 'admin'>('list');
@@ -1278,18 +1223,31 @@ export default function App() {
     }
   };
 
-  const handleSaveStandaloneChecklist = async (formData: any, skipWhatsApp = false) => {
+  const handleSaveStandaloneChecklist = async (formData: RecordEntry, skipWhatsApp = false) => {
     if (!user) return;
     
     setSubmitting(true);
     try {
+      // Find matching vehicle to update its status/mileage
+      const vehicle = vehicles.find((v: Vehicle) => v.plate === formData.identification.plate);
+      
       // Add record to database
       const docRef = await addDoc(collection(db, 'standalone_checklists'), {
         ...formData,
+        vehicleId: vehicle?.id || '',
         timestamp: serverTimestamp(),
         userEmail: user.email,
         userName: user.displayName || user.email?.split('@')[0],
       });
+      
+      // Update vehicle if found
+      if (vehicle) {
+        await updateDoc(doc(db, 'vehicles', vehicle.id), {
+          lastMileage: Number(formData.mileage.currentMileage),
+          // We don't necessarily know the operation type (check-in/out) in standalone, 
+          // but we can update the mileage at least.
+        });
+      }
       
       addNotification("Checklist salvo com sucesso!", "success");
 
@@ -4807,7 +4765,23 @@ function ChecklistModule({
   onResendWhatsApp,
   onSaveStandalone,
   history
-}: any) {
+}: {
+  user: User | null;
+  vehicles: Vehicle[];
+  personnelList: string[];
+  prefixoVtList: string[];
+  moList: string[];
+  patrimonioVtList: string[];
+  patrimonioMoList: string[];
+  isParsing: boolean;
+  isExtractingPlate: boolean;
+  onAiParse: (input: string) => Promise<any>;
+  onExtractPlate: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onGenerateDetailedPDF: (record: RecordEntry) => void;
+  onResendWhatsApp: (record: RecordEntry) => void;
+  onSaveStandalone: (formData: any, skipWhatsApp?: boolean) => Promise<boolean>;
+  history: RecordEntry[];
+}) {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [currentTab, setCurrentTab] = useState(0);
   const [aiInput, setAiInput] = useState('');
@@ -4920,7 +4894,7 @@ function ChecklistModule({
             </div>
 
             <div className="space-y-4">
-              {history.map((record: any) => (
+              {history.map((record: RecordEntry) => (
                 <ChecklistHistoryItem 
                   key={record.id}
                   record={record}
@@ -5009,7 +4983,7 @@ function ChecklistModule({
                         label="Placa"
                         value={formData.identification.plate}
                         onChange={(val: string) => {
-                          const vehicle = vehicles.find((v: any) => v.plate === val);
+                          const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
                           setFormData({
                             ...formData, 
                             identification: {
@@ -5020,7 +4994,7 @@ function ChecklistModule({
                             }
                           });
                         }}
-                        options={vehicles.map((v: any) => v.plate)}
+                        options={vehicles.map((v: Vehicle) => v.plate)}
                         placeholder="Selecione a placa..."
                         variant="blue"
                       />
@@ -5031,7 +5005,7 @@ function ChecklistModule({
                         label="Viatura"
                         value={formData.identification.prefix}
                         onChange={(val: string) => {
-                          const vehicle = vehicles.find((v: any) => v.prefix === val);
+                          const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
                           setFormData({
                             ...formData, 
                             identification: {
@@ -5042,7 +5016,7 @@ function ChecklistModule({
                             }
                           });
                         }}
-                        options={vehicles.map((v: any) => v.prefix)}
+                        options={vehicles.map((v: Vehicle) => v.prefix)}
                         placeholder="Selecione a viatura..."
                         variant="blue"
                       />
@@ -5355,7 +5329,7 @@ function ChecklistModule({
                           <button
                             type="button"
                             onClick={() => {
-                              const next = formData.checklist.fotos.filter((_: any, i: number) => i !== index);
+                              const next = formData.checklist.fotos.filter((_: string, i: number) => i !== index);
                               setFormData({...formData, checklist: {...formData.checklist, fotos: next}});
                             }}
                             className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
@@ -5484,7 +5458,50 @@ function CadChecking({
   onAiParse,
   onExtractPlate,
   onGenerateDetailedPDF
-}: any) {
+}: {
+  user: User | null;
+  isAdmin: boolean;
+  vehicles: Vehicle[];
+  history: RecordEntry[];
+  selectedVehicle: Vehicle | null;
+  operationType: 'check-out' | 'check-in' | null;
+  view: 'list' | 'history' | 'admin';
+  setView: (view: 'list' | 'history' | 'admin') => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  statusFilter: 'all' | 'available' | 'in_use' | 'maintenance';
+  setStatusFilter: (filter: 'all' | 'available' | 'in_use' | 'maintenance') => void;
+  historyFilter: 'all' | 'check-out' | 'check-in' | 'maintenance';
+  setHistoryFilter: (filter: 'all' | 'check-out' | 'check-in' | 'maintenance') => void;
+  expandedHistoryId: string | null;
+  setExpandedHistoryId: (id: string | null) => void;
+  onStartRecord: (vehicle: Vehicle, type: 'check-out' | 'check-in') => void;
+  onToggleMaintenance: (vehicle: Vehicle, notes?: string) => void;
+  onSaveRecord: (skipWhatsApp?: boolean) => void;
+  onResendWhatsApp: (record: RecordEntry) => void;
+  onBootstrap: (force?: boolean) => void;
+  isSyncing: boolean;
+  formData: RecordEntry;
+  setFormData: React.Dispatch<React.SetStateAction<RecordEntry>>;
+  submitting: boolean;
+  dateFilter: { start: string; end: string };
+  setDateFilter: (filter: { start: string; end: string }) => void;
+  onGeneratePDF: () => void;
+  maintenanceModal: { vehicle: Vehicle; notes: string } | null;
+  setMaintenanceModal: (modal: { vehicle: Vehicle; notes: string } | null) => void;
+  currentTab: number;
+  setCurrentTab: (tab: number) => void;
+  personnelList: string[];
+  prefixoVtList: string[];
+  moList: string[];
+  patrimonioVtList: string[];
+  patrimonioMoList: string[];
+  isParsing: boolean;
+  isExtractingPlate: boolean;
+  onAiParse: (input: string) => Promise<any>;
+  onExtractPlate: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onGenerateDetailedPDF: (record: RecordEntry) => void;
+}) {
   
   const [aiInput, setAiInput] = useState('');
   
@@ -5492,12 +5509,12 @@ function CadChecking({
   
   const counts = React.useMemo(() => ({
     all: vehicles.length,
-    available: vehicles.filter((v: any) => v.status === 'available').length,
-    in_use: vehicles.filter((v: any) => v.status === 'in_use').length,
-    maintenance: vehicles.filter((v: any) => v.status === 'maintenance').length
+    available: vehicles.filter((v: Vehicle) => v.status === 'available').length,
+    in_use: vehicles.filter((v: Vehicle) => v.status === 'in_use').length,
+    maintenance: vehicles.filter((v: Vehicle) => v.status === 'maintenance').length
   }), [vehicles]);
 
-  const filteredVehicles = React.useMemo(() => vehicles.filter((v: any) => {
+  const filteredVehicles = React.useMemo(() => vehicles.filter((v: Vehicle) => {
     const plate = (v.plate || '').toLowerCase();
     const model = (v.model || '').toLowerCase();
     const prefix = (v.prefix || '').toLowerCase();
@@ -5512,13 +5529,13 @@ function CadChecking({
 
   console.log(`[CadChecking] Filtered to ${filteredVehicles.length} vehicles (Search: "${searchTerm}", Status: "${statusFilter}")`);
 
-  const filteredHistory = React.useMemo(() => history.filter((h: any) => {
+  const filteredHistory = React.useMemo(() => history.filter((h: RecordEntry) => {
     // Type filter
     const matchesType = historyFilter === 'all' || 
                        (historyFilter === 'maintenance' ? h.type.includes('maintenance') : h.type === historyFilter);
     
     // Date filter
-    const recordDate = h.timestamp?.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+    const recordDate = h.timestamp?.toDate ? (h.timestamp as Timestamp).toDate() : new Date(h.timestamp as Date);
     const start = new Date(dateFilter.start + 'T00:00:00');
     const end = new Date(dateFilter.end + 'T23:59:59');
     const matchesDate = recordDate >= start && recordDate <= end;
@@ -5604,7 +5621,7 @@ function CadChecking({
                 ].map((opt) => (
                   <button
                     key={opt.id}
-                    onClick={() => setStatusFilter(opt.id)}
+                    onClick={() => setStatusFilter(opt.id as any)}
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold transition-all border shadow-sm min-w-[120px] ${
                       statusFilter === opt.id 
                         ? `${opt.activeColor} border-transparent shadow-md scale-[1.02]` 
@@ -5823,7 +5840,7 @@ function CadChecking({
                               label="Placa"
                               value={formData.identification.plate}
                               onChange={(val: string) => {
-                                const vehicle = vehicles.find((v: any) => v.plate === val);
+                                const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
                                 setFormData({
                                   ...formData, 
                                   identification: {
@@ -5834,7 +5851,7 @@ function CadChecking({
                                   }
                                 });
                               }}
-                              options={vehicles.map((v: any) => v.plate)}
+                              options={vehicles.map((v: Vehicle) => v.plate)}
                               placeholder="Selecione a placa..."
                               variant="blue"
                             />
@@ -5845,7 +5862,7 @@ function CadChecking({
                               label="Viatura"
                               value={formData.identification.prefix}
                               onChange={(val: string) => {
-                                const vehicle = vehicles.find((v: any) => v.prefix === val);
+                                const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
                                 setFormData({
                                   ...formData, 
                                   identification: {
@@ -5856,7 +5873,7 @@ function CadChecking({
                                   }
                                 });
                               }}
-                              options={vehicles.map((v: any) => v.prefix)}
+                              options={vehicles.map((v: Vehicle) => v.prefix)}
                               placeholder="Selecione a viatura..."
                               variant="blue"
                             />
@@ -6192,7 +6209,7 @@ function CadChecking({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const next = formData.checklist.fotos.filter((_: any, i: number) => i !== index);
+                                    const next = formData.checklist.fotos.filter((_: string, i: number) => i !== index);
                                     setFormData({...formData, checklist: {...formData.checklist, fotos: next}});
                                   }}
                                   className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
@@ -6344,7 +6361,13 @@ function CadChecking({
 
 // --- CadChecking Sub-components ---
 
-function VehicleCard({ vehicle, isAdmin, currentUserEmail, onStartRecord, onToggleMaintenance }: any) {
+function VehicleCard({ 
+  vehicle, 
+  isAdmin, 
+  currentUserEmail, 
+  onStartRecord, 
+  onToggleMaintenance 
+}: any) {
   const isAvailable = vehicle.status === 'available';
   const isInUse = vehicle.status === 'in_use';
   const isMaintenance = vehicle.status === 'maintenance';
@@ -6450,7 +6473,13 @@ function VehicleCard({ vehicle, isAdmin, currentUserEmail, onStartRecord, onTogg
   );
 }
 
-function CadcheckingHistoryItem({ record, isExpanded, onToggle, onResendWhatsApp, onGenerateDetailedPDF }: any) {
+function CadcheckingHistoryItem({ 
+  record, 
+  isExpanded, 
+  onToggle, 
+  onResendWhatsApp, 
+  onGenerateDetailedPDF 
+}: any) {
   const isCheckIn = record.type === 'check-in';
   const isMaintenance = record.type.includes('maintenance');
   
