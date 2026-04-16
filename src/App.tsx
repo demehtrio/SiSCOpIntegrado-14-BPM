@@ -157,7 +157,7 @@ const removeWhiteBackground = (base64: string): Promise<string> => {
   });
 };
 
-const compressImage = async (base64: string, maxWidth = 800, maxHeight = 800, quality = 0.6): Promise<string> => {
+const compressImage = async (base64: string, maxWidth = 600, maxHeight = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -661,7 +661,18 @@ export default function App() {
         vehicleList.push({ id: doc.id, ...doc.data() } as Vehicle);
       });
       console.log(`[CadChecking] Vehicles updated: ${vehicleList.length} items`);
-      setVehicles(vehicleList);
+      
+      // Remove duplicates by prefix
+      const uniqueVehicles = vehicleList.reduce((acc: Vehicle[], current) => {
+        const x = acc.find(item => item.prefix === current.prefix);
+        if (!x) {
+          return acc.concat([current]);
+        } else {
+          return acc;
+        }
+      }, []);
+      
+      setVehicles(uniqueVehicles);
     }, (err) => {
       console.error("Error fetching vehicles:", err);
     });
@@ -1301,8 +1312,8 @@ export default function App() {
         const recordToFormat: RecordEntry = {
           ...formData,
           id: docRef.id,
-          vehicleId: '', 
-          type: 'check-in', 
+          vehicleId: vehicle?.id || '',
+          type: formData.type || 'check-in', 
           userEmail: user.email || '',
           userName: user.displayName || '',
           timestamp: new Date()
@@ -4707,6 +4718,13 @@ function ChecklistHistoryItem({
             <div className="flex items-center gap-2 mb-1">
               <h4 className="font-black text-slate-900">{record.identification.prefix}</h4>
               <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[10px] font-bold font-mono">{record.identification.plate}</span>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                record.type === 'check-out' || record.type === 'maintenance-out'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {record.type === 'check-out' || record.type === 'maintenance-out' ? 'RETORNO' : 'SAÍDA'}
+              </span>
             </div>
             <p className="text-xs text-slate-500 font-bold">
               {format(timestamp, "dd/MM/yyyy HH:mm")} • {record.drivers.driverName}
@@ -4811,6 +4829,7 @@ function ChecklistModule({
       date: format(new Date(), 'yyyy-MM-dd'),
       time: format(new Date(), 'HH:mm'),
     },
+    type: 'check-in' as 'check-in' | 'check-out',
     drivers: {
       driverName: '',
       serviceType: '',
@@ -4850,11 +4869,16 @@ function ChecklistModule({
 
   const handleSave = async (skipWhatsApp = false) => {
     setSubmitting(true);
-    const success = await onSaveStandalone(formData, skipWhatsApp);
-    if (success) {
-      setView('list');
+    try {
+      const success = await onSaveStandalone(formData, skipWhatsApp);
+      if (success) {
+        setView('list');
+      }
+    } catch (error) {
+      console.error("Erro ao salvar checklist:", error);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   return (
@@ -4990,14 +5014,42 @@ function ChecklistModule({
                         variant="blue"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                      <input 
-                        type="date"
-                        value={formData.identification.date}
-                        onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
-                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
-                      />
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({...formData, type: 'check-in'})}
+                          className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                            formData.type === 'check-in' 
+                              ? 'bg-blue-600 text-white shadow-lg' 
+                              : 'bg-slate-50 text-slate-400 border border-slate-100'
+                          }`}
+                        >
+                          <LogIn size={20} />
+                          SAÍDA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({...formData, type: 'check-out'})}
+                          className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                            formData.type === 'check-out' 
+                              ? 'bg-emerald-600 text-white shadow-lg' 
+                              : 'bg-slate-50 text-slate-400 border border-slate-100'
+                          }`}
+                        >
+                          <LogOut size={20} />
+                          RETORNO
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                        <input 
+                          type="date"
+                          value={formData.identification.date}
+                          onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                          className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
+                        />
+                      </div>
                     </div>
                   </div>
                 </motion.div>
