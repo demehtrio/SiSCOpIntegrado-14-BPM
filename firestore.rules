@@ -208,6 +208,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /standalone_checklists/{docId} {
+      allow read: if isAuthorized() && (isAdmin() || (resource != null && resource.data.userEmail == request.auth.token.email));
+      allow create: if isAuthorized() && isValidChecklist(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     match /users/{userId} {
       allow read: if isAuthorized() && (isOwner(userId) || isAdmin());
       allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
