@@ -5382,6 +5382,53 @@ function ChecklistModule({
                       className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700 min-h-[120px]"
                     />
                   </div>
+
+                  <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                      <Camera size={14} />
+                      Fotos da Viatura
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {formData.checklist.fotos.map((foto: string, index: number) => (
+                        <div key={index} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
+                          <img src={foto} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = formData.checklist.fotos.filter((_: any, i: number) => i !== index);
+                              setFormData({...formData, checklist: {...formData.checklist, fotos: next}});
+                            }}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      {formData.checklist.fotos.length < 8 && (
+                        <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all text-slate-400 hover:text-red-600 group">
+                          <Camera size={24} className="group-hover:scale-110 transition-transform" />
+                          <span className="text-[10px] font-black uppercase">Adicionar Foto</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            multiple 
+                            className="hidden" 
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files || []);
+                              const newFotos = await Promise.all(files.map((file: Blob) => {
+                                return new Promise<string>((resolve) => {
+                                  const reader = new FileReader();
+                                  reader.onload = () => resolve(reader.result as string);
+                                  reader.readAsDataURL(file);
+                                });
+                              }));
+                              setFormData({...formData, checklist: {...formData.checklist, fotos: [...formData.checklist.fotos, ...newFotos]}});
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </div>
