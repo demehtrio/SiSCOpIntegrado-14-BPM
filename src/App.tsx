@@ -4893,13 +4893,15 @@ function ChecklistModule({
           <p className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-60">Sistema de Conferência 14º BPM</p>
         </div>
         <div className="flex gap-3">
-          <button 
-            onClick={() => setView(view === 'list' ? 'form' : 'list')}
-            className="px-6 py-3 bg-white text-slate-700 rounded-2xl font-bold shadow-lg border border-slate-100 hover:bg-slate-50 transition-all flex items-center gap-2"
-          >
-            {view === 'list' ? <Plus size={20} /> : <History size={20} />}
-            {view === 'list' ? 'Novo Checklist' : 'Ver Histórico'}
-          </button>
+          {view === 'form' && (
+            <button 
+              onClick={() => setView('list')}
+              className="px-6 py-3 bg-white text-slate-700 rounded-2xl font-bold shadow-lg border border-slate-100 hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <History size={20} />
+              Ver Histórico
+            </button>
+          )}
         </div>
       </div>
 
