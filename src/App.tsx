@@ -956,7 +956,7 @@ export default function App() {
       ? ` *CHECK-IN VIATURA (SAÍDA)*\n` +
         ` *Pat:* ${record.identification?.prefix || '---'}\n` +
         ` *Placa:* ${record.identification?.plate || '---'}\n` +
-        ` *Prefixo:* ${record.identification?.operationalPrefix || '---'}\n` +
+        (record.identification?.operationalPrefix ? ` *Prefixo:* ${record.identification.operationalPrefix}\n` : '') +
         ` *Emprego:* ${record.drivers?.serviceType || '---'}\n` +
         ` *Vtr:* ${record.identification?.model || '---'}\n` +
         ` *Km inic:* ${record.mileage?.currentMileage || '---'}\n` +
@@ -966,7 +966,7 @@ export default function App() {
       : ` *CHECK-OUT VIATURA (RETORNO)*\n` +
         ` *Pat:* ${record.identification?.prefix || '---'}\n` +
         ` *Placa:* ${record.identification?.plate || '---'}\n` +
-        ` *Prefixo:* ${record.identification?.operationalPrefix || '---'}\n` +
+        (record.identification?.operationalPrefix ? ` *Prefixo:* ${record.identification.operationalPrefix}\n` : '') +
         ` *Emprego:* ${record.drivers?.serviceType || '---'}\n` +
         ` *Vtr:* ${record.identification?.model || '---'}\n` +
         ` *Km final:* ${record.mileage?.currentMileage || '---'}\n` +
@@ -1033,14 +1033,20 @@ export default function App() {
       };
 
       // Identificação
-      addSection('Identificação', [
+      const identificationData: [string, string][] = [
         ['Viatura', record.identification.prefix],
         ['Placa', record.identification.plate],
-        ['Modelo', record.identification.model],
-        ['Prefixo Operacional', record.identification.operationalPrefix],
-        ['Data/Hora', `${format(timestamp, 'dd/MM/yyyy')} ${record.identification.time}`],
-        ['Tipo de Registro', record.type === 'check-in' ? 'SAÍDA' : 'RETORNO']
-      ]);
+        ['Modelo', record.identification.model]
+      ];
+      
+      if (record.identification.operationalPrefix) {
+        identificationData.push(['Prefixo Operacional', record.identification.operationalPrefix]);
+      }
+      
+      identificationData.push(['Data/Hora', `${format(timestamp, 'dd/MM/yyyy')} ${record.identification.time}`]);
+      identificationData.push(['Tipo de Registro', record.type === 'check-in' ? 'SAÍDA' : 'RETORNO']);
+
+      addSection('Identificação', identificationData);
 
       // Condutor
       addSection('Responsável', [
@@ -4794,7 +4800,6 @@ function ChecklistModule({
   const initialFormData = {
     identification: {
       prefix: '',
-      operationalPrefix: '',
       plate: '',
       model: '',
       date: format(new Date(), 'yyyy-MM-dd'),
@@ -5021,17 +5026,6 @@ function ChecklistModule({
                         }}
                         options={vehicles.map((v: Vehicle) => v.prefix)}
                         placeholder="Selecione a viatura..."
-                        variant="blue"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Prefixo Operacional</label>
-                      <ChecklistSearchableSelect 
-                        label="Prefixo Operacional"
-                        value={formData.identification.operationalPrefix}
-                        onChange={(val: string) => setFormData({...formData, identification: {...formData.identification, operationalPrefix: val}})}
-                        options={[...prefixoVtList, ...moList]}
-                        placeholder="Selecione o Prefixo..."
                         variant="blue"
                       />
                     </div>
