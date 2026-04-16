@@ -610,7 +610,6 @@ export default function App() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, type: 'vehicle' | 'admin', label?: string } | null>(null);
   const [maintenanceModal, setMaintenanceModal] = useState<{ vehicle: Vehicle, notes: string } | null>(null);
   const [currentCadcheckingTab, setCurrentCadcheckingTab] = useState<number>(0);
-  const [isParsing, setIsParsing] = useState(false);
   const [isExtractingPlate, setIsExtractingPlate] = useState(false);
   const [cadcheckingFormData, setCadcheckingFormData] = useState<any>({
     identification: {
@@ -1442,27 +1441,6 @@ export default function App() {
   // Conditional form states
   const [hasR3, setHasR3] = useState(false);
   const [hasR4, setHasR4] = useState(false);
-
-  const handleAiParse = async (aiInput: string) => {
-    if (!aiInput.trim()) return;
-    setIsParsing(true);
-    try {
-      const parsed = await parseChecklistDescription(aiInput);
-      setCadcheckingFormData((prev: any) => ({
-        ...prev,
-        checklist: {
-          ...prev.checklist,
-          ...parsed
-        }
-      }));
-      addNotification("Checklist preenchido pela IA!", "success");
-    } catch (error) {
-      console.error("Error parsing with AI:", error);
-      addNotification("Erro ao processar com IA.", "error");
-    } finally {
-      setIsParsing(false);
-    }
-  };
 
   const handleExtractPlate = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -4153,9 +4131,7 @@ export default function App() {
                   moList={moList}
                   patrimonioVtList={patrimonioVtList}
                   patrimonioMoList={patrimonioMoList}
-                  isParsing={isParsing}
                   isExtractingPlate={isExtractingPlate}
-                  onAiParse={handleAiParse}
                   onExtractPlate={handleExtractPlate}
                 />
               </motion.div>
@@ -4176,9 +4152,7 @@ export default function App() {
                   moList={moList}
                   patrimonioVtList={patrimonioVtList}
                   patrimonioMoList={patrimonioMoList}
-                  isParsing={isParsing}
                   isExtractingPlate={isExtractingPlate}
-                  onAiParse={handleAiParse}
                   onExtractPlate={handleExtractPlate}
                   onGenerateDetailedPDF={generateDetailedChecklistPDF}
                   onResendWhatsApp={handleResendWhatsApp}
@@ -4803,9 +4777,7 @@ function ChecklistModule({
   moList, 
   patrimonioVtList, 
   patrimonioMoList,
-  isParsing,
   isExtractingPlate,
-  onAiParse,
   onExtractPlate,
   onGenerateDetailedPDF,
   onResendWhatsApp,
@@ -4819,9 +4791,7 @@ function ChecklistModule({
   moList: string[];
   patrimonioVtList: string[];
   patrimonioMoList: string[];
-  isParsing: boolean;
   isExtractingPlate: boolean;
-  onAiParse: (input: string) => Promise<any>;
   onExtractPlate: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerateDetailedPDF: (record: RecordEntry) => void;
   onResendWhatsApp: (record: RecordEntry) => void;
@@ -4830,7 +4800,6 @@ function ChecklistModule({
 }) {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [currentTab, setCurrentTab] = useState(0);
-  const [aiInput, setAiInput] = useState('');
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -4886,21 +4855,6 @@ function ChecklistModule({
       setView('list');
     }
     setSubmitting(false);
-  };
-
-  const handleAiParseLocal = async () => {
-    if (!aiInput.trim()) return;
-    const parsed = await onAiParse(aiInput);
-    if (parsed) {
-      setFormData(prev => ({
-        ...prev,
-        checklist: {
-          ...prev.checklist,
-          ...parsed
-        }
-      }));
-      setAiInput('');
-    }
   };
 
   return (
@@ -4984,36 +4938,6 @@ function ChecklistModule({
                   {step.label}
                 </button>
               ))}
-            </div>
-
-            {/* AI Assistant Section */}
-            <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm mb-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
-                  <Sparkles size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">Assistente de Checklist IA</h4>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Descreva as alterações por voz ou texto</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <input 
-                  type="text"
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                  placeholder="Ex: Giroflex quebrado, pneu dianteiro careca..."
-                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none"
-                />
-                <button 
-                  onClick={handleAiParseLocal}
-                  disabled={isParsing || !aiInput.trim()}
-                  className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isParsing ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                  Processar
-                </button>
-              </div>
             </div>
           </div>
 
@@ -5488,9 +5412,7 @@ function CadChecking({
   moList,
   patrimonioVtList,
   patrimonioMoList,
-  isParsing,
   isExtractingPlate,
-  onAiParse,
   onExtractPlate,
   onGenerateDetailedPDF
 }: {
@@ -5531,14 +5453,10 @@ function CadChecking({
   moList: string[];
   patrimonioVtList: string[];
   patrimonioMoList: string[];
-  isParsing: boolean;
   isExtractingPlate: boolean;
-  onAiParse: (input: string) => Promise<any>;
   onExtractPlate: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerateDetailedPDF: (record: RecordEntry) => void;
 }) {
-  
-  const [aiInput, setAiInput] = useState('');
   
   console.log(`[CadChecking] Rendering with ${vehicles.length} total vehicles`);
   
@@ -5823,38 +5741,6 @@ function CadChecking({
 
               {/* Modal Body - Multi-step Form */}
               <div className="p-8">
-                  {/* AI Assistant Section */}
-                  <section className="bg-blue-50/50 rounded-3xl p-6 mb-8 border border-blue-100">
-                    <div className="flex items-center justify-between gap-2 mb-4">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-blue-600" />
-                        <h2 className="font-bold text-sm text-blue-900 uppercase tracking-widest">Assistente de Preenchimento</h2>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500 mb-4 italic">
-                      Descreva o estado da viatura em linguagem natural e eu preencho o formulário para você.
-                    </p>
-                    <div className="relative">
-                      <textarea
-                        className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all min-h-[80px]"
-                        placeholder="Ex: Viatura 6491 está com o farol direito queimado, pneu meia vida e o rádio não funciona..."
-                        value={aiInput}
-                        onChange={(e) => setAiInput(e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onAiParse(aiInput);
-                          setAiInput('');
-                        }}
-                        disabled={isParsing || !aiInput.trim()}
-                        className="absolute bottom-3 right-3 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-blue-700 disabled:opacity-50 transition-all shadow-md"
-                      >
-                        {isParsing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                        {isParsing ? 'Analisando...' : 'Preencher com IA'}
-                      </button>
-                    </div>
-                  </section>
 
                   <div className="flex gap-2 mb-8 bg-slate-50 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar">
                     {[
