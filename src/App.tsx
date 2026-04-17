@@ -681,7 +681,11 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, 'standalone_checklists'), orderBy('timestamp', 'desc'), limit(50));
+    const constraints: any[] = [orderBy('timestamp', 'desc'), limit(50)];
+    if (!isAdmin) {
+      constraints.unshift(where('userEmail', '==', user.email));
+    }
+    const q = query(collection(db, 'standalone_checklists'), ...constraints);
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setStandaloneHistory(historyData);
@@ -689,7 +693,7 @@ export default function App() {
       handleFirestoreError(error, OperationType.LIST, 'standalone_checklists');
     });
     return () => unsubscribe();
-  }, [user]);
+  }, [user, isAdmin]);
 
   // Bootstrap vehicles if empty and user is admin
   useEffect(() => {
@@ -702,19 +706,21 @@ export default function App() {
   // CadChecking History listener
   useEffect(() => {
     if (!user || activeTab !== 'cadchecking' || cadcheckingView !== 'history') return;
+    
+    const constraints: any[] = [orderBy('timestamp', 'desc'), limit(50)];
+    if (!isAdmin) {
+      constraints.unshift(where('userEmail', '==', user.email));
+    }
+    
     const q = query(
       collection(db, 'checklists'), 
-      orderBy('timestamp', 'desc'),
-      limit(50)
+      ...constraints
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const recordList: RecordEntry[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data() as RecordEntry;
-        // Individualize history: only show own records unless admin
-        if (isAdmin || data.userEmail === user.email) {
-          recordList.push({ id: doc.id, ...data } as RecordEntry);
-        }
+        recordList.push({ id: doc.id, ...data } as RecordEntry);
       });
       setCadcheckingHistory(recordList);
     }, (error) => {
