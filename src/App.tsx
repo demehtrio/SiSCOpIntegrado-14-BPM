@@ -991,6 +991,25 @@ export default function App() {
       mileage: {
         currentMileage: '',
         notes: ''
+      },
+      checklist: {
+        mapaDiario: 'SIM',
+        equipamentos: [],
+        luzFarolAlto: 'Todos funcionam',
+        luzFarolBaixo: 'Todos funcionam',
+        luzLanterna: 'Todos funcionam',
+        luzFreioLanternaTraseira: ['TODAS FUNCIONANDO'],
+        luzPlaca: 'Funciona',
+        pneus: 'Novo',
+        sistemaFreio: 'Freio funcionando',
+        oleoMotor: 'Nível Normal',
+        proxTrocaOleoKm: '',
+        partesInternas: ['SEM ALTERAÇÃO'],
+        sistemaTracao: 'Kit de tração em condições',
+        partesExternas: ['Sem Alteração'],
+        limpeza: 'SIM',
+        descricaoAlteracoes: '',
+        fotos: []
       }
     });
   };
@@ -1480,8 +1499,8 @@ export default function App() {
             model: vehicle?.model || prev.identification.model
           },
           checklist: {
-            ...prev.checklist,
-            fotos: [...prev.checklist.fotos, base64String]
+            ...(prev.checklist || {}),
+            fotos: [...(prev.checklist?.fotos || []), base64String]
           }
         }));
         
