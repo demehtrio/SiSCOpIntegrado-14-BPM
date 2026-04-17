@@ -1039,8 +1039,8 @@ export default function App() {
     message += `🛠️ *Emprego:* ${record.drivers?.serviceType || '---'}\n`;
     message += `📊 *KM ${isOut ? 'Inicial' : 'Final'}:* ${record.mileage?.currentMileage || '---'} km\n\n`;
 
-    // Checklist Detalhado
-    if (record.checklist) {
+    // Checklist Detalhado - ONLY if not from cadchecking
+    if (record.checklist && record.source !== 'cadchecking') {
       const c = record.checklist;
       message += `*CONDIÇÕES DA VIATURA*\n`;
       message += `📑 *Mapa Diário:* ${c.mapaDiario || '---'}\n`;
@@ -1080,6 +1080,10 @@ export default function App() {
       if (c.fotos && c.fotos.length > 0) {
         message += `\n📸 *Fotos:* ${c.fotos.length} anexadas`;
       }
+    }
+
+    if (record.source === 'cadchecking' && record.checklist?.descricaoAlteracoes) {
+      message += `\n*DESCRIÇÃO DE ALTERAÇÕES*\n${record.checklist.descricaoAlteracoes}\n`;
     }
 
     if (record.mileage?.notes) {
@@ -1167,7 +1171,15 @@ export default function App() {
         ['Quilometragem', `${record.mileage.currentMileage} km`]
       ]);
 
-      if (record.checklist) {
+      // Observações (Always show if present)
+      if (record.checklist?.descricaoAlteracoes || record.mileage?.notes) {
+        addSection('Observações', [
+          ['Alterações', record.checklist?.descricaoAlteracoes || 'Sem alterações registradas.'],
+          ['Notas Adicionais', record.mileage?.notes || '---']
+        ]);
+      }
+
+      if (record.checklist && record.source !== 'cadchecking') {
         const c = record.checklist;
         
         // Estado Técnico
@@ -1200,14 +1212,6 @@ export default function App() {
           ['Partes Internas', c.partesInternas.join(', ')],
           ['Partes Externas', c.partesExternas.join(', ')]
         ]);
-
-        // Observações
-        if (c.descricaoAlteracoes || record.mileage.notes) {
-          addSection('Observações', [
-            ['Alterações', c.descricaoAlteracoes || 'Sem alterações registradas.'],
-            ['Notas Adicionais', record.mileage.notes || '---']
-          ]);
-        }
 
         // Fotos
         if (c.fotos && c.fotos.length > 0) {
@@ -1300,7 +1304,8 @@ export default function App() {
         identification: cadcheckingFormData.identification,
         drivers: cadcheckingFormData.drivers,
         mileage: cadcheckingFormData.mileage,
-        checklist: cadcheckingFormData.checklist
+        checklist: cadcheckingFormData.checklist,
+        source: 'cadchecking'
       });
       // Update vehicle status
       await updateDoc(doc(db, 'vehicles', selectedVehicle.id), {
@@ -1359,6 +1364,7 @@ export default function App() {
         timestamp: serverTimestamp(),
         userEmail: user.email,
         userName: user.displayName || user.email?.split('@')[0],
+        source: 'standalone_checklist'
       });
       
       // Update vehicle if found
@@ -5863,10 +5869,6 @@ function CadChecking({
                     {[
                       { icon: <Siren size={18} />, label: 'Identificação' },
                       { icon: <UserRound size={18} />, label: 'Condutor' },
-                      { icon: <Settings size={18} />, label: 'Estado Técnico' },
-                      { icon: <Lightbulb size={18} />, label: 'Iluminação' },
-                      { icon: <Wrench size={18} />, label: 'Mecânica' },
-                      { icon: <Sparkles size={18} />, label: 'Conservação' },
                       { icon: <RefreshCw size={18} />, label: 'Quilometragem' }
                     ].map((step, idx) => (
                       <button
@@ -5981,244 +5983,6 @@ function CadChecking({
 
                     {currentTab === 2 && (
                       <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
-                            <label className="text-xs font-bold uppercase text-blue-600">Mapa Diário</label>
-                            <div className="flex gap-2 mt-2">
-                              {['SIM', 'NÃO'].map(opt => (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  onClick={() => setFormData({...formData, checklist: {...formData.checklist, mapaDiario: opt}})}
-                                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
-                                    formData.checklist.mapaDiario === opt 
-                                    ? 'bg-blue-600 text-white border-transparent shadow-md' 
-                                    : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                                  }`}
-                                >
-                                  {opt}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
-                            <label className="text-xs font-bold uppercase text-blue-600">Limpeza</label>
-                            <div className="flex gap-2 mt-2">
-                              {['SIM', 'NÃO'].map(opt => (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  onClick={() => setFormData({...formData, checklist: {...formData.checklist, limpeza: opt}})}
-                                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
-                                    formData.checklist.limpeza === opt 
-                                    ? 'bg-blue-600 text-white border-transparent shadow-md' 
-                                    : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                                  }`}
-                                >
-                                  {opt}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Equipamentos Presentes</label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {EQUIPAMENTOS_VTR.map(eq => (
-                              <button
-                                key={eq}
-                                type="button"
-                                onClick={() => {
-                                  const current = formData.checklist.equipamentos;
-                                  const next = current.includes(eq) ? current.filter((i: string) => i !== eq) : [...current, eq];
-                                  setFormData({...formData, checklist: {...formData.checklist, equipamentos: next}});
-                                }}
-                                className={`p-3 rounded-xl text-xs text-left transition-all border ${
-                                  formData.checklist.equipamentos.includes(eq) 
-                                  ? 'bg-blue-600 text-white border-transparent shadow-lg scale-[1.02]' 
-                                  : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                                }`}
-                              >
-                                {eq}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {currentTab === 3 && (
-                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          {[
-                            { label: 'Farol Alto', field: 'luzFarolAlto' },
-                            { label: 'Farol Baixo', field: 'luzFarolBaixo' },
-                            { label: 'Lanterna/Pisca', field: 'luzLanterna' },
-                            { label: 'Luz de Placa', field: 'luzPlaca' }
-                          ].map(item => (
-                            <div key={item.field} className="space-y-2">
-                              <label className="text-xs font-bold uppercase text-slate-400">{item.label}</label>
-                              <select 
-                                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                                value={formData.checklist[item.field]}
-                                onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, [item.field]: e.target.value}})}
-                              >
-                                <option value="Todos funcionam">Todos funcionam</option>
-                                <option value="Direito queimado">Direito queimado</option>
-                                <option value="Esquerdo queimado">Esquerdo queimado</option>
-                                <option value="Todas queimados">Todas queimados</option>
-                                <option value="Funciona">Funciona</option>
-                                <option value="Queimada">Queimada</option>
-                              </select>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="space-y-4">
-                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Luz de Freio e Lanterna Traseira</label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {LUZES_TRASEIRAS.map(item => (
-                              <button
-                                key={item}
-                                type="button"
-                                onClick={() => {
-                                  const current = formData.checklist.luzFreioLanternaTraseira;
-                                  const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
-                                  setFormData({...formData, checklist: {...formData.checklist, luzFreioLanternaTraseira: next}});
-                                }}
-                                className={`p-3 rounded-xl text-xs text-left transition-all border ${
-                                  formData.checklist.luzFreioLanternaTraseira.includes(item) 
-                                  ? 'bg-blue-600 text-white border-transparent shadow-md' 
-                                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'
-                                }`}
-                              >
-                                {item}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {currentTab === 4 && (
-                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-slate-400">Pneus</label>
-                            <select 
-                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                              value={formData.checklist.pneus}
-                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, pneus: e.target.value}})}
-                            >
-                              <option value="Novo">Novo</option>
-                              <option value="Meia vida">Meia vida</option>
-                              <option value="Inutilizável (Motivo de baixa)">Inutilizável (Motivo de baixa)</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-slate-400">Sistema de Freio</label>
-                            <select 
-                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                              value={formData.checklist.sistemaFreio}
-                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, sistemaFreio: e.target.value}})}
-                            >
-                              <option value="Freio funcionando">Freio funcionando</option>
-                              <option value="Freio falhando">Freio falhando</option>
-                              <option value="Sem Freios (Motivo de baixa)">Sem Freios (Motivo de baixa)</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-slate-400">Óleo Motor</label>
-                            <select 
-                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                              value={formData.checklist.oleoMotor}
-                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, oleoMotor: e.target.value}})}
-                            >
-                              <option value="Nível Normal">Nível Normal</option>
-                              <option value="Nível Baixo">Nível Baixo</option>
-                              <option value="Nível sem condições (Baixar VTR)">Nível sem condições (Baixar VTR)</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-slate-400">Próx. Troca Óleo KM</label>
-                            <input 
-                              type="number"
-                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                              value={formData.checklist.proxTrocaOleoKm}
-                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, proxTrocaOleoKm: e.target.value}})}
-                            />
-                          </div>
-                        </div>
-                        {(formData.identification.model.toLowerCase().includes('moto') || 
-                          formData.identification.model.toLowerCase().includes('xre')) && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-slate-400">Sistema de Tração (Motos)</label>
-                            <select 
-                              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                              value={formData.checklist.sistemaTracao}
-                              onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, sistemaTracao: e.target.value}})}
-                            >
-                              <option value="Kit de tração em condições">Kit de tração em condições</option>
-                              <option value="Kit de tração desgastado">Kit de tração desgastado</option>
-                              <option value="Kit de tração sem condições (Baixar VTR)">Kit de tração sem condições (Baixar VTR)</option>
-                            </select>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
-
-                    {currentTab === 5 && (
-                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                        <div className="space-y-4">
-                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Partes Internas</label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {PARTES_INTERNAS.map(item => (
-                              <button
-                                key={item}
-                                type="button"
-                                onClick={() => {
-                                  const current = formData.checklist.partesInternas;
-                                  const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
-                                  setFormData({...formData, checklist: {...formData.checklist, partesInternas: next}});
-                                }}
-                                className={`p-3 rounded-xl text-xs text-left transition-all border ${
-                                  formData.checklist.partesInternas.includes(item) 
-                                  ? 'bg-blue-600 text-white border-transparent shadow-md' 
-                                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'
-                                }`}
-                              >
-                                {item}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Partes Externas</label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {PARTES_EXTERNAS.map(item => (
-                              <button
-                                key={item}
-                                type="button"
-                                onClick={() => {
-                                  const current = formData.checklist.partesExternas;
-                                  const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
-                                  setFormData({...formData, checklist: {...formData.checklist, partesExternas: next}});
-                                }}
-                                className={`p-3 rounded-xl text-xs text-left transition-all border ${
-                                  formData.checklist.partesExternas.includes(item) 
-                                  ? 'bg-blue-600 text-white border-transparent shadow-md' 
-                                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'
-                                }`}
-                              >
-                                {item}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {currentTab === 6 && (
-                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                         <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-center gap-4">
                           <div className="bg-blue-600 p-3 rounded-2xl text-white">
                             <RefreshCw size={24} />
@@ -6249,51 +6013,6 @@ function CadChecking({
                             className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700 min-h-[100px]"
                           />
                         </div>
-
-                        <div className="space-y-4">
-                          <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Fotos da Viatura</label>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {formData.checklist.fotos.map((foto: string, index: number) => (
-                              <div key={index} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
-                                <img src={foto} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = formData.checklist.fotos.filter((_: string, i: number) => i !== index);
-                                    setFormData({...formData, checklist: {...formData.checklist, fotos: next}});
-                                  }}
-                                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                                >
-                                  <X size={16} />
-                                </button>
-                              </div>
-                            ))}
-                            {formData.checklist.fotos.length < 8 && (
-                              <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all text-slate-400 hover:text-blue-600">
-                                <Camera size={24} />
-                                <span className="text-[10px] font-bold uppercase">Adicionar Foto</span>
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  multiple 
-                                  className="hidden" 
-                                  onChange={async (e) => {
-                                    const files = Array.from(e.target.files || []);
-                                    const newFotos = await Promise.all(files.map(async (file: Blob) => {
-                                      const base64 = await new Promise<string>((resolve) => {
-                                        const reader = new FileReader();
-                                        reader.onload = () => resolve(reader.result as string);
-                                        reader.readAsDataURL(file);
-                                      });
-                                      return await compressImage(base64);
-                                    }));
-                                    setFormData({...formData, checklist: {...formData.checklist, fotos: [...formData.checklist.fotos, ...newFotos]}});
-                                  }}
-                                />
-                              </label>
-                            )}
-                          </div>
-                        </div>
                       </motion.div>
                     )}
                   </div>
@@ -6315,7 +6034,7 @@ function CadChecking({
                     </button>
                   )}
                   
-                  {currentTab < 6 ? (
+                  {currentTab < 2 ? (
                     <button 
                       onClick={() => setCurrentTab(currentTab + 1)}
                       className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
