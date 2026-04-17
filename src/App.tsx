@@ -1020,8 +1020,11 @@ export default function App() {
     const dateFormatted = record.identification?.date?.split('-').reverse().join('/') || '---';
     const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
     const typeLabel = isOut ? 'SAÍDA' : 'RETORNO';
+    const isCadchecking = record.source === 'cadchecking';
     
-    let message = `*CHECK-LIST VIATURA (${typeLabel})*\n\n`;
+    let message = isCadchecking 
+      ? `*CADCHECKING VIATURA (${typeLabel})*\n\n`
+      : `*CHECK-LIST VIATURA (${typeLabel})*\n\n`;
     
     // Identificação
     message += `*IDENTIFICAÇÃO*\n`;
@@ -1113,7 +1116,8 @@ export default function App() {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text('CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
+      const isCadchecking = record.source === 'cadchecking';
+      doc.text(isCadchecking ? 'REGISTRO DE CADCHECKING' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(10);
       doc.text('14º BPM - SERRA TALHADA', pageWidth / 2, 22, { align: 'center' });
