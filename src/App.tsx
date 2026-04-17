@@ -974,7 +974,7 @@ export default function App() {
     }
     setSelectedVehicle(vehicle);
     setOperationType(type);
-    setCurrentCadcheckingTab(type === 'check-out' ? 2 : 0);
+    setCurrentCadcheckingTab(0);
     setCadcheckingFormData({
       identification: {
         prefix: vehicle.prefix || 'RESERVA',
