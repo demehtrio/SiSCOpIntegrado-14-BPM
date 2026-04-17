@@ -1017,32 +1017,78 @@ export default function App() {
   const formatWhatsAppMessage = (record: RecordEntry) => {
     const driverFormatted = record.drivers?.driverName?.replace(/ (\d)/, ' / $1') || '---';
     const dateFormatted = record.identification?.date?.split('-').reverse().join('/') || '---';
+    const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
+    const typeLabel = isOut ? 'SAÍDA' : 'RETORNO';
     
-    const messageBody = record.type === 'check-in' 
-      ? ` *CHECK-IN VIATURA (SAÍDA)*\n` +
-        ` *Pat:* ${record.identification?.prefix || '---'}\n` +
-        ` *Placa:* ${record.identification?.plate || '---'}\n` +
-        (record.identification?.operationalPrefix ? ` *Prefixo:* ${record.identification.operationalPrefix}\n` : '') +
-        ` *Emprego:* ${record.drivers?.serviceType || '---'}\n` +
-        ` *Vtr:* ${record.identification?.model || '---'}\n` +
-        ` *Km inic:* ${record.mileage?.currentMileage || '---'}\n` +
-        ` *Data:* ${dateFormatted}\n` +
-        ` *Hora que armou:* ${record.identification?.time || '---'}\n` +
-        ` *Condutor/Mat:* ${driverFormatted}${record.checklist?.fotos?.length ? `\n *Fotos:* ${record.checklist.fotos.length} anexadas` : ''}`
-      : ` *CHECK-OUT VIATURA (RETORNO)*\n` +
-        ` *Pat:* ${record.identification?.prefix || '---'}\n` +
-        ` *Placa:* ${record.identification?.plate || '---'}\n` +
-        (record.identification?.operationalPrefix ? ` *Prefixo:* ${record.identification.operationalPrefix}\n` : '') +
-        ` *Emprego:* ${record.drivers?.serviceType || '---'}\n` +
-        ` *Vtr:* ${record.identification?.model || '---'}\n` +
-        ` *Km final:* ${record.mileage?.currentMileage || '---'}\n` +
-        ` *Data:* ${dateFormatted}\n` +
-        ` *Hora que desarmou:* ${record.identification?.time || '---'}\n` +
-        ` *Condutor/Mat:* ${driverFormatted}${record.checklist?.fotos?.length ? `\n *Fotos:* ${record.checklist.fotos.length} anexadas` : ''}`;
+    let message = `*CHECK-LIST VIATURA (${typeLabel})*\n\n`;
     
-    return record.mileage.notes 
-      ? `${messageBody}\n\n *Obs:* ${record.mileage.notes}`
-      : messageBody;
+    // Identificação
+    message += `*IDENTIFICAÇÃO*\n`;
+    message += `🚩 *Prefixo:* ${record.identification?.prefix || '---'}\n`;
+    message += `🔢 *Placa:* ${record.identification?.plate || '---'}\n`;
+    if (record.identification?.operationalPrefix) {
+      message += `🏷️ *P. Operacional:* ${record.identification.operationalPrefix}\n`;
+    }
+    message += `🚔 *Modelo:* ${record.identification?.model || '---'}\n`;
+    message += `📅 *Data:* ${dateFormatted}\n`;
+    message += `⏰ *Hora:* ${record.identification?.time || '---'}\n\n`;
+
+    // Responsável e KM
+    message += `*RESPONSÁVEL E KM*\n`;
+    message += `👮 *Condutor:* ${driverFormatted}\n`;
+    message += `🛠️ *Emprego:* ${record.drivers?.serviceType || '---'}\n`;
+    message += `📊 *KM ${isOut ? 'Inicial' : 'Final'}:* ${record.mileage?.currentMileage || '---'} km\n\n`;
+
+    // Checklist Detalhado
+    if (record.checklist) {
+      const c = record.checklist;
+      message += `*CONDIÇÕES DA VIATURA*\n`;
+      message += `📑 *Mapa Diário:* ${c.mapaDiario || '---'}\n`;
+      message += `✨ *Limpeza:* ${c.limpeza || '---'}\n`;
+      
+      if (c.equipamentos && c.equipamentos.length > 0) {
+        message += `🎒 *Equipamentos:* ${c.equipamentos.join(', ')}\n`;
+      }
+      
+      message += `\n*ILUMINAÇÃO*\n`;
+      message += `💡 *Farol Alto:* ${c.luzFarolAlto || '---'}\n`;
+      message += `💡 *Farol Baixo:* ${c.luzFarolBaixo || '---'}\n`;
+      message += `💡 *Lanterna/Pisca:* ${c.luzLanterna || '---'}\n`;
+      message += `💡 *Luz de Placa:* ${c.luzPlaca || '---'}\n`;
+      if (c.luzFreioLanternaTraseira && c.luzFreioLanternaTraseira.length > 0) {
+        message += `💡 *Freio/Lanterna Tras.:* ${c.luzFreioLanternaTraseira.join(', ')}\n`;
+      }
+
+      message += `\n*MECÂNICA E ESTADO*\n`;
+      message += `🛞 *Pneus:* ${c.pneus || '---'}\n`;
+      message += `🛑 *Sistema Freio:* ${c.sistemaFreio || '---'}\n`;
+      message += `🛢️ *Óleo Motor:* ${c.oleoMotor || '---'}\n`;
+      if (c.proxTrocaOleoKm) message += `◷ *Próx. Troca (KM):* ${c.proxTrocaOleoKm}\n`;
+      
+      if (c.partesInternas && c.partesInternas.length > 0) {
+        message += `🛋️ *Partes Internas:* ${c.partesInternas.join(', ')}\n`;
+      }
+      if (c.partesExternas && c.partesExternas.length > 0) {
+        message += `🎨 *Partes Externas:* ${c.partesExternas.join(', ')}\n`;
+      }
+      if (c.sistemaTracao) message += `⛓️ *Sist. Tração:* ${c.sistemaTracao}\n`;
+      
+      if (c.descricaoAlteracoes) {
+        message += `\n*DESCRIÇÃO DE ALTERAÇÕES*\n${c.descricaoAlteracoes}\n`;
+      }
+
+      if (c.fotos && c.fotos.length > 0) {
+        message += `\n📸 *Fotos:* ${c.fotos.length} anexadas`;
+      }
+    }
+
+    if (record.mileage?.notes) {
+      message += `\n\n*OBSERVAÇÕES:* ${record.mileage.notes}`;
+    }
+
+    message += `\n\n_Gerado via SisCOpI - 14º BPM_`;
+
+    return message;
   };
 
   const generateDetailedChecklistPDF = async (record: RecordEntry) => {
