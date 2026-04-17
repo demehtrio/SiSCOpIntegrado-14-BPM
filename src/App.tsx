@@ -974,7 +974,8 @@ export default function App() {
     }
     setSelectedVehicle(vehicle);
     setOperationType(type);
-    setCurrentCadcheckingTab(0);
+    // Para check-out (Retorno), abre direto na tela de quilometragem (aba 2)
+    setCurrentCadcheckingTab(type === 'check-out' ? 2 : 0);
     setCadcheckingFormData({
       identification: {
         prefix: vehicle.prefix || 'RESERVA',
@@ -4933,7 +4934,14 @@ function ChecklistModule({
   const [formData, setFormData] = useState(initialFormData);
 
   const handleStartNew = () => {
-    setFormData(initialFormData);
+    setFormData({
+      ...initialFormData,
+      identification: {
+        ...initialFormData.identification,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        time: format(new Date(), 'HH:mm')
+      }
+    });
     setCurrentTab(0);
     setView('form');
   };
@@ -5085,43 +5093,54 @@ function ChecklistModule({
                         variant="blue"
                       />
                     </div>
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFormData({...formData, type: 'check-in'})}
-                          className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
-                            formData.type === 'check-in' 
-                              ? 'bg-blue-600 text-white shadow-lg' 
-                              : 'bg-slate-50 text-slate-400 border border-slate-100'
-                          }`}
-                        >
-                          <LogIn size={20} />
-                          SAÍDA
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormData({...formData, type: 'check-out'})}
-                          className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
-                            formData.type === 'check-out' 
-                              ? 'bg-emerald-600 text-white shadow-lg' 
-                              : 'bg-slate-50 text-slate-400 border border-slate-100'
-                          }`}
-                        >
-                          <LogOut size={20} />
-                          RETORNO
-                        </button>
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({...formData, type: 'check-in'})}
+                            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                              formData.type === 'check-in' 
+                                ? 'bg-blue-600 text-white shadow-lg' 
+                                : 'bg-slate-50 text-slate-400 border border-slate-100'
+                            }`}
+                          >
+                            <LogIn size={20} />
+                            SAÍDA
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({...formData, type: 'check-out'})}
+                            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                              formData.type === 'check-out' 
+                                ? 'bg-emerald-600 text-white shadow-lg' 
+                                : 'bg-slate-50 text-slate-400 border border-slate-100'
+                            }`}
+                          >
+                            <LogOut size={20} />
+                            RETORNO
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                            <input 
+                              type="date"
+                              value={formData.identification.date}
+                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
+                            <input 
+                              type="time"
+                              value={formData.identification.time}
+                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
+                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                        <input 
-                          type="date"
-                          value={formData.identification.date}
-                          onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
-                          className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
-                        />
-                      </div>
-                    </div>
                   </div>
                 </motion.div>
               )}
@@ -5947,6 +5966,15 @@ function CadChecking({
                               type="date"
                               value={formData.identification.date}
                               onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
+                            <input 
+                              type="time"
+                              value={formData.identification.time}
+                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
                               className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
                             />
                           </div>
