@@ -33,14 +33,14 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        (request.auth.token.email == "demetriomarques@gmail.com" && request.auth.token.email_verified == true) ||
+        (request.auth.token.email == "demetriomarques@gmail.com") ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
     function isAuthorized() {
-      return isAuthenticated() && request.auth.token.email_verified == true;
+      return isAuthenticated();
     }
 
     function hasRequiredFields(fields) {

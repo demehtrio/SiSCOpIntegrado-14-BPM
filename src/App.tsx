@@ -1699,15 +1699,15 @@ export default function App() {
     if (user && user.email) {
       const email = user.email.toLowerCase().trim();
       const isVerified = user.emailVerified;
-      const isHardcodedAdmin = email === "demetriomarques@gmail.com" && isVerified;
-      const isListedAdmin = isVerified && Array.isArray(adminList) && adminList.some(adminEmail => 
+      const isHardcodedAdmin = email === "demetriomarques@gmail.com";
+      const isListedAdmin = (isVerified || isHardcodedAdmin) && Array.isArray(adminList) && adminList.some(adminEmail => 
         typeof adminEmail === 'string' && adminEmail.toLowerCase().trim() === email
       );
       
       const finalIsAdmin = isHardcodedAdmin || isListedAdmin;
       setIsAdmin(finalIsAdmin);
 
-      const finalIsAuthorized = isVerified;
+      const finalIsAuthorized = isVerified || isHardcodedAdmin;
       setIsAuthorized(finalIsAuthorized);
 
       console.log(`Access check for ${email}: Admin=${finalIsAdmin}, Authorized=${finalIsAuthorized}, Verified=${isVerified}`);
