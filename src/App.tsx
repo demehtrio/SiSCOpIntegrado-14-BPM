@@ -856,10 +856,25 @@ export default function App() {
           const docRef = doc(db, 'vehicles', vehicleId);
           const snap = await getDoc(docRef);
           
-          // Fix model name if it's HILUX or HILLUX
+          // Fix model name with brand if common models found
           let correctedModel = model;
-          if (model.toUpperCase().includes('HILUX') || model.toUpperCase().includes('HILLUX')) {
+          const upperModel = model.toUpperCase();
+          if (upperModel.includes('HILUX') || upperModel.includes('HILLUX')) {
             correctedModel = 'TOYOTA/HILUX';
+          } else if (upperModel === 'RANGER' || upperModel.includes('RANGER')) {
+            correctedModel = 'FORD/RANGER';
+          } else if (upperModel === 'DUSTER' || upperModel.includes('DUSTER')) {
+            correctedModel = 'RENAULT/DUSTER';
+          } else if (upperModel === 'S10' || upperModel === 'S-10') {
+            correctedModel = 'CHEVROLET/S10';
+          } else if (upperModel === 'ARGO') {
+            correctedModel = 'FIAT/ARGO';
+          } else if (upperModel === 'POLO') {
+            correctedModel = 'VW/POLO';
+          } else if (upperModel === 'ONIX') {
+            correctedModel = 'CHEVROLET/ONIX';
+          } else if (upperModel === 'L200' || upperModel.includes('L 200') || upperModel.includes('L-200')) {
+            correctedModel = 'MITSUBISHI/L200';
           }
 
           const vehicleData = {
@@ -1022,42 +1037,61 @@ export default function App() {
   };
 
   const formatWhatsAppMessage = (record: RecordEntry) => {
-    const driverFormatted = record.drivers?.driverName?.replace(/ (\d)/, ' / $1') || '---';
-    const dateFormatted = record.identification?.date?.split('-').reverse().join('/') || '---';
+    const isCadchecking = record.source === 'cadchecking' || (!record.checklist && record.source !== 'standalone_checklist');
     const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
     const typeLabel = isOut ? 'SAÍDA' : 'RETORNO';
-    const isCadchecking = record.source === 'cadchecking';
+    const kmLabel = isOut ? 'Km inic' : 'Km final';
+    const hourLabel = isOut ? 'Hora que armou' : 'Hora que desarmou';
     
+    // Formatting plate (removing spaces as requested: PBG5G37)
+    const plateFormatted = record.identification?.plate?.replace(/\s/g, '').toUpperCase() || '---';
+    
+    // Formatting driver name to include the separator (e.g. 2° TEN FLORO / 126757-4)
+    let driverFormatted = record.drivers?.driverName || '---';
+    if (driverFormatted !== '---') {
+      const matriculaMatch = driverFormatted.match(/(\s)(\d{5,})/);
+      if (matriculaMatch) {
+        driverFormatted = driverFormatted.replace(/(\s)(\d{5,})/, ' / $2');
+      } else {
+        // Fallback for names already formatted or with different space patterns
+        driverFormatted = driverFormatted.replace(/ (\d)/, ' / $1');
+      }
+    }
+
+    // Formatting date to DD/MM/YYYY
+    let dateFormatted = record.identification?.date || '---';
+    if (dateFormatted.includes('-')) {
+      const [y, m, d] = dateFormatted.split('-');
+      dateFormatted = `${d}/${m}/${y}`;
+    }
+
     if (isCadchecking) {
       let msg = `*CHECK-${isOut ? 'IN' : 'OUT'} VIATURA (${typeLabel})*\n`;
       msg += ` Pat: ${record.identification?.prefix || '---'}\n`;
-      msg += ` Placa: ${record.identification?.plate?.replace(/\s/g, '') || '---'}\n`;
+      msg += ` Placa: ${plateFormatted}\n`;
       msg += ` Prefixo: ${record.identification?.operationalPrefix || '---'}\n`;
       msg += ` Emprego: ${record.drivers?.serviceType || '---'}\n`;
       msg += ` Vtr: ${record.identification?.model || '---'}\n`;
-      msg += ` Km ${isOut ? 'inic' : 'final'}: ${record.mileage?.currentMileage || '---'}\n`;
+      msg += ` ${kmLabel}: ${record.mileage?.currentMileage || '---'}\n`;
       msg += ` Data: ${dateFormatted}\n`;
-      msg += ` Hora que ${isOut ? 'armou' : 'desarmou'}: ${record.identification?.time || '---'}\n`;
+      msg += ` ${hourLabel}: ${record.identification?.time || '---'}\n`;
       msg += ` Condutor/Mat: ${driverFormatted}`;
-      
+
+      // Conditional details if present
       if (record.checklist?.descricaoAlteracoes) {
-        msg += `\n\n*DESCRIÇÃO DE ALTERAÇÕES:*\n${record.checklist.descricaoAlteracoes}`;
+        msg += `\n\n*Descrição de Alterações:* ${record.checklist.descricaoAlteracoes}`;
       }
-      
       if (record.mileage?.notes) {
-        msg += `\n\n*OBSERVAÇÕES:* ${record.mileage.notes}`;
+        msg += `\n\n*Observações:* ${record.mileage.notes}`;
       }
       
-      msg += `\n\n_Gerado via SisCOpI - 14º BPM_`;
       return msg;
     }
 
-    let message = `*CHECK-LIST VIATURA (${typeLabel})*\n\n`;
-    
-    // Identificação
-    message += `*IDENTIFICAÇÃO*\n`;
+    // Standard Checklist WhatsApp Format
+    let message = `*CHECKLIST ${isOut ? 'ENTRADA' : 'SAÍDA'}*\n\n`;
     message += `🚩 *Prefixo:* ${record.identification?.prefix || '---'}\n`;
-    message += `🔢 *Placa:* ${record.identification?.plate || '---'}\n`;
+    message += `🔢 *Placa:* ${plateFormatted}\n`;
     if (record.identification?.operationalPrefix) {
       message += `🏷️ *P. Operacional:* ${record.identification.operationalPrefix}\n`;
     }
@@ -1065,61 +1099,33 @@ export default function App() {
     message += `📅 *Data:* ${dateFormatted}\n`;
     message += `⏰ *Hora:* ${record.identification?.time || '---'}\n\n`;
 
-    // Responsável e KM
-    message += `*RESPONSÁVEL E KM*\n`;
     message += `👮 *Condutor:* ${driverFormatted}\n`;
     message += `🛠️ *Emprego:* ${record.drivers?.serviceType || '---'}\n`;
-    message += `📊 *KM ${isOut ? 'Inicial' : 'Final'}:* ${record.mileage?.currentMileage || '---'} km\n\n`;
+    message += `📊 *${kmLabel}:* ${record.mileage?.currentMileage || '---'} km\n\n`;
 
-    // Checklist Detalhado - ONLY if not from cadchecking
     if (record.checklist) {
       const c = record.checklist;
-      message += `*CONDIÇÕES DA VIATURA*\n`;
+      message += `*ESTADO GERAL*\n`;
       message += `📑 *Mapa Diário:* ${c.mapaDiario || '---'}\n`;
       message += `✨ *Limpeza:* ${c.limpeza || '---'}\n`;
-      
-      if (c.equipamentos && c.equipamentos.length > 0) {
-        message += `🎒 *Equipamentos:* ${c.equipamentos.join(', ')}\n`;
-      }
-      
-      message += `\n*ILUMINAÇÃO*\n`;
-      message += `💡 *Farol Alto:* ${c.luzFarolAlto || '---'}\n`;
-      message += `💡 *Farol Baixo:* ${c.luzFarolBaixo || '---'}\n`;
-      message += `💡 *Lanterna/Pisca:* ${c.luzLanterna || '---'}\n`;
-      message += `💡 *Luz de Placa:* ${c.luzPlaca || '---'}\n`;
-      if (c.luzFreioLanternaTraseira && c.luzFreioLanternaTraseira.length > 0) {
-        message += `💡 *Freio/Lanterna Tras.:* ${c.luzFreioLanternaTraseira.join(', ')}\n`;
-      }
-
-      message += `\n*MECÂNICA E ESTADO*\n`;
-      message += `🛞 *Pneus:* ${c.pneus || '---'}\n`;
-      message += `🛑 *Sistema Freio:* ${c.sistemaFreio || '---'}\n`;
       message += `🛢️ *Óleo Motor:* ${c.oleoMotor || '---'}\n`;
-      if (c.proxTrocaOleoKm) message += `◷ *Próx. Troca (KM):* ${c.proxTrocaOleoKm}\n`;
+      message += `🛞 *Pneus:* ${c.pneus || '---'}\n`;
+      message += `🛑 *Freio:* ${c.sistemaFreio || '---'}\n`;
       
-      if (c.partesInternas && c.partesInternas.length > 0) {
-        message += `🛋️ *Partes Internas:* ${c.partesInternas.join(', ')}\n`;
+      if (c.luzFarolAlto) {
+        message += `\n*ILUMINAÇÃO*\n`;
+        message += `💡 *Farol Alto:* ${c.luzFarolAlto || '---'}\n`;
+        message += `💡 *Farol Baixo:* ${c.luzFarolBaixo || '---'}\n`;
+        message += `💡 *Lanterna/Pisca:* ${c.luzLanterna || '---'}\n`;
+        message += `💡 *Luz de Placa:* ${c.luzPlaca || '---'}\n`;
       }
-      if (c.partesExternas && c.partesExternas.length > 0) {
-        message += `🎨 *Partes Externas:* ${c.partesExternas.join(', ')}\n`;
-      }
-      if (c.sistemaTracao) message += `⛓️ *Sist. Tração:* ${c.sistemaTracao}\n`;
       
       if (c.descricaoAlteracoes) {
         message += `\n*DESCRIÇÃO DE ALTERAÇÕES*\n${c.descricaoAlteracoes}\n`;
       }
-
-      if (c.fotos && c.fotos.length > 0) {
-        message += `\n📸 *Fotos:* ${c.fotos.length} anexadas`;
-      }
     }
 
-    if (record.mileage?.notes) {
-      message += `\n\n*OBSERVAÇÕES:* ${record.mileage.notes}`;
-    }
-
-    message += `\n\n_Gerado via SisCOpI - 14º BPM_`;
-
+    message += `\n_Gerado via SisCOpI - 14º BPM_`;
     return message;
   };
 
@@ -1140,7 +1146,7 @@ export default function App() {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      const isCadchecking = record.source === 'cadchecking';
+      const isCadchecking = record.source === 'cadchecking' || (!record.checklist && record.source !== 'standalone_checklist');
       doc.text(isCadchecking ? 'REGISTRO DE CADCHECKING' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(10);
@@ -1178,37 +1184,50 @@ export default function App() {
       };
 
       // Identificação
+      const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
+      
       const identificationData: [string, string][] = [
         [isCadchecking ? 'Pat' : 'Viatura', record.identification.prefix],
-        ['Placa', record.identification.plate],
-        ['Viatura', record.identification.model]
+        ['Placa', record.identification.plate.replace(/\s/g, '').toUpperCase()],
+        [isCadchecking ? 'Vtr' : 'Viatura', record.identification.model]
       ];
       
       if (record.identification.operationalPrefix) {
         identificationData.push(['Prefixo', record.identification.operationalPrefix]);
       }
       
-      identificationData.push(['Data/Hora', `${format(timestamp, 'dd/MM/yyyy')} ${record.identification.time}`]);
-      identificationData.push(['Tipo de Registro', record.type === 'check-in' ? 'SAÍDA' : 'RETORNO']);
+      identificationData.push(['Data', format(timestamp, 'dd/MM/yyyy')]);
+      identificationData.push([isCadchecking ? (isOut ? 'Hora que armou' : 'Hora que desarmou') : 'Hora', record.identification.time]);
+      identificationData.push(['Tipo de Registro', isOut ? 'SAÍDA' : 'RETORNO']);
 
       addSection('Identificação', identificationData);
 
       // Condutor
+      let driverFormatted = record.drivers.driverName;
+      const matriculaMatch = driverFormatted.match(/(\s)(\d{5,})/);
+      if (matriculaMatch) {
+        driverFormatted = driverFormatted.replace(/(\s)(\d{5,})/, ' / $2');
+      }
+
       addSection('Responsável', [
-        ['Condutor/Mat', record.drivers.driverName],
+        ['Condutor/Mat', driverFormatted],
         ['Emprego', record.drivers.serviceType],
-        [isCadchecking ? (record.type === 'check-in' ? 'Km inic' : 'Km final') : 'Quilometragem', `${record.mileage.currentMileage} km`]
+        [isCadchecking ? (isOut ? 'Km inic' : 'Km final') : 'Quilometragem', `${record.mileage.currentMileage} km`]
       ]);
 
       // Observações (Always show if present)
       if (record.checklist?.descricaoAlteracoes || record.mileage?.notes) {
-        addSection('Observações', [
-          ['Alterações', record.checklist?.descricaoAlteracoes || 'Sem alterações registradas.'],
-          ['Notas Adicionais', record.mileage?.notes || '---']
-        ]);
+        const obsData: [string, string][] = [];
+        if (record.checklist?.descricaoAlteracoes) {
+          obsData.push(['Descrição de Alterações', record.checklist.descricaoAlteracoes]);
+        }
+        if (record.mileage?.notes) {
+          obsData.push(['Observações', record.mileage.notes]);
+        }
+        addSection('Observações', obsData);
       }
 
-      if (record.checklist && record.source !== 'cadchecking') {
+      if (record.checklist && !isCadchecking) {
         const c = record.checklist;
         
         // Estado Técnico
