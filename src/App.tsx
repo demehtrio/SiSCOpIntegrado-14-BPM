@@ -1066,23 +1066,23 @@ export default function App() {
     }
 
     if (isCadchecking) {
-      let msg = `CHECK-${isOut ? 'IN' : 'OUT'} VIATURA (${typeLabel})\n`;
-      msg += ` Pat: ${record.identification?.prefix || '---'}\n`;
-      msg += ` Placa: ${plateFormatted}\n`;
-      msg += ` Prefixo: ${record.identification?.operationalPrefix || '---'}\n`;
-      msg += ` Emprego: ${record.drivers?.serviceType || '---'}\n`;
-      msg += ` Vtr: ${record.identification?.model || '---'}\n`;
-      msg += ` ${kmLabel}: ${record.mileage?.currentMileage || '---'}\n`;
-      msg += ` Data: ${dateFormatted}\n`;
-      msg += ` ${hourLabel}: ${record.identification?.time || '---'}\n`;
-      msg += ` Condutor/Mat: ${driverFormatted}`;
+      let msg = `*CHECK-${isOut ? 'IN' : 'OUT'} VIATURA (${typeLabel})*\n`;
+      if (record.identification?.prefix) msg += `*Pat:* ${record.identification.prefix}\n`;
+      if (plateFormatted !== '---') msg += `*Placa:* ${plateFormatted}\n`;
+      if (record.identification?.operationalPrefix) msg += `*Prefixo:* ${record.identification.operationalPrefix}\n`;
+      if (record.drivers?.serviceType) msg += `*Emprego:* ${record.drivers.serviceType}\n`;
+      if (record.identification?.model) msg += `*Vtr:* ${record.identification.model}\n`;
+      if (record.mileage?.currentMileage !== undefined && record.mileage?.currentMileage !== '') msg += `*${kmLabel}:* ${record.mileage.currentMileage}\n`;
+      if (dateFormatted !== '---') msg += `*Data:* ${dateFormatted}\n`;
+      if (record.identification?.time) msg += `*${hourLabel}:* ${record.identification.time}\n`;
+      if (driverFormatted !== '---') msg += `*Condutor/Mat:* ${driverFormatted}`;
 
       // Conditional details if present
       if (record.checklist?.descricaoAlteracoes) {
-        msg += `\n\nDescrição de Alterações: ${record.checklist.descricaoAlteracoes}`;
+        msg += `\n\n*Descrição de Alterações:* ${record.checklist.descricaoAlteracoes}`;
       }
       if (record.mileage?.notes) {
-        msg += `\n\nObservações: ${record.mileage.notes}`;
+        msg += `\n\n*Observações:* ${record.mileage.notes}`;
       }
       
       return msg;
@@ -1203,8 +1203,8 @@ export default function App() {
 
       // Identificação e Dados Gerais
       const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
-      const ident = record.identification || {};
-      const drv = record.drivers || {};
+      const ident = (record.identification || {}) as any;
+      const drv = (record.drivers || {}) as any;
       
       let driverFormatted = drv.driverName || '---';
       if (typeof driverFormatted === 'string') {
