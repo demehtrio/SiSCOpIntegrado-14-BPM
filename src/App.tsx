@@ -2903,7 +2903,6 @@ export default function App() {
         {/* Mobile Nav */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around p-2 z-50 shadow-2xl">
           <MobileNavLink active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setFormType(null); }} icon={<LayoutDashboard size={20} />} label="Início" />
-          <MobileNavLink active={activeTab === 'form'} onClick={() => { setActiveTab('form'); setFormType(null); setEditingItem(null); }} icon={<PlusCircle size={20} />} label="Registro" />
           <MobileNavLink active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={20} />} label="Histórico" />
           <MobileNavLink active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<BarChart3 size={20} />} label="Relatórios" />
           <MobileNavLink 
