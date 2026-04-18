@@ -1132,6 +1132,7 @@ export default function App() {
   const generateDetailedChecklistPDF = async (record: RecordEntry) => {
     setSubmitting(true);
     try {
+      console.log("Generating detailed PDF for record:", record.id);
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       
@@ -1140,7 +1141,11 @@ export default function App() {
       doc.rect(0, 0, pageWidth, 40, 'F');
       
       if (logoPM) {
-        doc.addImage(logoPM, 'PNG', 10, 5, 25, 25);
+        try {
+          doc.addImage(logoPM, 'PNG', 10, 5, 25, 25);
+        } catch (e) {
+          console.warn("Failed to add logo to PDF", e);
+        }
       }
 
       doc.setTextColor(255, 255, 255);
@@ -1153,7 +1158,20 @@ export default function App() {
       doc.text('14º BPM - SERRA TALHADA', pageWidth / 2, 22, { align: 'center' });
       doc.text('POLÍCIA MILITAR DE PERNAMBUCO', pageWidth / 2, 28, { align: 'center' });
       
-      const timestamp = record.timestamp?.toDate ? record.timestamp.toDate() : new Date(record.timestamp);
+      let timestamp = new Date();
+      try {
+        if (record.timestamp?.toDate) {
+          timestamp = record.timestamp.toDate();
+        } else if (record.timestamp) {
+          const t = new Date(record.timestamp);
+          if (!isNaN(t.getTime())) {
+            timestamp = t;
+          }
+        }
+      } catch (e) {
+        console.warn("Error parsing record timestamp", e);
+      }
+      
       doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, pageWidth / 2, 35, { align: 'center' });
 
       let currentY = 50;
@@ -1180,39 +1198,43 @@ export default function App() {
             currentY = data.cursor.y;
           }
         });
-        currentY = (doc as any).lastAutoTable.finalY + 15;
+        currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 15 : currentY + 30;
       };
 
       // Identificação
       const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
+      const ident = record.identification || {};
       
       const identificationData: [string, string][] = [
-        [isCadchecking ? 'Pat' : 'Viatura', record.identification.prefix],
-        ['Placa', record.identification.plate.replace(/\s/g, '').toUpperCase()],
-        [isCadchecking ? 'Vtr' : 'Viatura', record.identification.model]
+        [isCadchecking ? 'Pat' : 'Viatura', ident.prefix || '---'],
+        ['Placa', (ident.plate || '').replace(/\s/g, '').toUpperCase() || '---'],
+        [isCadchecking ? 'Vtr' : 'Viatura', ident.model || '---']
       ];
       
-      if (record.identification.operationalPrefix) {
-        identificationData.push(['Prefixo', record.identification.operationalPrefix]);
+      if (ident.operationalPrefix) {
+        identificationData.push(['Prefixo', ident.operationalPrefix]);
       }
       
       identificationData.push(['Data', format(timestamp, 'dd/MM/yyyy')]);
-      identificationData.push([isCadchecking ? (isOut ? 'Hora que armou' : 'Hora que desarmou') : 'Hora', record.identification.time]);
+      identificationData.push([isCadchecking ? (isOut ? 'Hora que armou' : 'Hora que desarmou') : 'Hora', ident.time || '---']);
       identificationData.push(['Tipo de Registro', isOut ? 'SAÍDA' : 'RETORNO']);
 
       addSection('Identificação', identificationData);
 
       // Condutor
-      let driverFormatted = record.drivers.driverName;
-      const matriculaMatch = driverFormatted.match(/(\s)(\d{5,})/);
-      if (matriculaMatch) {
-        driverFormatted = driverFormatted.replace(/(\s)(\d{5,})/, ' / $2');
+      const drv = record.drivers || {};
+      let driverFormatted = drv.driverName || '---';
+      if (typeof driverFormatted === 'string') {
+        const matriculaMatch = driverFormatted.match(/(\s)(\d{5,})/);
+        if (matriculaMatch) {
+          driverFormatted = driverFormatted.replace(/(\s)(\d{5,})/, ' / $2');
+        }
       }
 
       addSection('Responsável', [
         ['Condutor/Mat', driverFormatted],
-        ['Emprego', record.drivers.serviceType],
-        [isCadchecking ? (isOut ? 'Km inic' : 'Km final') : 'Quilometragem', `${record.mileage.currentMileage} km`]
+        ['Emprego', drv.serviceType || '---'],
+        [isCadchecking ? (isOut ? 'Km inic' : 'Km final') : 'Quilometragem', `${record.mileage?.currentMileage || 0} km`]
       ]);
 
       // Observações (Always show if present)
@@ -6326,9 +6348,22 @@ function CadcheckingHistoryItem({
   onGenerateDetailedPDF 
 }: any) {
   const isCheckIn = record.type === 'check-in';
-  const isMaintenance = record.type.includes('maintenance');
+  const isMaintenance = record.type?.includes('maintenance');
   
-  const date = record.timestamp?.toDate ? record.timestamp.toDate() : new Date(record.timestamp);
+  let date = new Date();
+  try {
+    if (record.timestamp?.toDate) {
+      date = record.timestamp.toDate();
+    } else if (record.timestamp) {
+      const t = new Date(record.timestamp);
+      if (!isNaN(t.getTime())) {
+        date = t;
+      }
+    }
+  } catch (e) {
+    console.error("Error parsing timestamp in HistoryItem:", e);
+  }
+
   const formattedDate = format(date, "dd 'de' MMMM", { locale: ptBR });
   const formattedTime = format(date, "HH:mm");
 
