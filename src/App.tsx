@@ -1066,7 +1066,7 @@ export default function App() {
     }
 
     if (isCadchecking) {
-      let msg = `*CHECK-${isOut ? 'IN' : 'OUT'} VIATURA (${typeLabel})*\n`;
+      let msg = `CHECK-${isOut ? 'IN' : 'OUT'} VIATURA (${typeLabel})\n`;
       msg += ` Pat: ${record.identification?.prefix || '---'}\n`;
       msg += ` Placa: ${plateFormatted}\n`;
       msg += ` Prefixo: ${record.identification?.operationalPrefix || '---'}\n`;
@@ -1079,10 +1079,10 @@ export default function App() {
 
       // Conditional details if present
       if (record.checklist?.descricaoAlteracoes) {
-        msg += `\n\n*Descrição de Alterações:* ${record.checklist.descricaoAlteracoes}`;
+        msg += `\n\nDescrição de Alterações: ${record.checklist.descricaoAlteracoes}`;
       }
       if (record.mileage?.notes) {
-        msg += `\n\n*Observações:* ${record.mileage.notes}`;
+        msg += `\n\nObservações: ${record.mileage.notes}`;
       }
       
       return msg;
@@ -1201,28 +1201,11 @@ export default function App() {
         currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 15 : currentY + 30;
       };
 
-      // Identificação
+      // Identificação e Dados Gerais
       const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
       const ident = record.identification || {};
-      
-      const identificationData: [string, string][] = [
-        [isCadchecking ? 'Pat' : 'Viatura', ident.prefix || '---'],
-        ['Placa', (ident.plate || '').replace(/\s/g, '').toUpperCase() || '---'],
-        [isCadchecking ? 'Vtr' : 'Viatura', ident.model || '---']
-      ];
-      
-      if (ident.operationalPrefix) {
-        identificationData.push(['Prefixo', ident.operationalPrefix]);
-      }
-      
-      identificationData.push(['Data', format(timestamp, 'dd/MM/yyyy')]);
-      identificationData.push([isCadchecking ? (isOut ? 'Hora que armou' : 'Hora que desarmou') : 'Hora', ident.time || '---']);
-      identificationData.push(['Tipo de Registro', isOut ? 'SAÍDA' : 'RETORNO']);
-
-      addSection('Identificação', identificationData);
-
-      // Condutor
       const drv = record.drivers || {};
+      
       let driverFormatted = drv.driverName || '---';
       if (typeof driverFormatted === 'string') {
         const matriculaMatch = driverFormatted.match(/(\s)(\d{5,})/);
@@ -1231,11 +1214,45 @@ export default function App() {
         }
       }
 
-      addSection('Responsável', [
-        ['Condutor/Mat', driverFormatted],
-        ['Emprego', drv.serviceType || '---'],
-        [isCadchecking ? (isOut ? 'Km inic' : 'Km final') : 'Quilometragem', `${record.mileage?.currentMileage || 0} km`]
-      ]);
+      if (isCadchecking) {
+        // Formato específico para CadChecking seguindo a ordem solicitada
+        const cadcheckingData: [string, string][] = [
+          ['Pat', ident.prefix || '---'],
+          ['Placa', (ident.plate || '').replace(/\s/g, '').toUpperCase() || '---'],
+          ['Prefixo', ident.operationalPrefix || '---'],
+          ['Emprego', drv.serviceType || '---'],
+          ['Vtr', ident.model || '---'],
+          [isOut ? 'Km inic' : 'Km final', `${record.mileage?.currentMileage || 0}`],
+          ['Data', format(timestamp, 'dd/MM/yyyy')],
+          [isOut ? 'Hora que armou' : 'Hora que desarmou', ident.time || '---'],
+          ['Condutor/Mat', driverFormatted]
+        ];
+
+        addSection('Dados do Registro', cadcheckingData);
+      } else {
+        // Formato padrão para outros checklists
+        const identificationData: [string, string][] = [
+          ['Viatura', ident.prefix || '---'],
+          ['Placa', (ident.plate || '').replace(/\s/g, '').toUpperCase() || '---'],
+          ['Modelo', ident.model || '---']
+        ];
+        
+        if (ident.operationalPrefix) {
+          identificationData.push(['Prefixo', ident.operationalPrefix]);
+        }
+        
+        identificationData.push(['Data', format(timestamp, 'dd/MM/yyyy')]);
+        identificationData.push(['Hora', ident.time || '---']);
+        identificationData.push(['Tipo de Registro', isOut ? 'SAÍDA' : 'RETORNO']);
+
+        addSection('Identificação', identificationData);
+
+        addSection('Responsável', [
+          ['Condutor/Mat', driverFormatted],
+          ['Emprego', drv.serviceType || '---'],
+          ['Quilometragem', `${record.mileage?.currentMileage || 0} km`]
+        ]);
+      }
 
       // Observações (Always show if present)
       if (record.checklist?.descricaoAlteracoes || record.mileage?.notes) {
