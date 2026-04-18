@@ -1028,9 +1028,31 @@ export default function App() {
     const typeLabel = isOut ? 'SAÍDA' : 'RETORNO';
     const isCadchecking = record.source === 'cadchecking';
     
-    let message = isCadchecking 
-      ? `*CADCHECKING VIATURA (${typeLabel})*\n\n`
-      : `*CHECK-LIST VIATURA (${typeLabel})*\n\n`;
+    if (isCadchecking) {
+      let msg = `*CHECK-${isOut ? 'IN' : 'OUT'} VIATURA (${typeLabel})*\n`;
+      msg += ` Pat: ${record.identification?.prefix || '---'}\n`;
+      msg += ` Placa: ${record.identification?.plate?.replace(/\s/g, '') || '---'}\n`;
+      msg += ` Prefixo: ${record.identification?.operationalPrefix || '---'}\n`;
+      msg += ` Emprego: ${record.drivers?.serviceType || '---'}\n`;
+      msg += ` Vtr: ${record.identification?.model || '---'}\n`;
+      msg += ` Km ${isOut ? 'inic' : 'final'}: ${record.mileage?.currentMileage || '---'}\n`;
+      msg += ` Data: ${dateFormatted}\n`;
+      msg += ` Hora que ${isOut ? 'armou' : 'desarmou'}: ${record.identification?.time || '---'}\n`;
+      msg += ` Condutor/Mat: ${driverFormatted}`;
+      
+      if (record.checklist?.descricaoAlteracoes) {
+        msg += `\n\n*DESCRIÇÃO DE ALTERAÇÕES:*\n${record.checklist.descricaoAlteracoes}`;
+      }
+      
+      if (record.mileage?.notes) {
+        msg += `\n\n*OBSERVAÇÕES:* ${record.mileage.notes}`;
+      }
+      
+      msg += `\n\n_Gerado via SisCOpI - 14º BPM_`;
+      return msg;
+    }
+
+    let message = `*CHECK-LIST VIATURA (${typeLabel})*\n\n`;
     
     // Identificação
     message += `*IDENTIFICAÇÃO*\n`;
@@ -1050,7 +1072,7 @@ export default function App() {
     message += `📊 *KM ${isOut ? 'Inicial' : 'Final'}:* ${record.mileage?.currentMileage || '---'} km\n\n`;
 
     // Checklist Detalhado - ONLY if not from cadchecking
-    if (record.checklist && record.source !== 'cadchecking') {
+    if (record.checklist) {
       const c = record.checklist;
       message += `*CONDIÇÕES DA VIATURA*\n`;
       message += `📑 *Mapa Diário:* ${c.mapaDiario || '---'}\n`;
@@ -1090,10 +1112,6 @@ export default function App() {
       if (c.fotos && c.fotos.length > 0) {
         message += `\n📸 *Fotos:* ${c.fotos.length} anexadas`;
       }
-    }
-
-    if (record.source === 'cadchecking' && record.checklist?.descricaoAlteracoes) {
-      message += `\n*DESCRIÇÃO DE ALTERAÇÕES*\n${record.checklist.descricaoAlteracoes}\n`;
     }
 
     if (record.mileage?.notes) {
@@ -1161,13 +1179,13 @@ export default function App() {
 
       // Identificação
       const identificationData: [string, string][] = [
-        ['Viatura', record.identification.prefix],
+        [isCadchecking ? 'Pat' : 'Viatura', record.identification.prefix],
         ['Placa', record.identification.plate],
-        ['Modelo', record.identification.model]
+        ['Viatura', record.identification.model]
       ];
       
       if (record.identification.operationalPrefix) {
-        identificationData.push(['Prefixo Operacional', record.identification.operationalPrefix]);
+        identificationData.push(['Prefixo', record.identification.operationalPrefix]);
       }
       
       identificationData.push(['Data/Hora', `${format(timestamp, 'dd/MM/yyyy')} ${record.identification.time}`]);
@@ -1177,9 +1195,9 @@ export default function App() {
 
       // Condutor
       addSection('Responsável', [
-        ['Condutor', record.drivers.driverName],
-        ['Modalidade', record.drivers.serviceType],
-        ['Quilometragem', `${record.mileage.currentMileage} km`]
+        ['Condutor/Mat', record.drivers.driverName],
+        ['Emprego', record.drivers.serviceType],
+        [isCadchecking ? (record.type === 'check-in' ? 'Km inic' : 'Km final') : 'Quilometragem', `${record.mileage.currentMileage} km`]
       ]);
 
       // Observações (Always show if present)
