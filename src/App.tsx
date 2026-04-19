@@ -2942,6 +2942,16 @@ export default function App() {
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around p-2 z-50 shadow-2xl">
           <MobileNavLink active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setFormType(null); }} icon={<LayoutDashboard size={20} />} label="Início" />
           <MobileNavLink active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={20} />} label="Histórico" />
+          <MobileNavLink 
+            active={activeTab === 'cadchecking'} 
+            onClick={() => {
+              setActiveTab('cadchecking');
+              setCadcheckingSearchTerm('');
+              setCadcheckingStatusFilter('all');
+            }} 
+            icon={<Truck size={20} />} 
+            label="Cadastro VTR" 
+          />
           <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist VTR" />
           {isAdmin && <MobileNavLink active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<SettingsIcon size={20} />} label="Ajustes" />}
         </nav>
