@@ -1155,7 +1155,7 @@ export default function App() {
       doc.setFont('helvetica', 'bold');
       const isCadchecking = record.source === 'cadchecking' || 
                            (record.source !== 'standalone_checklist' && record.checklist && !('limpeza' in record.checklist));
-      doc.text(isCadchecking ? 'REGISTRO DE CADCHECKING' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
+      doc.text(isCadchecking ? 'REGISTRO DE CADASTRO VTR' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(10);
       doc.text('14º BPM - SERRA TALHADA', pageWidth / 2, 22, { align: 'center' });
@@ -1530,7 +1530,7 @@ export default function App() {
 
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(11);
-      doc.text('RELATÓRIO DE HISTÓRICO - CADCHECKING', 45, 32);
+      doc.text('RELATÓRIO DE HISTÓRICO - CADASTRO VTR', 45, 32);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       
@@ -1581,7 +1581,7 @@ export default function App() {
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(`Página ${i} de ${pageCount}`, 105, 285, { align: 'center' });
-        doc.text('14º BPM - POLÍCIA MILITAR DE PERNAMBUCO | CadChecking', 10, 285);
+        doc.text('14º BPM - POLÍCIA MILITAR DE PERNAMBUCO | Cadastro VTR', 10, 285);
       }
 
       const blob = doc.output('blob');
@@ -2864,7 +2864,7 @@ export default function App() {
                 setCadcheckingStatusFilter('all');
               }}
               icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
-              label="CadChecking"
+              label="Cadastro VTR"
             />
             <SidebarLink 
               active={activeTab === 'checklist'} 
@@ -2918,7 +2918,7 @@ export default function App() {
               setCadcheckingStatusFilter('all');
             }} 
             icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />} 
-            label="CadChecking" 
+            label="Cadastro VTR" 
           />
           <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist" />
           {isAdmin && <MobileNavLink active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<SettingsIcon size={20} />} label="Ajustes" />}
@@ -3041,10 +3041,10 @@ export default function App() {
                     onClick={() => { setFormType('mo'); setActiveTab('form'); setIsPermuta(false); }}
                   />
                   <DashboardCard 
-                    title="CadChecking"
+                    title="Cadastro VTR"
                     description="Cadastramento, check-in/out e manutenção de frota"
                     color="blue"
-                    icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="CadChecking" className="w-10 h-10 object-contain transition-transform group-hover:scale-110" referrerPolicy="no-referrer" />}
+                    icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="Cadastro VTR" className="w-10 h-10 object-contain transition-transform group-hover:scale-110" referrerPolicy="no-referrer" />}
                     onClick={() => {
                       setActiveTab('cadchecking');
                       setCadcheckingSearchTerm('');
@@ -5748,11 +5748,11 @@ function CadChecking({
           <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
             <img 
               src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" 
-              alt="CadChecking Logo" 
+              alt="Cadastro VTR Logo" 
               className="w-10 h-10 object-contain" 
               referrerPolicy="no-referrer"
             />
-            CadChecking <span className="text-blue-600/20">|</span> <span className="text-slate-400 text-lg font-bold">Controle de Frota</span>
+            Cadastro VTR <span className="text-blue-600/20">|</span> <span className="text-slate-400 text-lg font-bold">Controle de Frota</span>
           </h2>
           <p className="text-slate-500 font-medium">Gerenciamento de cautela e manutenção de viaturas.</p>
         </div>
