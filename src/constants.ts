@@ -128,7 +128,7 @@ export const TIPO_SERVICO_VT_LIST = [
   "FECHA BATALHÃO"
 ];
 
-export const CADCHECKING_SERVICE_TYPES = [
+export const CADASTRO_VTR_SERVICE_TYPES = [
   'Ordinário', 'PJES', 'PE Seguro', 'FECHA BATALHÃO', 'OUTROS'
 ];
 

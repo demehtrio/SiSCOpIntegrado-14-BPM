@@ -33,11 +33,11 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        (request.auth.token.email == "demetriomarques@gmail.com") ||
+        (request.auth.token.email.lower() == "demetriomarques@gmail.com") ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
         (exists(/databases/$(database)/documents/settings/lists) &&
-         request.auth.token.email in get(/databases/$(database)/documents/settings/lists).data.adminList)
+         request.auth.token.email.lower() in get(/databases/$(database)/documents/settings/lists).data.adminList)
       );
     }
 
@@ -78,7 +78,7 @@ service cloud.firestore {
       return hasRequiredFields(['vehicleId', 'type', 'timestamp', 'userEmail', 'identification', 'drivers', 'mileage']) &&
              data.vehicleId is string &&
              data.type in ['check-out', 'check-in', 'maintenance-in', 'maintenance-out'] &&
-             data.userEmail == request.auth.token.email &&
+             data.userEmail.lower() == request.auth.token.email.lower() &&
              data.identification is map &&
              data.drivers is map &&
              data.mileage is map &&
@@ -88,7 +88,6 @@ service cloud.firestore {
     function isValidUser(data) {
       return hasRequiredFields(['email', 'role']) &&
              data.email is string &&
-             data.email == request.auth.token.email &&
              data.role in ['admin', 'user'];
     }
 
@@ -219,8 +218,9 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isAuthorized() && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
       allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
-      allow update: if isAdmin() && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
       allow delete: if isAdmin();
     }
 

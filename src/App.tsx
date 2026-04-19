@@ -107,7 +107,7 @@ import {
   TIPO_SERVICO_LIST, 
   TIPO_SERVICO_VT_LIST,
   OPERATIONAL_PREFIXES,
-  CADCHECKING_SERVICE_TYPES,
+  CADASTRO_VTR_SERVICE_TYPES,
   EQUIPAMENTOS_VTR,
   PARTES_INTERNAS,
   PARTES_EXTERNAS,
@@ -560,6 +560,7 @@ const ChecklistSearchableSelect = ({
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1037,13 +1038,13 @@ export default function App() {
   };
 
   const formatWhatsAppMessage = (record: RecordEntry) => {
-    // Check if it's a CadChecking record
-    const isCadchecking = record.source === 'cadchecking' || 
-                         (record.source !== 'standalone_checklist' && record.checklist && !('limpeza' in record.checklist));
-    const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
-    const typeLabel = isOut ? 'SAÍDA' : 'RETORNO';
-    const kmLabel = isOut ? 'Km inic' : 'Km final';
-    const hourLabel = isOut ? 'Hora que armou' : 'Hora que desarmou';
+    // Check if it's a Cadastro VTR record
+    const isCadastroVTR = record.source === 'cadchecking' || record.source === 'standalone_checklist';
+    const isExit = record.type === 'check-out' || record.type === 'maintenance-out';
+    const isIn = record.type === 'check-in' || record.type === 'maintenance-in';
+    const typeLabel = isExit ? 'SAÍDA' : 'RETORNO';
+    const kmLabel = isExit ? 'Km inic' : 'Km final';
+    const hourLabel = isExit ? 'Hora que armou' : 'Hora que desarmou';
     
     // Formatting plate (removing spaces as requested: PBG5G37)
     const plateFormatted = record.identification?.plate?.replace(/\s/g, '').toUpperCase() || '---';
@@ -1067,8 +1068,9 @@ export default function App() {
       dateFormatted = `${d}/${m}/${y}`;
     }
 
-    if (isCadchecking) {
-      let msg = `*CHECK-${isOut ? 'IN' : 'OUT'} VIATURA (${typeLabel})*\n`;
+    if (isCadastroVTR) {
+      let title = record.source === 'cadchecking' ? 'CADASTRO VTR' : 'CHECKLIST VTR';
+      let msg = `*${title} - ${typeLabel}*\n`;
       if (record.identification?.prefix) msg += `*Pat:* ${record.identification.prefix}\n`;
       if (plateFormatted !== '---') msg += `*Placa:* ${plateFormatted}\n`;
       if (record.identification?.operationalPrefix) msg += `*Prefixo:* ${record.identification.operationalPrefix}\n`;
@@ -1091,7 +1093,7 @@ export default function App() {
     }
 
     // Standard Checklist WhatsApp Format
-    let message = `*CHECKLIST ${isOut ? 'ENTRADA' : 'SAÍDA'}*\n\n`;
+    let message = `*CHECKLIST ${isExit ? 'SAÍDA' : 'RETORNO'}*\n\n`;
     message += `🚩 *Prefixo:* ${record.identification?.prefix || '---'}\n`;
     message += `🔢 *Placa:* ${plateFormatted}\n`;
     if (record.identification?.operationalPrefix) {
@@ -1153,9 +1155,8 @@ export default function App() {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      const isCadchecking = record.source === 'cadchecking' || 
-                           (record.source !== 'standalone_checklist' && record.checklist && !('limpeza' in record.checklist));
-      doc.text(isCadchecking ? 'REGISTRO DE CADASTRO VTR' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
+      const isCadastroVTR = record.source === 'cadchecking' || record.source === 'standalone_checklist';
+      doc.text(isCadastroVTR ? 'CADASTRO VTR' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(10);
       doc.text('14º BPM - SERRA TALHADA', pageWidth / 2, 22, { align: 'center' });
@@ -1205,7 +1206,7 @@ export default function App() {
       };
 
       // Identificação e Dados Gerais
-      const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
+      const isOut = record.type === 'check-out' || record.type === 'maintenance-out';
       const ident = (record.identification || {}) as any;
       const drv = (record.drivers || {}) as any;
       
@@ -1217,8 +1218,8 @@ export default function App() {
         }
       }
 
-      if (isCadchecking) {
-        // Formato específico para CadChecking seguindo a ordem solicitada
+      if (isCadastroVTR) {
+        // Formato específico para Cadastro VTR seguindo a ordem solicitada
         const cadcheckingData: [string, string][] = [
           ['Pat', ident.prefix || '---'],
           ['Placa', (ident.plate || '').replace(/\s/g, '').toUpperCase() || '---'],
@@ -1269,7 +1270,7 @@ export default function App() {
         addSection('Observações', obsData);
       }
 
-      if (record.checklist && !isCadchecking) {
+      if (record.checklist && !isCadastroVTR) {
         const c = record.checklist;
         
         // Estado Técnico
@@ -1399,10 +1400,10 @@ export default function App() {
       });
       // Update vehicle status
       await updateDoc(doc(db, 'vehicles', selectedVehicle.id), {
-        status: operationType === 'check-in' ? 'in_use' : 'available',
+        status: operationType === 'check-out' ? 'in_use' : 'available',
         lastMileage: cadcheckingFormData.mileage.currentMileage,
-        currentDriver: operationType === 'check-in' ? cadcheckingFormData.drivers.driverName : null,
-        currentDriverEmail: operationType === 'check-in' ? user.email : null
+        currentDriver: operationType === 'check-out' ? cadcheckingFormData.drivers.driverName : null,
+        currentDriverEmail: operationType === 'check-out' ? user.email : null
       });
       
       addNotification("Registro salvo com sucesso!", "success");
@@ -1738,6 +1739,34 @@ export default function App() {
     };
   }, []);
 
+  // User Role Listener
+  useEffect(() => {
+    if (!user) {
+      setUserRole(null);
+      return;
+    }
+    const unsub = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setUserRole(data.role || 'user');
+        console.log("User role loaded from Firestore:", data.role);
+      } else {
+        // Create user document if it doesn't exist
+        setUserRole('user');
+        setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: 'user',
+          createdAt: serverTimestamp()
+        }).catch(err => console.error("Error creating user doc:", err));
+      }
+    }, (error) => {
+      console.error("Error fetching user role:", error);
+    });
+    return () => unsub();
+  }, [user]);
+
   // Admin & Authorization Check Listener
   useEffect(() => {
     if (user && user.email) {
@@ -1747,22 +1776,23 @@ export default function App() {
       const isListedAdmin = (isVerified || isHardcodedAdmin) && Array.isArray(adminList) && adminList.some(adminEmail => 
         typeof adminEmail === 'string' && adminEmail.toLowerCase().trim() === email
       );
+      const isDatabaseAdmin = userRole === 'admin';
       
-      const finalIsAdmin = isHardcodedAdmin || isListedAdmin;
+      const finalIsAdmin = isHardcodedAdmin || isListedAdmin || isDatabaseAdmin;
       setIsAdmin(finalIsAdmin);
 
       const isListedAuthorized = Array.isArray(authorizedList) && authorizedList.some(authEmail => 
         typeof authEmail === 'string' && authEmail.toLowerCase().trim() === email
       );
-      const finalIsAuthorized = isVerified || isHardcodedAdmin || isListedAdmin || isListedAuthorized;
+      const finalIsAuthorized = isVerified || isHardcodedAdmin || isListedAdmin || isListedAuthorized || isDatabaseAdmin;
       setIsAuthorized(finalIsAuthorized);
 
-      console.log(`Access check for ${email}: Admin=${finalIsAdmin}, Authorized=${finalIsAuthorized}, Verified=${isVerified}`);
+      console.log(`Access check for ${email}: Admin=${finalIsAdmin}, Authorized=${finalIsAuthorized}, Verified=${isVerified}, Role=${userRole}`);
     } else {
       setIsAdmin(false);
       setIsAuthorized(false);
     }
-  }, [user, adminList, authorizedList]);
+  }, [user, adminList, authorizedList, userRole]);
 
   useEffect(() => {
     if (user) {
@@ -2912,18 +2942,7 @@ export default function App() {
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around p-2 z-50 shadow-2xl">
           <MobileNavLink active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setFormType(null); }} icon={<LayoutDashboard size={20} />} label="Início" />
           <MobileNavLink active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={20} />} label="Histórico" />
-          <MobileNavLink active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<BarChart3 size={20} />} label="Relatórios" />
-          <MobileNavLink 
-            active={activeTab === 'cadchecking'} 
-            onClick={() => {
-              setActiveTab('cadchecking');
-              setCadcheckingSearchTerm('');
-              setCadcheckingStatusFilter('all');
-            }} 
-            icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />} 
-            label="Cadastro VTR" 
-          />
-          <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist" />
+          <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist VTR" />
           {isAdmin && <MobileNavLink active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<SettingsIcon size={20} />} label="Ajustes" />}
         </nav>
 
@@ -5259,7 +5278,7 @@ function ChecklistModule({
                       className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
                     >
                       <option value="">Selecione o Emprego...</option>
-                      {CADCHECKING_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                      {CADASTRO_VTR_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </motion.div>
@@ -5881,7 +5900,7 @@ function CadChecking({
                       onClick={() => setHistoryFilter(f as any)}
                       className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${historyFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
                     >
-                      {f === 'all' ? 'Todos' : f === 'check-in' ? 'Saídas' : f === 'check-out' ? 'Retornos' : 'Manutenção'}
+                      {f === 'all' ? 'Todos' : f === 'check-out' ? 'Saídas' : f === 'check-in' ? 'Retornos' : 'Manutenção'}
                     </button>
                   ))}
                 </div>
@@ -5960,7 +5979,7 @@ function CadChecking({
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
                     <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">
-                      {operationType === 'check-in' ? 'Check-in (Saída de Viatura)' : 'Check-out (Devolução de Viatura)'}
+                      {operationType === 'check-out' ? 'SAÍDA (Cautelar Viatura)' : 'RETORNO (Devolução Viatura)'}
                     </span>
                     <h3 className="text-3xl font-black tracking-tight">{selectedVehicle?.prefix}</h3>
                     <p className="opacity-90 font-bold text-lg">{selectedVehicle?.model} • <span className="font-mono">{selectedVehicle?.plate}</span></p>
@@ -6096,7 +6115,7 @@ function CadChecking({
                             className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
                           >
                             <option value="">Selecione o Emprego...</option>
-                            {CADCHECKING_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                      {CADASTRO_VTR_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </div>
                       </motion.div>
