@@ -1037,7 +1037,9 @@ export default function App() {
   };
 
   const formatWhatsAppMessage = (record: RecordEntry) => {
-    const isCadchecking = record.source === 'cadchecking' || (!record.checklist && record.source !== 'standalone_checklist');
+    // Check if it's a CadChecking record
+    const isCadchecking = record.source === 'cadchecking' || 
+                         (record.source !== 'standalone_checklist' && record.checklist && !('limpeza' in record.checklist));
     const isOut = record.type === 'check-in' || record.type === 'maintenance-in';
     const typeLabel = isOut ? 'SAÍDA' : 'RETORNO';
     const kmLabel = isOut ? 'Km inic' : 'Km final';
@@ -1151,7 +1153,8 @@ export default function App() {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      const isCadchecking = record.source === 'cadchecking' || (!record.checklist && record.source !== 'standalone_checklist');
+      const isCadchecking = record.source === 'cadchecking' || 
+                           (record.source !== 'standalone_checklist' && record.checklist && !('limpeza' in record.checklist));
       doc.text(isCadchecking ? 'REGISTRO DE CADCHECKING' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(10);
@@ -1413,7 +1416,8 @@ export default function App() {
           type: operationType!,
           userEmail: user.email || '',
           userName: user.displayName || '',
-          timestamp: new Date()
+          timestamp: new Date(),
+          source: 'cadchecking'
         };
         const finalMessage = formatWhatsAppMessage(recordToFormat);
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
@@ -1474,7 +1478,8 @@ export default function App() {
           type: formData.type || 'check-in', 
           userEmail: user.email || '',
           userName: user.displayName || '',
-          timestamp: new Date()
+          timestamp: new Date(),
+          source: 'standalone_checklist'
         };
         const finalMessage = formatWhatsAppMessage(recordToFormat);
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
