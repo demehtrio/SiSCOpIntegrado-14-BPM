@@ -1751,7 +1751,10 @@ export default function App() {
       const finalIsAdmin = isHardcodedAdmin || isListedAdmin;
       setIsAdmin(finalIsAdmin);
 
-      const finalIsAuthorized = isVerified || isHardcodedAdmin;
+      const isListedAuthorized = Array.isArray(authorizedList) && authorizedList.some(authEmail => 
+        typeof authEmail === 'string' && authEmail.toLowerCase().trim() === email
+      );
+      const finalIsAuthorized = isVerified || isHardcodedAdmin || isListedAdmin || isListedAuthorized;
       setIsAuthorized(finalIsAuthorized);
 
       console.log(`Access check for ${email}: Admin=${finalIsAdmin}, Authorized=${finalIsAuthorized}, Verified=${isVerified}`);

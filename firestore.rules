@@ -35,7 +35,9 @@ service cloud.firestore {
       return isAuthenticated() && (
         (request.auth.token.email == "demetriomarques@gmail.com") ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        (exists(/databases/$(database)/documents/settings/lists) &&
+         request.auth.token.email in get(/databases/$(database)/documents/settings/lists).data.adminList)
       );
     }
 
