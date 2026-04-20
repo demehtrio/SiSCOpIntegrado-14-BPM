@@ -1088,9 +1088,9 @@ export default function App() {
       if (record.identification?.prefix) msg += `🚩 *Patrimônio:* ${record.identification.prefix}\n`;
       if (plateFormatted !== '---') msg += `🔢 *Placa:* ${plateFormatted}\n`;
       if (record.identification?.operationalPrefix) msg += `🏷️ *Prefixo Operacional:* ${record.identification.operationalPrefix}\n`;
-      if (record.drivers?.serviceType) msg += `🛠️ *Tipo de Emprego:* ${record.drivers.serviceType} 🛞\n`;
+      if (record.drivers?.serviceType) msg += `🛞 *Tipo de Emprego:* ${record.drivers.serviceType}\n`;
       if (record.identification?.model) msg += `🚔 *Modelo da VTR:* ${record.identification.model}\n`;
-      if (record.mileage?.currentMileage !== undefined && record.mileage?.currentMileage !== '') msg += `📊 *Quilometragem:* ${record.mileage.currentMileage}\n`;
+      if (record.mileage?.currentMileage !== undefined && record.mileage?.currentMileage !== '') msg += `⏲️ *Quilometragem:* ${record.mileage.currentMileage}\n`;
       if (dateFormatted !== '---') msg += `📅 *Data:* ${dateFormatted}\n`;
       if (record.identification?.time) msg += `⏰ *Hora:* ${record.identification.time}\n`;
       if (driverFormatted !== '---') msg += `👮 *Condutor e Matrícula:* ${driverFormatted}\n`;
