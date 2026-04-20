@@ -683,9 +683,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     const constraints: any[] = [orderBy('timestamp', 'desc'), limit(50)];
-    if (!isAdmin) {
-      constraints.unshift(where('userEmail', '==', user.email));
-    }
+    
     const q = query(collection(db, 'standalone_checklists'), ...constraints);
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -709,9 +707,6 @@ export default function App() {
     if (!user || activeTab !== 'cadchecking' || cadcheckingView !== 'history') return;
     
     const constraints: any[] = [orderBy('timestamp', 'desc'), limit(50)];
-    if (!isAdmin) {
-      constraints.unshift(where('userEmail', '==', user.email));
-    }
     
     const q = query(
       collection(db, 'checklists'), 
@@ -926,6 +921,7 @@ export default function App() {
       // Record this action in the history
       if (user) {
         await addDoc(collection(db, 'checklists'), {
+          data: todayStr,
           vehicleId: vehicle.id,
           type: newStatus === 'maintenance' ? 'maintenance-in' : 'maintenance-out',
           timestamp: serverTimestamp(),
@@ -1392,6 +1388,7 @@ export default function App() {
     try {
       // Add record to database
       await addDoc(collection(db, 'checklists'), {
+        data: cadcheckingFormData.identification.date || todayStr,
         vehicleId: selectedVehicle.id,
         type: operationType,
         timestamp: serverTimestamp(),
@@ -1462,6 +1459,7 @@ export default function App() {
       
       // Add record to database
       const docRef = await addDoc(collection(db, 'standalone_checklists'), {
+        data: formData.identification.date || todayStr,
         ...formData,
         vehicleId: vehicle?.id || '',
         timestamp: serverTimestamp(),
@@ -1494,11 +1492,15 @@ export default function App() {
           source: 'standalone_checklist'
         };
         const finalMessage = formatWhatsAppMessage(recordToFormat);
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(finalMessage)}`;
         
-        const w = window.open(whatsappUrl, '_blank');
-        if (!w) {
-          window.location.assign(whatsappUrl);
+        try {
+          const w = window.open(whatsappUrl, '_blank');
+          if (!w) {
+            window.location.href = whatsappUrl;
+          }
+        } catch (e) {
+          window.location.href = whatsappUrl;
         }
         
         // Add a small delay for mobile browsers
@@ -2386,6 +2388,69 @@ export default function App() {
           doc.setTextColor(100);
           doc.text(`Obs: ${mo.observacoes || '---'}`, 18, rY + 6, { maxWidth: 170 });
           yPos += 55;
+        });
+      }
+
+      const cadVtr = allData.filter(item => item.type === 'checklists' || item.source === 'cadchecking');
+      if (cadVtr.length > 0) {
+        checkPageBreak(20);
+        doc.setFillColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
+        doc.roundedRect(10, yPos, 190, 8, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CADASTRO VTR (CAUTELA)', 105, yPos + 5.5, { align: 'center' });
+        yPos += 12;
+
+        cadVtr.forEach(v => {
+          checkPageBreak(40);
+          const isCheckIn = v.type === 'check-in';
+          doc.setFillColor(isCheckIn ? 239 : 240, isCheckIn ? 246 : 253, isCheckIn ? 255 : 244);
+          doc.roundedRect(10, yPos, 190, 30, 2, 2, 'F');
+          doc.setFillColor(isCheckIn ? APP_BLUE_DARK[0] : APP_EMERALD[0], isCheckIn ? APP_BLUE_DARK[1] : APP_EMERALD[1], isCheckIn ? APP_BLUE_DARK[2] : APP_EMERALD[2]);
+          doc.rect(10, yPos, 3, 30, 'F');
+
+          doc.setTextColor(isCheckIn ? APP_BLUE_DARK[0] : APP_EMERALD[0], isCheckIn ? APP_BLUE_DARK[1] : APP_EMERALD[1], isCheckIn ? APP_BLUE_DARK[2] : APP_EMERALD[2]);
+          doc.setFontSize(9);
+          doc.text(`${isCheckIn ? 'RETORNO' : 'SAÍDA'} - PAT: ${v.identification?.prefix || '---'} | PLACA: ${v.identification?.plate || '---'}`, 18, yPos + 7);
+          doc.setTextColor(30, 41, 59);
+          doc.setFontSize(8);
+          doc.text(`Vtr: ${v.identification?.model || '---'} | Emprego: ${v.drivers?.serviceType || '---'}`, 18, yPos + 13);
+          doc.text(`Condutor: ${v.drivers?.driverName || '---'} | KM: ${v.mileage?.currentMileage || '0'}`, 18, yPos + 19);
+          doc.setTextColor(100);
+          doc.text(`Data/Hora: ${v.identification?.date} ${v.identification?.time} | Obs: ${v.checklist?.descricaoAlteracoes || '---'}`, 18, yPos + 25);
+          yPos += 35;
+        });
+      }
+
+      const standalone = allData.filter(item => item.type === 'standalone_checklists' || item.source === 'standalone_checklist');
+      if (standalone.length > 0) {
+        checkPageBreak(20);
+        doc.setFillColor(100, 100, 100);
+        doc.roundedRect(10, yPos, 190, 8, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CHECKLISTS AVULSOS VTR', 105, yPos + 5.5, { align: 'center' });
+        yPos += 12;
+
+        standalone.forEach(v => {
+          checkPageBreak(40);
+          doc.setFillColor(248, 250, 252);
+          doc.roundedRect(10, yPos, 190, 30, 2, 2, 'F');
+          doc.setFillColor(100, 100, 100);
+          doc.rect(10, yPos, 3, 30, 'F');
+
+          doc.setTextColor(50, 50, 50);
+          doc.setFontSize(9);
+          doc.text(`POLICIAMENTO - PLACA: ${v.identification?.plate || '---'} | MODELO: ${v.identification?.model || '---'}`, 18, yPos + 7);
+          doc.setTextColor(30, 41, 59);
+          doc.setFontSize(8);
+          doc.text(`Condutor: ${v.userName || v.userEmail || '---'} | KM: ${v.mileage?.currentMileage || '0'}`, 18, yPos + 13);
+          doc.text(`Prefixos: ${v.identification?.prefix || '---'} | P. Operacional: ${v.identification?.operationalPrefix || '---'}`, 18, yPos + 19);
+          doc.setTextColor(100);
+          doc.text(`Data/Hora: ${v.identification?.date} ${v.identification?.time} | Obs: ${v.checklist?.descricaoAlteracoes || '---'}`, 18, yPos + 25);
+          yPos += 35;
         });
       }
 
@@ -4131,6 +4196,8 @@ export default function App() {
                       if (formData.get('type_linha')) types.push('atividades_linha');
                       if (formData.get('type_viatura')) types.push('efetivo_viaturas');
                       if (formData.get('type_mo')) types.push('efetivo_mos');
+                      if (formData.get('type_checklists')) types.push('checklists');
+                      if (formData.get('type_standalone')) types.push('standalone_checklists');
                       
                       console.log("Form data:", { startDate, endDate, types });
 
@@ -4172,7 +4239,7 @@ export default function App() {
                       <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                         <Filter size={16} /> Tipos de Registro
                       </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-blue-50 transition-colors">
                           <input type="checkbox" name="type_linha" defaultChecked className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" />
                           <span className="text-sm font-medium text-slate-700">Linha</span>
@@ -4184,6 +4251,14 @@ export default function App() {
                         <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-orange-50 transition-colors">
                           <input type="checkbox" name="type_mo" defaultChecked className="w-5 h-5 rounded text-orange-600 focus:ring-orange-500" />
                           <span className="text-sm font-medium text-slate-700">MO</span>
+                        </label>
+                        <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-blue-50 transition-colors">
+                          <input type="checkbox" name="type_checklists" defaultChecked className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" />
+                          <span className="text-sm font-medium text-slate-700">Cadastro VTR</span>
+                        </label>
+                        <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-indigo-50 transition-colors">
+                          <input type="checkbox" name="type_standalone" defaultChecked className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500" />
+                          <span className="text-sm font-medium text-slate-700">Checklist VTR</span>
                         </label>
                       </div>
                     </div>
@@ -4717,7 +4792,7 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
   };
 
   const effectiveNames = getEffectiveNames();
-  const patrimony = item.patrimonio || item.patrimonioViatura || item.patrimonioR1 || item.patrimonioR2 || item.patrimonioR3 || item.patrimonioR4 || '';
+  const patrimony = item.identification?.plate || item.patrimonio || item.patrimonioViatura || item.patrimonioR1 || item.patrimonioR2 || item.patrimonioR3 || item.patrimonioR4 || '';
   const city = item.cidade || '';
   const spec = item.especificacaoEfetivo || '';
 
@@ -4740,10 +4815,10 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
           </div>
           <div>
             <p className="font-bold text-slate-900 flex items-center gap-2 flex-wrap">
-              <span>{item.prefixoViatura || item.prefixo || item.unidade || item.funcao || item.graduacaoNomeMatricula || "Registro"}</span>
+              <span>{item.identification?.prefix || item.prefixoViatura || item.prefixo || item.unidade || item.funcao || item.graduacaoNomeMatricula || "Registro"}</span>
               {patrimony && (
                 <span className="text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  Pat: {patrimony}
+                  {item.type === 'checklists' || item.type === 'standalone_checklists' ? 'Placa: ' : 'Pat: '}{patrimony}
                 </span>
               )}
               {item.isEdited && (
@@ -5834,7 +5909,7 @@ function CadChecking({
                        (historyFilter === 'maintenance' ? h.type.includes('maintenance') : h.type === historyFilter);
     
     // Date filter
-    const recordDate = h.timestamp?.toDate ? (h.timestamp as Timestamp).toDate() : new Date(h.timestamp as Date);
+    const recordDate = h.timestamp?.toDate ? (h.timestamp as Timestamp).toDate() : (h.timestamp ? new Date(h.timestamp as Date) : new Date());
     const start = new Date(dateFilter.start + 'T00:00:00');
     const end = new Date(dateFilter.end + 'T23:59:59');
     const matchesDate = recordDate >= start && recordDate <= end;
