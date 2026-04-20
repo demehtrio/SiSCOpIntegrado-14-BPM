@@ -688,21 +688,14 @@ export default function App() {
     const unsubscribe = onSnapshot(collection(db, 'vehicles'), (snapshot) => {
       const vehicleList: Vehicle[] = [];
       snapshot.forEach((doc) => {
-        vehicleList.push({ id: doc.id, ...doc.data() } as Vehicle);
+        const data = doc.data() as Vehicle;
+        vehicleList.push({ id: doc.id, ...data } as Vehicle);
       });
       console.log(`[CadChecking] Vehicles updated: ${vehicleList.length} items`);
       
-      // Remove duplicates by prefix
-      const uniqueVehicles = vehicleList.reduce((acc: Vehicle[], current) => {
-        const x = acc.find(item => item.prefix === current.prefix);
-        if (!x) {
-          return acc.concat([current]);
-        } else {
-          return acc;
-        }
-      }, []);
-      
-      setVehicles(uniqueVehicles);
+      // Filter out inactive vehicles for the main UI
+      const activeVehicles = vehicleList.filter(v => v.status !== 'inactive');
+      setVehicles(activeVehicles);
     }, (err) => {
       console.error("Error fetching vehicles:", err);
     });
@@ -864,10 +857,11 @@ export default function App() {
     const allPatrimonio = [...patrimonioVtList, ...patrimonioMoList];
     console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} vehicles from SisCOpI settings...`);
     
+    const currentPlateIds = new Set<string>();
+    
     try {
       for (const s of allPatrimonio) {
         // Flexible parsing for "PREFIX - PLATE - MODEL"
-        // Standardize separators
         const normalized = s.replace(/\s*-\s*/g, ' - ').replace(/\s*-\s*/, ' - ');
         const parts = normalized.split(' - ').map(p => p.trim());
         
@@ -875,13 +869,12 @@ export default function App() {
           const prefix = parts[0];
           const plate = parts[1];
           const model = parts[2] || 'Viatura';
-          // Standardize ID: remove spaces and dashes
           const vehicleId = plate.replace(/[\s-]/g, '').toUpperCase();
+          currentPlateIds.add(vehicleId);
           
           const docRef = doc(db, 'vehicles', vehicleId);
           const snap = await getDoc(docRef);
           
-          // Fix model name with brand if common models found
           let correctedModel = model;
           const upperModel = model.toUpperCase();
           if (upperModel.includes('HILUX') || upperModel.includes('HILLUX')) {
@@ -902,27 +895,39 @@ export default function App() {
             correctedModel = 'MITSUBISHI/L200';
           }
 
-          const vehicleData = {
-            prefix,
-            plate,
-            model: correctedModel,
-            status: 'available' as const,
-            lastMileage: 0
-          };
-
           if (snap.exists()) {
-            // Update metadata but preserve status and mileage
+            const existing = snap.data();
+            // Restore if inactive, or keep current status
+            const status = existing.status === 'inactive' ? 'available' : existing.status;
             await updateDoc(docRef, { 
-              prefix: vehicleData.prefix, 
-              model: vehicleData.model,
-              plate: vehicleData.plate
+              prefix, 
+              model: correctedModel,
+              plate,
+              status
             });
           } else {
-            // Create new vehicle
-            await setDoc(docRef, { ...vehicleData, id: vehicleId });
+            await setDoc(docRef, { 
+              id: vehicleId,
+              prefix,
+              plate,
+              model: correctedModel,
+              status: 'available',
+              lastMileage: 0
+            });
           }
         }
       }
+
+      // Deactivate vehicles not in the current SisCOpI config
+      const querySnapshot = await getDocs(collection(db, 'vehicles'));
+      for (const vehicleDoc of querySnapshot.docs) {
+        const v = vehicleDoc.data();
+        if (!currentPlateIds.has(vehicleDoc.id) && v.status !== 'inactive') {
+          console.log(`[CadChecking] Deactivating vehicle no longer in config: ${v.prefix} (${v.plate})`);
+          await updateDoc(vehicleDoc.ref, { status: 'inactive' });
+        }
+      }
+
       if (force) addNotification("Frota sincronizada com o SisCOpI!", "success");
     } catch (err) {
       console.error("[CadChecking] Sync error:", err);
