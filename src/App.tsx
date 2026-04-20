@@ -960,23 +960,26 @@ export default function App() {
       return;
     }
     
+    setSubmitting(true);
     let lastCheckOut: RecordEntry | null = null;
     
     if (type === 'check-in') {
       try {
-        const constraints = [
+        const queryConstraints: any[] = [
           where('vehicleId', '==', vehicle.id),
-          where('type', '==', 'check-out'),
-          orderBy('timestamp', 'desc'),
-          limit(1)
+          where('type', '==', 'check-out')
         ];
 
         // Se não for admin, só pode ver o SEU próprio check-out (Saída)
-        if (!isAdmin) {
-          constraints.splice(2, 0, where('userEmail', '==', user?.email));
+        if (!isAdmin && user?.email) {
+          queryConstraints.push(where('userEmail', '==', user.email));
         }
+        
+        // Add ordering and limit
+        queryConstraints.push(orderBy('timestamp', 'desc'));
+        queryConstraints.push(limit(1));
 
-        const q = query(collection(db, 'checklists'), ...constraints);
+        const q = query(collection(db, 'checklists'), ...queryConstraints);
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
@@ -984,10 +987,17 @@ export default function App() {
         } else if (!isAdmin) {
           // Se não encontrou check-out e não é admin, bloqueia
           addNotification("Apenas o usuário que realizou a saída pode fazer o retorno desta viatura.", "error");
+          setSubmitting(false);
           return;
         }
       } catch (err) {
         console.error("Error fetching last check-out:", err);
+        // Não bloqueia se for admin, apenas deixa vir vazio
+        if (!isAdmin) {
+          addNotification("Erro ao processar retorno. Verifique o registro de saída.", "error");
+          setSubmitting(false);
+          return;
+        }
       }
     }
     setSelectedVehicle(vehicle);
@@ -997,15 +1007,15 @@ export default function App() {
     setCadcheckingFormData({
       identification: {
         prefix: vehicle.prefix || 'RESERVA',
-        operationalPrefix: lastCheckOut?.identification.operationalPrefix || '',
+        operationalPrefix: lastCheckOut?.identification?.operationalPrefix || '',
         plate: vehicle.plate,
         model: vehicle.model,
         date: format(new Date(), 'yyyy-MM-dd'),
         time: format(new Date(), 'HH:mm')
       },
       drivers: {
-        driverName: lastCheckOut?.drivers.driverName || '',
-        serviceType: lastCheckOut?.drivers.serviceType || ''
+        driverName: lastCheckOut?.drivers?.driverName || '',
+        serviceType: lastCheckOut?.drivers?.serviceType || ''
       },
       mileage: {
         currentMileage: '',
@@ -1029,8 +1039,10 @@ export default function App() {
         limpeza: 'SIM',
         descricaoAlteracoes: '',
         fotos: []
-      }
+      },
+      source: 'cadchecking'
     });
+    setSubmitting(false);
   };
 
   const formatWhatsAppMessage = (record: RecordEntry) => {
@@ -6022,6 +6034,7 @@ function CadChecking({
                   currentUserEmail={user?.email}
                   onStartRecord={onStartRecord}
                   onToggleMaintenance={onToggleMaintenance}
+                  submitting={submitting}
                 />
               ))}
               {filteredVehicles.length === 0 && (
@@ -6432,14 +6445,19 @@ function VehicleCard({
   isAdmin, 
   currentUserEmail, 
   onStartRecord, 
-  onToggleMaintenance 
+  onToggleMaintenance,
+  submitting
 }: any) {
   const isAvailable = vehicle.status === 'available';
   const isInUse = vehicle.status === 'in_use';
   const isMaintenance = vehicle.status === 'maintenance';
   
   // Somente quem fez o check-in pode fazer o check-out, ou se for admin
-  const canCheckOut = isAdmin || (vehicle.currentDriverEmail === currentUserEmail);
+  const canCheckOut = isAdmin || (
+    vehicle.currentDriverEmail && 
+    currentUserEmail && 
+    vehicle.currentDriverEmail.toLowerCase().trim() === currentUserEmail.toLowerCase().trim()
+  );
 
   return (
     <motion.div 
@@ -6489,9 +6507,10 @@ function VehicleCard({
         {isAvailable && (
           <button 
             onClick={() => onStartRecord(vehicle, 'check-out')}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+            disabled={submitting}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 disabled:opacity-50"
           >
-            <LogOut size={18} />
+            {submitting ? <Loader2 className="animate-spin" size={18} /> : <LogOut size={18} />}
             Saída
           </button>
         )}
@@ -6499,14 +6518,14 @@ function VehicleCard({
           <div className="flex-1 flex flex-col gap-1">
             <button 
               onClick={() => canCheckOut && onStartRecord(vehicle, 'check-in')}
-              disabled={!canCheckOut}
+              disabled={!canCheckOut || submitting}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold transition-all shadow-lg active:scale-95 ${
                 canCheckOut 
                   ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100' 
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
-              }`}
+              } disabled:opacity-50`}
             >
-              <LogIn size={18} />
+              {submitting ? <Loader2 className="animate-spin" size={18} /> : <LogIn size={18} />}
               Retorno
             </button>
             {!canCheckOut && (
