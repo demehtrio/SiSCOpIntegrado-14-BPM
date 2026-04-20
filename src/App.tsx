@@ -1066,25 +1066,26 @@ export default function App() {
 
     if (isCadastroVTR) {
       let title = record.source === 'cadchecking' ? 'CADASTRO VTR' : 'CHECKLIST VTR';
-      let msg = `*${title} - ${typeLabel}*\n`;
-      if (record.identification?.prefix) msg += `*Pat:* ${record.identification.prefix}\n`;
-      if (plateFormatted !== '---') msg += `*Placa:* ${plateFormatted}\n`;
-      if (record.identification?.operationalPrefix) msg += `*Prefixo:* ${record.identification.operationalPrefix}\n`;
-      if (record.drivers?.serviceType) msg += `*Emprego:* ${record.drivers.serviceType}\n`;
-      if (record.identification?.model) msg += `*Vtr:* ${record.identification.model}\n`;
-      if (record.mileage?.currentMileage !== undefined && record.mileage?.currentMileage !== '') msg += `*${kmLabel}:* ${record.mileage.currentMileage}\n`;
-      if (dateFormatted !== '---') msg += `*Data:* ${dateFormatted}\n`;
-      if (record.identification?.time) msg += `*${hourLabel}:* ${record.identification.time}\n`;
-      if (driverFormatted !== '---') msg += `*Condutor/Mat:* ${driverFormatted}`;
+      let msg = `*${title} - ${typeLabel}*\n\n`;
+      if (record.identification?.prefix) msg += `🚩 *Pat:* ${record.identification.prefix}\n`;
+      if (plateFormatted !== '---') msg += `🔢 *Placa:* ${plateFormatted}\n`;
+      if (record.identification?.operationalPrefix) msg += `🏷️ *Prefixo:* ${record.identification.operationalPrefix}\n`;
+      if (record.drivers?.serviceType) msg += `🛞 *Emprego:* ${record.drivers.serviceType}\n`;
+      if (record.identification?.model) msg += `🚔 *Vtr:* ${record.identification.model}\n`;
+      if (record.mileage?.currentMileage !== undefined && record.mileage?.currentMileage !== '') msg += `⏲️ *${kmLabel}:* ${record.mileage.currentMileage}\n`;
+      if (dateFormatted !== '---') msg += `📅 *Data:* ${dateFormatted}\n`;
+      if (record.identification?.time) msg += `⏰ *${hourLabel}:* ${record.identification.time}\n`;
+      if (driverFormatted !== '---') msg += `👮 *Condutor/Mat:* ${driverFormatted}\n`;
 
       // Conditional details if present
       if (record.checklist?.descricaoAlteracoes) {
-        msg += `\n\n*Descrição de Alterações:* ${record.checklist.descricaoAlteracoes}`;
+        msg += `\n📝 *Descrição de Alterações:* ${record.checklist.descricaoAlteracoes}`;
       }
       if (record.mileage?.notes) {
-        msg += `\n\n*Observações:* ${record.mileage.notes}`;
+        msg += `\n💬 *Observações:* ${record.mileage.notes}`;
       }
       
+      msg += `\n\n_Gerado via SisCOpI - 14º BPM_`;
       return msg;
     }
 
@@ -1100,8 +1101,8 @@ export default function App() {
     message += `⏰ *Hora:* ${record.identification?.time || '---'}\n\n`;
 
     message += `👮 *Condutor:* ${driverFormatted}\n`;
-    message += `🛠️ *Emprego:* ${record.drivers?.serviceType || '---'}\n`;
-    message += `📊 *${kmLabel}:* ${record.mileage?.currentMileage || '---'} km\n\n`;
+    message += `🛞 *Emprego:* ${record.drivers?.serviceType || '---'}\n`;
+    message += `⏲️ *${kmLabel}:* ${record.mileage?.currentMileage || '---'} km\n\n`;
 
     if (record.checklist) {
       const c = record.checklist;
