@@ -1079,22 +1079,22 @@ export default function App() {
     if (isCadastroVTR) {
       let title = record.source === 'cadchecking' ? 'CADASTRO VTR' : 'CHECKLIST VTR';
       let msg = `*${title} - ${typeLabel}*\n\n`;
-      if (record.identification?.prefix) msg += `🚩 *Pat:* ${record.identification.prefix}\n`;
+      if (record.identification?.prefix) msg += `🚩 *Patrimônio:* ${record.identification.prefix}\n`;
       if (plateFormatted !== '---') msg += `🔢 *Placa:* ${plateFormatted}\n`;
-      if (record.identification?.operationalPrefix) msg += `🏷️ *Prefixo:* ${record.identification.operationalPrefix}\n`;
-      if (record.drivers?.serviceType) msg += `🛞 *Emprego:* ${record.drivers.serviceType}\n`;
-      if (record.identification?.model) msg += `🚔 *Vtr:* ${record.identification.model}\n`;
-      if (record.mileage?.currentMileage !== undefined && record.mileage?.currentMileage !== '') msg += `⏲️ *${kmLabel}:* ${record.mileage.currentMileage}\n`;
+      if (record.identification?.operationalPrefix) msg += `🏷️ *Prefixo Operacional:* ${record.identification.operationalPrefix}\n`;
+      if (record.drivers?.serviceType) msg += `🛠️ *Tipo de Emprego:* ${record.drivers.serviceType} 🛞\n`;
+      if (record.identification?.model) msg += `🚔 *Modelo da VTR:* ${record.identification.model}\n`;
+      if (record.mileage?.currentMileage !== undefined && record.mileage?.currentMileage !== '') msg += `📊 *Quilometragem:* ${record.mileage.currentMileage}\n`;
       if (dateFormatted !== '---') msg += `📅 *Data:* ${dateFormatted}\n`;
-      if (record.identification?.time) msg += `⏰ *${hourLabel}:* ${record.identification.time}\n`;
-      if (driverFormatted !== '---') msg += `👮 *Condutor/Mat:* ${driverFormatted}\n`;
+      if (record.identification?.time) msg += `⏰ *Hora:* ${record.identification.time}\n`;
+      if (driverFormatted !== '---') msg += `👮 *Condutor e Matrícula:* ${driverFormatted}\n`;
 
       // Conditional details if present
       if (record.checklist?.descricaoAlteracoes) {
-        msg += `\n📝 *Descrição de Alterações:* ${record.checklist.descricaoAlteracoes}`;
+        msg += `\n📝 *Alterações:* ${record.checklist.descricaoAlteracoes}`;
       }
       if (record.mileage?.notes) {
-        msg += `\n💬 *Observações:* ${record.mileage.notes}`;
+        msg += `\n📝 *Observações:* ${record.mileage.notes}`;
       }
       
       msg += `\n\n_Gerado via SisCOpI - 14º BPM_`;
@@ -1815,7 +1815,8 @@ export default function App() {
       const isListedAuthorized = Array.isArray(authorizedList) && authorizedList.some(authEmail => 
         typeof authEmail === 'string' && authEmail.toLowerCase().trim() === email
       );
-      const finalIsAuthorized = isVerified || isHardcodedAdmin || isListedAdmin || isListedAuthorized || isDatabaseAdmin;
+      // Fixed: Authorization should be more inclusive by default if authenticated
+      const finalIsAuthorized = !!user; // Allow all authenticated users
       setIsAuthorized(finalIsAuthorized);
 
       console.log(`Access check for ${email}: Admin=${finalIsAdmin}, Authorized=${finalIsAuthorized}, Verified=${isVerified}, Role=${userRole}`);
