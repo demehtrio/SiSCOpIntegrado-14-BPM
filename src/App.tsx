@@ -985,11 +985,6 @@ export default function App() {
           where('type', '==', 'check-out')
         ];
 
-        // Se não for admin, só pode ver o SEU próprio check-out (Saída)
-        if (!isAdmin && user?.email) {
-          queryConstraints.push(where('userEmail', '==', user.email));
-        }
-        
         // Add ordering and limit
         queryConstraints.push(orderBy('timestamp', 'desc'));
         queryConstraints.push(limit(1));
@@ -999,20 +994,9 @@ export default function App() {
         
         if (!querySnapshot.empty) {
           lastCheckOut = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as RecordEntry;
-        } else if (!isAdmin) {
-          // Se não encontrou check-out e não é admin, bloqueia
-          addNotification("Apenas o usuário que realizou a saída pode fazer o retorno desta viatura.", "error");
-          setSubmitting(false);
-          return;
         }
       } catch (err) {
         console.error("Error fetching last check-out:", err);
-        // Não bloqueia se for admin, apenas deixa vir vazio
-        if (!isAdmin) {
-          addNotification("Erro ao processar retorno. Verifique o registro de saída.", "error");
-          setSubmitting(false);
-          return;
-        }
       }
     }
     setSelectedVehicle(vehicle);
@@ -1057,6 +1041,7 @@ export default function App() {
       },
       source: 'cadchecking'
     });
+    setCadcheckingView('record');
     setSubmitting(false);
   };
 
@@ -1420,8 +1405,10 @@ export default function App() {
         vehicleId: selectedVehicle.id,
         type: operationType,
         timestamp: serverTimestamp(),
+        createdAt: serverTimestamp(), // For compatibility with main history
         userEmail: user.email,
         userName: user.displayName || user.email?.split('@')[0],
+        unidade: '14º BPM', // Consistent with other records
         identification: cadcheckingFormData.identification,
         drivers: cadcheckingFormData.drivers,
         mileage: cadcheckingFormData.mileage,
@@ -1930,17 +1917,21 @@ export default function App() {
     collections.forEach(collName => {
       const q = query(
         collection(db, collName), 
-        where('data', '==', todayStr),
-        orderBy('createdAt', 'desc')
+        where('data', '==', todayStr)
       );
       const unsub = onSnapshot(q, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({
-          id: doc.id,
-          type: collName,
-          ...doc.data()
-        }));
+        const data = snapshot.docs.map(doc => {
+          const docData = doc.data();
+          return {
+            id: doc.id,
+            sourceColl: collName,
+            // If the doc doesn't have a type, use the collName as default
+            type: docData.type || collName,
+            ...docData
+          };
+        });
         setHistoryData(prev => {
-          const filtered = prev.filter(item => item.type !== collName);
+          const filtered = prev.filter(item => item.sourceColl !== collName);
           const combined = [...filtered, ...data].sort((a, b) => {
             const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.createdAt || a.timestamp || 0));
             const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.createdAt || b.timestamp || 0));
@@ -4161,10 +4152,10 @@ export default function App() {
                   <p className="text-slate-500">Acesse e baixe todos os registros realizados no dia de hoje.</p>
                 </header>
 
-                <div className="bg-white rounded-3xl border border-slate-200 overflow-x-auto shadow-sm">
-                  <div className="min-w-[600px] md:min-w-0">
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="w-full">
                     {historyData.map((item, idx) => (
-                      item.type === 'checklists' || item.type === 'standalone_checklists' ? (
+                      item.sourceColl === 'checklists' || item.sourceColl === 'standalone_checklists' ? (
                         <CadcheckingHistoryItem 
                           key={item.id}
                           record={item}
@@ -6469,12 +6460,8 @@ function VehicleCard({
   const isInUse = vehicle.status === 'in_use';
   const isMaintenance = vehicle.status === 'maintenance';
   
-  // Somente quem fez o check-in pode fazer o check-out, ou se for admin
-  const canCheckOut = isAdmin || (
-    vehicle.currentDriverEmail && 
-    currentUserEmail && 
-    vehicle.currentDriverEmail.toLowerCase().trim() === currentUserEmail.toLowerCase().trim()
-  );
+    // Qualquer usuário autenticado pode fazer o retorno, ou o admin
+    const canCheckOut = !!currentUserEmail;
 
   return (
     <motion.div 
