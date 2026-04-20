@@ -247,18 +247,33 @@ const loadImage = async (url: string): Promise<string | null> => {
   return base64;
 };
 
+/**
+ * Get a proxied URL for an image to avoid CORS and hotlinking issues.
+ * Uses images.weserv.nl as primary proxy (very stable).
+ */
+const getProxiedUrl = (url: string) => {
+  return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&n=-1`;
+};
+
 const getProxiedLogoUrl = () => {
-  return `https://wsrv.nl/?url=${encodeURIComponent(LOGO_14BPM_URL)}`;
+  return getProxiedUrl(LOGO_14BPM_URL);
+};
+
+const getProxiedSisCOpILogoUrl = () => {
+  return getProxiedUrl(LOGO_SISCOPI_URL);
 };
 
 const handleLogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
   const target = e.target as HTMLImageElement;
   const currentSrc = target.src;
+  const originalUrl = LOGO_14BPM_URL;
   
-  if (currentSrc.includes('wsrv.nl')) {
-    target.src = `https://corsproxy.io/?${encodeURIComponent(LOGO_14BPM_URL)}`;
+  if (currentSrc.includes('weserv.nl')) {
+    target.src = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
   } else if (currentSrc.includes('corsproxy.io')) {
-    target.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(LOGO_14BPM_URL)}`;
+    target.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
+  } else if (currentSrc !== originalUrl && !currentSrc.includes('allorigins')) {
+    target.src = `${originalUrl}?cb=${Date.now()}`;
   } else {
     target.src = FALLBACK_LOGO;
   }
@@ -2710,12 +2725,14 @@ export default function App() {
     const currentSrc = target.src;
     const originalUrl = LOGO_SISCOPI_URL;
     
-    if (currentSrc.includes('wsrv.nl')) {
+    if (currentSrc.includes('weserv.nl')) {
       target.src = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
     } else if (currentSrc.includes('corsproxy.io')) {
       target.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
-    } else if (!currentSrc.includes(originalUrl)) {
-      target.src = originalUrl;
+    } else if (currentSrc !== originalUrl && !currentSrc.includes('allorigins')) {
+      target.src = `${originalUrl}?cb=${Date.now()}`;
+    } else {
+      target.src = FALLBACK_LOGO;
     }
   };
 
@@ -2960,7 +2977,7 @@ export default function App() {
                 <span className="font-black text-xl tracking-tighter leading-none">14º BPM</span>
                 <span className="text-[10px] font-bold opacity-80 uppercase tracking-tighter">PMPE</span>
                 <img 
-                  src={`https://wsrv.nl/?url=${encodeURIComponent(LOGO_SISCOPI_URL)}`} 
+                  src={getProxiedSisCOpILogoUrl()} 
                   alt="SisCOpI Logo" 
                   className="h-4 w-auto object-contain mt-0.5" 
                   referrerPolicy="no-referrer"
@@ -3072,7 +3089,7 @@ export default function App() {
               <span className="font-black text-lg tracking-tighter leading-none">14º BPM</span>
               <span className="text-[9px] font-bold opacity-80 uppercase">PMPE</span>
               <img 
-                src={`https://wsrv.nl/?url=${encodeURIComponent(LOGO_SISCOPI_URL)}`} 
+                src={getProxiedSisCOpILogoUrl()} 
                 alt="SisCOpI Logo" 
                 className="h-3.5 w-auto object-contain mt-0.5" 
                 referrerPolicy="no-referrer"
@@ -3137,7 +3154,7 @@ export default function App() {
                       <div className="flex items-center justify-center gap-4">
                         <div className="h-px w-12 bg-slate-200"></div>
                         <img 
-                          src={`https://wsrv.nl/?url=${encodeURIComponent(LOGO_SISCOPI_URL)}`} 
+                          src={getProxiedSisCOpILogoUrl()} 
                           alt="SisCOpI Logo" 
                           className="h-12 w-auto object-contain" 
                           referrerPolicy="no-referrer"
