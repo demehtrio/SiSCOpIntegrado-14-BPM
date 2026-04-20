@@ -964,18 +964,18 @@ export default function App() {
       return;
     }
     
-    let lastCheckIn: RecordEntry | null = null;
+    let lastCheckOut: RecordEntry | null = null;
     
-    if (type === 'check-out') {
+    if (type === 'check-in') {
       try {
         const constraints = [
           where('vehicleId', '==', vehicle.id),
-          where('type', '==', 'check-in'),
+          where('type', '==', 'check-out'),
           orderBy('timestamp', 'desc'),
           limit(1)
         ];
 
-        // Se não for admin, só pode ver o SEU próprio check-in
+        // Se não for admin, só pode ver o SEU próprio check-out (Saída)
         if (!isAdmin) {
           constraints.splice(2, 0, where('userEmail', '==', user?.email));
         }
@@ -984,32 +984,32 @@ export default function App() {
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
-          lastCheckIn = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as RecordEntry;
+          lastCheckOut = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as RecordEntry;
         } else if (!isAdmin) {
-          // Se não encontrou check-in e não é admin, bloqueia
-          addNotification("Apenas o usuário que realizou o check-in pode fazer o check-out desta viatura.", "error");
+          // Se não encontrou check-out e não é admin, bloqueia
+          addNotification("Apenas o usuário que realizou a saída pode fazer o retorno desta viatura.", "error");
           return;
         }
       } catch (err) {
-        console.error("Error fetching last check-in:", err);
+        console.error("Error fetching last check-out:", err);
       }
     }
     setSelectedVehicle(vehicle);
     setOperationType(type);
-    // Para check-out (Retorno), abre direto na tela de quilometragem (aba 2)
-    setCurrentCadcheckingTab(type === 'check-out' ? 2 : 0);
+    // Para check-in (Retorno), abre direto na tela de quilometragem (aba 2)
+    setCurrentCadcheckingTab(type === 'check-in' ? 2 : 0);
     setCadcheckingFormData({
       identification: {
         prefix: vehicle.prefix || 'RESERVA',
-        operationalPrefix: lastCheckIn?.identification.operationalPrefix || '',
+        operationalPrefix: lastCheckOut?.identification.operationalPrefix || '',
         plate: vehicle.plate,
         model: vehicle.model,
         date: format(new Date(), 'yyyy-MM-dd'),
         time: format(new Date(), 'HH:mm')
       },
       drivers: {
-        driverName: lastCheckIn?.drivers.driverName || '',
-        serviceType: lastCheckIn?.drivers.serviceType || ''
+        driverName: lastCheckOut?.drivers.driverName || '',
+        serviceType: lastCheckOut?.drivers.serviceType || ''
       },
       mileage: {
         currentMileage: '',
@@ -1365,10 +1365,15 @@ export default function App() {
 
   const handleResendWhatsApp = (record: RecordEntry) => {
     const message = formatWhatsAppMessage(record);
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    const w = window.open(whatsappUrl, '_blank');
-    if (!w) {
-      window.location.assign(whatsappUrl);
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    
+    try {
+      const w = window.open(whatsappUrl, '_blank');
+      if (!w) {
+        window.location.href = whatsappUrl;
+      }
+    } catch (e) {
+      window.location.href = whatsappUrl;
     }
   };
 
@@ -1421,12 +1426,15 @@ export default function App() {
           source: 'cadchecking'
         };
         const finalMessage = formatWhatsAppMessage(recordToFormat);
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(finalMessage)}`;
         
-        // Use a more robust way to open WhatsApp, especially after async calls
-        const w = window.open(whatsappUrl, '_blank');
-        if (!w) {
-          window.location.assign(whatsappUrl);
+        try {
+          const w = window.open(whatsappUrl, '_blank');
+          if (!w) {
+            window.location.href = whatsappUrl;
+          }
+        } catch (e) {
+          window.location.href = whatsappUrl;
         }
         
         // Add a small delay for mobile browsers to process the window.open/assign before state changes
@@ -1554,8 +1562,8 @@ export default function App() {
         return matchesType && matchesDate;
       }).map((record: any) => {
         const date = record.timestamp?.toDate ? record.timestamp.toDate() : new Date(record.timestamp);
-        const typeLabel = record.type === 'check-in' ? 'SAÍDA' : 
-                         record.type === 'check-out' ? 'RETORNO' : 
+        const typeLabel = record.type === 'check-out' ? 'SAÍDA' : 
+                         record.type === 'check-in' ? 'RETORNO' : 
                          record.type.includes('maintenance') ? 'MANUTENÇÃO' : record.type;
         
         return [
@@ -1886,7 +1894,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    const collections = ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos'];
+    const collections = ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos', 'checklists', 'standalone_checklists'];
     const unsubscribes: (() => void)[] = [];
 
     collections.forEach(collName => {
@@ -1903,11 +1911,12 @@ export default function App() {
         }));
         setHistoryData(prev => {
           const filtered = prev.filter(item => item.type !== collName);
-          return [...filtered, ...data].sort((a, b) => {
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+          const combined = [...filtered, ...data].sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.createdAt || a.timestamp || 0));
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.createdAt || b.timestamp || 0));
             return dateB - dateA;
           });
+          return combined;
         });
       }, (error) => {
         handleFirestoreError(error, OperationType.LIST, collName, 'Monitoramento do histórico de atividades');
@@ -2014,6 +2023,13 @@ export default function App() {
   };
 
   const generatePDF = async (data: any) => {
+    if (data.type === 'checklists') {
+      return generateDetailedChecklistPDF(data);
+    }
+    if (data.type === 'standalone_checklists') {
+      return generateDetailedChecklistPDF(data);
+    }
+
     setSubmitting(true);
     try {
       const doc = new jsPDF();
@@ -3163,6 +3179,25 @@ export default function App() {
                     )}
                   </div>
                 </section>
+
+                <footer className="mt-16 py-8 border-t border-slate-100 flex flex-col items-center justify-center gap-4 text-center">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100 mb-2">
+                    <Truck size={14} className="text-blue-600" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Acesso Rápido</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setActiveTab('cadchecking');
+                      setCadcheckingSearchTerm('');
+                      setCadcheckingStatusFilter('all');
+                    }}
+                    className="text-blue-600 font-bold hover:underline flex items-center gap-2"
+                  >
+                    Ir para Cadastro VTR
+                    <ChevronRight size={16} />
+                  </button>
+                  <p className="text-slate-400 text-xs font-medium">14º Batalhão de Polícia Militar • SisCOpI</p>
+                </footer>
               </motion.div>
             )}
 
@@ -4034,18 +4069,29 @@ export default function App() {
                 <div className="bg-white rounded-3xl border border-slate-200 overflow-x-auto shadow-sm">
                   <div className="min-w-[600px] md:min-w-0">
                     {historyData.map((item, idx) => (
-                      <HistoryItem 
-                        key={item.id} 
-                        item={item} 
-                        onDownload={() => generatePDF(item)} 
-                        onDelete={() => handleDelete(item)}
-                        onEdit={() => handleEdit(item)}
-                        isAdmin={isAdmin}
-                        isLast={idx === historyData.length - 1} 
-                        userId={user?.uid}
-                        isExpanded={expandedHistoryId === item.id}
-                        onToggle={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
-                      />
+                      item.type === 'checklists' || item.type === 'standalone_checklists' ? (
+                        <CadcheckingHistoryItem 
+                          key={item.id}
+                          record={item}
+                          isExpanded={expandedHistoryId === item.id}
+                          onToggle={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
+                          onResendWhatsApp={handleResendWhatsApp}
+                          onGenerateDetailedPDF={() => generatePDF(item)}
+                        />
+                      ) : (
+                        <HistoryItem 
+                          key={item.id} 
+                          item={item} 
+                          onDownload={() => generatePDF(item)} 
+                          onDelete={() => handleDelete(item)}
+                          onEdit={() => handleEdit(item)}
+                          isAdmin={isAdmin}
+                          isLast={idx === historyData.length - 1} 
+                          userId={user?.uid}
+                          isExpanded={expandedHistoryId === item.id}
+                          onToggle={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
+                        />
+                      )
                     ))}
                   </div>
                   {historyData.length === 0 && (
@@ -4627,14 +4673,24 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
   const date = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
   const isOwner = item.createdBy === userId;
   const typeLabel = item.type === 'atividades_linha' ? 'Linha' :
-                    item.type === 'efetivo_viaturas' ? 'Viatura' : 'MO';
+                    item.type === 'efetivo_viaturas' ? 'Viatura' : 
+                    item.type === 'efetivo_mos' ? 'MO' :
+                    item.type === 'checklists' ? 'Cadastro VTR' : 'Checklist VTR';
   const typeColor = item.type === 'atividades_linha' ? 'bg-blue-900 text-white' :
-                    item.type === 'efetivo_viaturas' ? 'bg-emerald-700 text-white' : 'bg-orange-700 text-white';
+                    item.type === 'efetivo_viaturas' ? 'bg-emerald-700 text-white' : 
+                    item.type === 'efetivo_mos' ? 'bg-orange-700 text-white' :
+                    item.type === 'checklists' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-white';
   
   // Helper to get effective names
   const getEffectiveNames = () => {
     if (item.type === 'atividades_linha') {
       return item.graduacaoNomeMatricula || '';
+    }
+    if (item.type === 'checklists') {
+      return item.drivers?.driverName || '';
+    }
+    if (item.type === 'standalone_checklists') {
+      return item.driverName || '';
     }
     if (item.type === 'efetivo_viaturas') {
       const names = [
@@ -4669,9 +4725,17 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
     <div className={`flex flex-col transition-all ${!isLast ? 'border-b border-slate-100' : ''} ${isExpanded ? 'bg-slate-50/80 shadow-inner' : 'hover:bg-slate-50'}`}>
       <div className="p-4 flex items-center justify-between cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${item.type === 'atividades_linha' ? 'bg-blue-50 text-blue-900' : item.type === 'efetivo_viaturas' ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-700'}`}>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${
+            item.type === 'atividades_linha' ? 'bg-blue-50 text-blue-900' : 
+            item.type === 'efetivo_viaturas' ? 'bg-emerald-50 text-emerald-700' : 
+            item.type === 'efetivo_mos' ? 'bg-orange-50 text-orange-700' :
+            item.type === 'checklists' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-700'
+          }`}>
             <span className="font-bold">
-              {item.type === 'atividades_linha' ? 'AL' : item.type === 'efetivo_viaturas' ? 'EV' : 'EM'}
+              {item.type === 'atividades_linha' ? 'AL' : 
+               item.type === 'efetivo_viaturas' ? 'EV' : 
+               item.type === 'efetivo_mos' ? 'EM' : 
+               item.type === 'checklists' ? 'CV' : 'CK'}
             </span>
           </div>
           <div>
@@ -6348,30 +6412,30 @@ function VehicleCard({
       <div className="flex gap-2">
         {isAvailable && (
           <button 
-            onClick={() => onStartRecord(vehicle, 'check-in')}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+            onClick={() => onStartRecord(vehicle, 'check-out')}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
           >
-            <LogIn size={18} />
-            Check-in
+            <LogOut size={18} />
+            Saída
           </button>
         )}
         {isInUse && (
           <div className="flex-1 flex flex-col gap-1">
             <button 
-              onClick={() => canCheckOut && onStartRecord(vehicle, 'check-out')}
+              onClick={() => canCheckOut && onStartRecord(vehicle, 'check-in')}
               disabled={!canCheckOut}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold transition-all shadow-lg active:scale-95 ${
                 canCheckOut 
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100' 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100' 
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
               }`}
             >
-              <LogOut size={18} />
-              Check-out
+              <LogIn size={18} />
+              Retorno
             </button>
             {!canCheckOut && (
               <p className="text-[9px] text-red-500 font-bold text-center">
-                Apenas o motorista que retirou pode devolver
+                Apenas quem retirou pode devolver
               </p>
             )}
           </div>
@@ -6449,7 +6513,7 @@ function CadcheckingHistoryItem({
               <span className="text-xs font-black text-blue-600 font-mono">{record.identification.plate}</span>
             </div>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-              {isCheckIn ? 'Saída (Check-in)' : isMaintenance ? 'Manutenção' : 'Retorno (Check-out)'} • {formattedDate} às {formattedTime}
+              {isCheckIn ? 'Retorno (Check-in)' : isMaintenance ? 'Manutenção' : 'Saída (Check-out)'} • {formattedDate} às {formattedTime}
             </p>
           </div>
         </div>
