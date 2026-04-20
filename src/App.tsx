@@ -594,6 +594,20 @@ export default function App() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [historyData, setHistoryData] = useState<any[]>([]);
+
+  // Lists state
+  const [personnelList, setPersonnelList] = useState<string[]>(PERSONNEL_LIST);
+  const [prefixoVtList, setPrefixoVtList] = useState<string[]>(PREFIXO_VT_LIST);
+  const [patrimonioVtList, setPatrimonioVtList] = useState<string[]>(PATRIMONIO_VT_LIST);
+  const [moList, setMoList] = useState<string[]>(MO_LIST);
+  const [patrimonioMoList, setPatrimonioMoList] = useState<string[]>(PATRIMONIO_LIST);
+  const [cityList, setCityList] = useState<string[]>(CITY_LIST);
+  const [funcaoLinhaList, setFuncaoLinhaList] = useState<string[]>(FUNCAO_LINHA_LIST);
+  const [horarioLinhaList, setHorarioLinhaList] = useState<string[]>(HORARIO_LINHA_LIST);
+  const [tipoServicoList, setTipoServicoList] = useState<string[]>(TIPO_SERVICO_LIST);
+  const [tipoServicoVtList, setTipoServicoVtList] = useState<string[]>(TIPO_SERVICO_VT_LIST);
+  const [adminList, setAdminList] = useState<string[]>(["demetriomarques@gmail.com"]);
+  const [authorizedList, setAuthorizedList] = useState<string[]>([]);
   
   // --- CadChecking State ---
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -711,11 +725,11 @@ export default function App() {
 
   // Bootstrap vehicles if empty and user is admin
   useEffect(() => {
-    if (isAdmin && vehicles.length === 0 && !loading) {
-      console.log("[CadChecking] Fleet empty, triggering bootstrap...");
+    if (isAdmin && vehicles.length === 0 && !loading && patrimonioVtList.length > 0) {
+      console.log("[CadChecking] Fleet empty or settings updated, triggering bootstrap...");
       bootstrapVehicles();
     }
-  }, [isAdmin, vehicles.length, loading]);
+  }, [isAdmin, vehicles.length, loading, patrimonioVtList, patrimonioMoList]);
 
   // CadChecking History listener
   useEffect(() => {
@@ -839,16 +853,16 @@ export default function App() {
 
   const bootstrapVehicles = async (force = false) => {
     // If not forced, only bootstrap if empty and not already bootstrapping
-    if (!force && (isBootstrapping.current || vehicles.length > 5)) {
-      console.log("[CadChecking] Bootstrap skipped:", { isBootstrapping: isBootstrapping.current, count: vehicles.length });
+    if (!force && isBootstrapping.current) {
       return;
     }
     
     isBootstrapping.current = true;
     if (force) setIsSyncing(true);
     
-    const allPatrimonio = [...PATRIMONIO_VT_LIST, ...PATRIMONIO_LIST];
-    console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} vehicles from SisCOpI...`);
+    // Always use the latest lists from state (which come from settings/lists in Firestore)
+    const allPatrimonio = [...patrimonioVtList, ...patrimonioMoList];
+    console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} vehicles from SisCOpI settings...`);
     
     try {
       for (const s of allPatrimonio) {
@@ -1636,20 +1650,6 @@ export default function App() {
 
   // --- Auth Listener ---
 
-  // Lists state
-  const [personnelList, setPersonnelList] = useState<string[]>(PERSONNEL_LIST);
-  const [prefixoVtList, setPrefixoVtList] = useState<string[]>(PREFIXO_VT_LIST);
-  const [patrimonioVtList, setPatrimonioVtList] = useState<string[]>(PATRIMONIO_VT_LIST);
-  const [moList, setMoList] = useState<string[]>(MO_LIST);
-  const [patrimonioMoList, setPatrimonioMoList] = useState<string[]>(PATRIMONIO_LIST);
-  const [cityList, setCityList] = useState<string[]>(CITY_LIST);
-  const [funcaoLinhaList, setFuncaoLinhaList] = useState<string[]>(FUNCAO_LINHA_LIST);
-  const [horarioLinhaList, setHorarioLinhaList] = useState<string[]>(HORARIO_LINHA_LIST);
-  const [tipoServicoList, setTipoServicoList] = useState<string[]>(TIPO_SERVICO_LIST);
-  const [tipoServicoVtList, setTipoServicoVtList] = useState<string[]>(TIPO_SERVICO_VT_LIST);
-  const [adminList, setAdminList] = useState<string[]>(["demetriomarques@gmail.com"]);
-  const [authorizedList, setAuthorizedList] = useState<string[]>([]);
-  
   // Conditional form states
   const [hasR3, setHasR3] = useState(false);
   const [hasR4, setHasR4] = useState(false);
