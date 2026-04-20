@@ -1918,7 +1918,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    const collections = ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos', 'checklists', 'standalone_checklists'];
+    const collections = ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos'];
     const unsubscribes: (() => void)[] = [];
 
     collections.forEach(collName => {
@@ -4162,29 +4162,18 @@ export default function App() {
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="w-full">
                     {historyData.map((item, idx) => (
-                      item.sourceColl === 'checklists' || item.sourceColl === 'standalone_checklists' ? (
-                        <CadcheckingHistoryItem 
-                          key={item.id}
-                          record={item}
-                          isExpanded={expandedHistoryId === item.id}
-                          onToggle={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
-                          onResendWhatsApp={handleResendWhatsApp}
-                          onGenerateDetailedPDF={() => generatePDF(item)}
-                        />
-                      ) : (
-                        <HistoryItem 
-                          key={item.id} 
-                          item={item} 
-                          onDownload={() => generatePDF(item)} 
-                          onDelete={() => handleDelete(item)}
-                          onEdit={() => handleEdit(item)}
-                          isAdmin={isAdmin}
-                          isLast={idx === historyData.length - 1} 
-                          userId={user?.uid}
-                          isExpanded={expandedHistoryId === item.id}
-                          onToggle={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
-                        />
-                      )
+                      <HistoryItem 
+                        key={item.id} 
+                        item={item} 
+                        onDownload={() => generatePDF(item)} 
+                        onDelete={() => handleDelete(item)}
+                        onEdit={() => handleEdit(item)}
+                        isAdmin={isAdmin}
+                        isLast={idx === historyData.length - 1} 
+                        userId={user?.uid}
+                        isExpanded={expandedHistoryId === item.id}
+                        onToggle={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
+                      />
                     ))}
                   </div>
                   {historyData.length === 0 && (
