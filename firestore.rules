@@ -203,14 +203,14 @@ service cloud.firestore {
     }
 
     match /checklists/{docId} {
-      allow read: if isAuthorized() && (isAdmin() || (resource != null && resource.data.userEmail == request.auth.token.email));
+      allow read: if isAuthorized();
       allow create: if isAuthorized() && isValidChecklist(request.resource.data);
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     match /standalone_checklists/{docId} {
-      allow read: if isAuthorized() && (isAdmin() || (resource != null && resource.data.userEmail == request.auth.token.email));
+      allow read: if isAuthorized();
       allow create: if isAuthorized() && isValidChecklist(request.resource.data);
       allow update: if isAdmin();
       allow delete: if isAdmin();
