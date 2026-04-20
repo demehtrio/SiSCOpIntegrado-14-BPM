@@ -975,6 +975,12 @@ export default function App() {
       return;
     }
     
+    // Somente o motorista que retirou ou o administrador pode fazer o retorno
+    if (type === 'check-in' && !isAdmin && user?.email !== vehicle.currentDriverEmail) {
+      addNotification("Apenas o motorista que realizou a saída ou um administrador pode realizar o retorno.", "error");
+      return;
+    }
+    
     setSubmitting(true);
     let lastCheckOut: RecordEntry | null = null;
     
@@ -6461,8 +6467,8 @@ function VehicleCard({
   const isInUse = vehicle.status === 'in_use';
   const isMaintenance = vehicle.status === 'maintenance';
   
-    // Qualquer usuário autenticado pode fazer o retorno, ou o admin
-    const canCheckOut = !!currentUserEmail;
+    // Somente o usuário que retirou ou o administrador pode fazer o retorno
+    const canCheckOut = isAdmin || (isInUse ? currentUserEmail === vehicle.currentDriverEmail : !!currentUserEmail);
 
   return (
     <motion.div 
