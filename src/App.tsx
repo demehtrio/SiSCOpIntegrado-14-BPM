@@ -1428,6 +1428,9 @@ export default function App() {
         if (!w) {
           window.location.assign(whatsappUrl);
         }
+        
+        // Add a small delay for mobile browsers to process the window.open/assign before state changes
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
       // Reset form
       setSelectedVehicle(null);
@@ -1489,6 +1492,9 @@ export default function App() {
         if (!w) {
           window.location.assign(whatsappUrl);
         }
+        
+        // Add a small delay for mobile browsers
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
       return true;
     } catch (err: any) {
