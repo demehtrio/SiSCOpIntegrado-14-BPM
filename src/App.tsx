@@ -1931,7 +1931,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    const collections = ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos', 'checklists', 'standalone_checklists'];
+    const collections = ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos'];
     const unsubscribes: (() => void)[] = [];
 
     collections.forEach(collName => {
@@ -3268,7 +3268,6 @@ export default function App() {
                   <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
                     <div className="min-w-[600px] md:min-w-0">
                       {historyData
-                        .filter(item => ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos'].includes(item.type))
                         .slice(0, 5)
                         .map((item, idx) => (
                         <HistoryItem 
