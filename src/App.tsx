@@ -50,6 +50,7 @@ import {
   PlusCircle,
   History,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   Check,
   Loader2,
@@ -641,6 +642,8 @@ export default function App() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, type: 'vehicle' | 'admin', label?: string } | null>(null);
   const [maintenanceModal, setMaintenanceModal] = useState<{ vehicle: Vehicle, notes: string } | null>(null);
   const [currentCadcheckingTab, setCurrentCadcheckingTab] = useState<number>(0);
+  const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
+  const [clearingHistory, setClearingHistory] = useState(false);
   const [isExtractingPlate, setIsExtractingPlate] = useState(false);
   const [cadcheckingFormData, setCadcheckingFormData] = useState<any>({
     identification: {
@@ -863,37 +866,38 @@ export default function App() {
     const currentPlateIds = new Set<string>();
     
     try {
+      // Get current vehicles in Firestore
+      const querySnapshot = await getDocs(collection(db, 'vehicles'));
+      const existingInFirestore = new Map();
+      querySnapshot.forEach(doc => {
+        existingInFirestore.set(doc.id, doc.data());
+      });
+
       for (const entry of allPatrimonio) {
         const { item: s, type } = entry;
-        // Split by hyphen with optional spaces
         const parts = s.split(/\s*-\s*/).map(p => p.trim()).filter(p => p.length > 0);
         
         if (parts.length >= 2) {
-          // Heuristic to find the plate among parts
-          // A Brazilian plate is usually 7 characters: ABC-1234 or ABC1D23
           const isPlatePattern = (str: string) => {
             const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
             return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(clean);
           };
 
           let plateIndex = parts.findIndex(isPlatePattern);
-          // If not found by strict pattern, assume it's the second part if parts.length >= 2
-          // unless the first part looks more like a plate.
           if (plateIndex === -1) {
             plateIndex = isPlatePattern(parts[0]) ? 0 : 1;
           }
 
           const plate = parts[plateIndex];
-          const prefix = parts[plateIndex === 0 ? 1 : 0]; // The other major part
+          const prefix = parts[plateIndex === 0 ? 1 : 0];
           
-          // Remaining parts form the model or just use defaults
           const otherParts = parts.filter((_, i) => i !== plateIndex && i !== (plateIndex === 0 ? 1 : 0));
           const model = otherParts.join(' ') || (type === 'mo' ? 'MOTOCICLETA' : 'Viatura');
           
           const vehicleId = plate.replace(/[^A-Z0-9]/g, '').toUpperCase();
           
           if (currentPlateIds.has(vehicleId)) {
-            console.warn(`[CadChecking] Duplicate vehicle ID detected in settings: ${vehicleId} (from "${s}"). Skipping...`);
+            console.warn(`[CadChecking] Duplicate vehicle ID detected in settings: ${vehicleId}. Skipping...`);
             continue;
           }
           
@@ -901,12 +905,11 @@ export default function App() {
           console.log(`[CadChecking] Syncing vehicle: ${prefix} | Plate: ${plate} | ID: ${vehicleId}`);
           
           const docRef = doc(db, 'vehicles', vehicleId);
-          const snap = await getDoc(docRef);
+          const existing = existingInFirestore.get(vehicleId);
           
           let correctedModel = model;
           const upperModel = model.toUpperCase();
           
-          // Standardization logic
           if (upperModel.includes('HILUX') || upperModel.includes('HILLUX')) {
             correctedModel = 'TOYOTA/HILUX';
           } else if (upperModel === 'RANGER' || upperModel.includes('RANGER')) {
@@ -927,9 +930,7 @@ export default function App() {
             correctedModel = 'MOTOCICLETA';
           }
 
-          if (snap.exists()) {
-            const existing = snap.data();
-            // Restore if inactive, or keep current status
+          if (existing) {
             const status = existing.status === 'inactive' ? 'available' : existing.status;
             await updateDoc(docRef, { 
               prefix, 
@@ -950,15 +951,15 @@ export default function App() {
         }
       }
 
-      // Deactivate vehicles not in the current SisCOpI config
-      const querySnapshot = await getDocs(collection(db, 'vehicles'));
-      for (const vehicleDoc of querySnapshot.docs) {
-        const v = vehicleDoc.data();
-        if (!currentPlateIds.has(vehicleDoc.id) && v.status !== 'inactive') {
-          console.log(`[CadChecking] Deactivating vehicle no longer in config: ${v.prefix} (${v.plate})`);
-          await updateDoc(vehicleDoc.ref, { status: 'inactive' });
+      // Mark vehicles that were in Firestore but are NOT in the new list as inactive
+      const deactivationPromises = [];
+      for (const [id, data] of existingInFirestore.entries()) {
+        if (!currentPlateIds.has(id) && data.status !== 'inactive') {
+          console.log(`[CadChecking] Deactivating vehicle no longer in config: ${data.prefix} (${data.plate})`);
+          deactivationPromises.push(updateDoc(doc(db, 'vehicles', id), { status: 'inactive' }));
         }
       }
+      await Promise.all(deactivationPromises);
 
       if (force) addNotification("Frota (Viaturas e Motos) sincronizada!", "success");
     } catch (err) {
@@ -1995,6 +1996,38 @@ export default function App() {
 
     return () => unsubscribes.forEach(unsub => unsub());
   }, [user]);
+
+  const handleClearAllHistories = async () => {
+    setClearingHistory(true);
+    try {
+      const collectionsToClear = [
+        'atividades_linha', 
+        'efetivo_viaturas', 
+        'efetivo_mos', 
+        'checklists', 
+        'standalone_checklists'
+      ];
+
+      for (const collName of collectionsToClear) {
+        const querySnapshot = await getDocs(collection(db, collName));
+        const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+      }
+
+      // Reset local state if needed (mostly snapshot listeners will handle it)
+      setHistoryData([]);
+      setCadcheckingHistory([]);
+      setStandaloneHistory([]);
+      
+      setShowClearHistoryModal(false);
+      alert('Todos os históricos foram removidos com sucesso para a nova fase de testes.');
+    } catch (error) {
+      console.error("Error clearing histories:", error);
+      alert('Erro ao limpar históricos. Verifique o console para mais detalhes.');
+    } finally {
+      setClearingHistory(false);
+    }
+  };
 
   const handleLogin = async () => {
     setLoginLoading(true);
@@ -4499,6 +4532,74 @@ export default function App() {
                     </form>
                   )}
                 </div>
+
+                {/* Danger Zone */}
+                <div className="mt-8 bg-white p-8 rounded-3xl shadow-xl border-2 border-red-50">
+                  <div className="flex items-center gap-3 mb-6 text-red-600">
+                    <AlertTriangle size={32} />
+                    <div>
+                      <h3 className="text-xl font-black uppercase tracking-tight">Zona de Perigo</h3>
+                      <p className="text-slate-500 text-sm font-medium">Ações irreversíveis para limpeza do sistema.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6 bg-red-50 rounded-[2rem] border border-red-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-red-900 mb-1">Limpar Históricos</h4>
+                      <p className="text-sm text-red-600/70 font-medium">
+                        Remove permanentemente todos os registros de atividades, cautelas e checklists de todas as categorias. 
+                        Ideal para iniciar uma nova fase de testes ou uso real.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setShowClearHistoryModal(true)}
+                      className="px-8 py-4 bg-red-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 flex items-center gap-3"
+                    >
+                      <Trash2 size={20} />
+                      Limpar Tudo
+                    </button>
+                  </div>
+                </div>
+
+                {/* Clear History Confirmation Modal */}
+                {showClearHistoryModal && (
+                  <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+                    <motion.div 
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden border border-red-100"
+                    >
+                      <div className="p-10 text-center">
+                        <div className="w-24 h-24 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
+                          <AlertTriangle size={56} />
+                        </div>
+                        <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tighter leading-none">LIMPAR TUDO?</h3>
+                        <p className="text-slate-500 font-bold mb-8 leading-relaxed">
+                          Esta ação irá EXCLUIR PERMANENTEMENTE todos os históricos de todas as abas. 
+                          <span className="text-red-600 block mt-2">Esta operação não pode ser desfeita!</span>
+                        </p>
+
+                        <div className="space-y-3">
+                          <button 
+                            disabled={clearingHistory}
+                            onClick={handleClearAllHistories}
+                            className="w-full py-5 bg-red-600 text-white rounded-[1.5rem] font-black text-base uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-200 flex items-center justify-center gap-3 disabled:opacity-50"
+                          >
+                            {clearingHistory ? <Loader2 className="animate-spin" size={24} /> : <Trash2 size={24} />}
+                            SIM, APAGAR TUDO
+                          </button>
+                          <button 
+                            disabled={clearingHistory}
+                            onClick={() => setShowClearHistoryModal(false)}
+                            className="w-full py-5 bg-slate-100 text-slate-700 rounded-[1.5rem] font-bold text-base uppercase tracking-widest hover:bg-slate-200 transition-all"
+                          >
+                            CALCELAR
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
               </motion.div>
             )}
 
