@@ -3077,9 +3077,10 @@ export default function App() {
         </aside>
 
         {/* Mobile Nav */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around p-2 z-50 shadow-2xl">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around p-2 z-50 shadow-2xl overflow-x-auto no-scrollbar">
           <MobileNavLink active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setFormType(null); }} icon={<LayoutDashboard size={20} />} label="Início" />
           <MobileNavLink active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={20} />} label="Histórico" />
+          <MobileNavLink active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<BarChart3 size={20} />} label="Relatórios" />
           <MobileNavLink 
             active={activeTab === 'cadchecking'} 
             onClick={() => {
@@ -3227,6 +3228,13 @@ export default function App() {
                     color="red"
                     icon={<ClipboardList size={32} />}
                     onClick={() => setActiveTab('checklist')}
+                  />
+                  <DashboardCard 
+                    title="Relatórios"
+                    description="Geração de relatórios consolidados em PDF e CSV."
+                    color="blue"
+                    icon={<BarChart3 size={32} />}
+                    onClick={() => setActiveTab('reports')}
                   />
                   <DashboardCard 
                     title="Gestão de Serviços"
@@ -4218,12 +4226,12 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
               >
-                <header className="mb-8">
-                  <h1 className="text-3xl font-bold text-slate-900">Relatórios Consolidados</h1>
-                  <p className="text-slate-500">Gere relatórios em PDF baseados em filtros específicos.</p>
+                <header className="mb-6 md:mb-8">
+                  <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Relatórios Consolidados</h1>
+                  <p className="text-sm md:text-base text-slate-500">Gere relatórios em PDF baseados em filtros específicos.</p>
                 </header>
 
-                <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 max-w-2xl">
+                <div className="bg-white p-5 md:p-8 rounded-3xl shadow-xl border border-slate-100 max-w-2xl mx-auto">
                   <form onSubmit={async (e) => {
                     e.preventDefault();
                     try {
