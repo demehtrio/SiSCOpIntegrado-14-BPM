@@ -780,8 +780,7 @@ export default function App() {
         await updateDoc(doc(db, 'vehicles', editingVehicle.id), vehicleForm);
         addNotification("Viatura atualizada com sucesso!", "success");
       } else {
-        // Standardize ID: remove spaces and dashes
-        const vehicleId = vehicleForm.plate.replace(/[\s-]/g, '').toUpperCase();
+        const vehicleId = vehicleForm.plate.replace(/[^A-Z0-9]/g, '').toUpperCase();
         await setDoc(doc(db, 'vehicles', vehicleId), { ...vehicleForm, id: vehicleId });
         addNotification("Viatura cadastrada com sucesso!", "success");
       }
@@ -866,16 +865,40 @@ export default function App() {
     try {
       for (const entry of allPatrimonio) {
         const { item: s, type } = entry;
-        // Use a more robust split that only looks for dashes surrounded by spaces
-        // This avoids splitting prefixes or plates that contain internal dashes like "V-1234" or "ABC-1234"
-        const parts = s.split(/\s+-\s+/).map(p => p.trim());
+        // Split by hyphen with optional spaces
+        const parts = s.split(/\s*-\s*/).map(p => p.trim()).filter(p => p.length > 0);
         
         if (parts.length >= 2) {
-          const prefix = parts[0];
-          const plate = parts[1];
-          const model = parts[2] || (type === 'mo' ? 'MOTO' : 'Viatura');
-          const vehicleId = plate.replace(/[\s-]/g, '').toUpperCase();
+          // Heuristic to find the plate among parts
+          // A Brazilian plate is usually 7 characters: ABC-1234 or ABC1D23
+          const isPlatePattern = (str: string) => {
+            const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
+            return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(clean);
+          };
+
+          let plateIndex = parts.findIndex(isPlatePattern);
+          // If not found by strict pattern, assume it's the second part if parts.length >= 2
+          // unless the first part looks more like a plate.
+          if (plateIndex === -1) {
+            plateIndex = isPlatePattern(parts[0]) ? 0 : 1;
+          }
+
+          const plate = parts[plateIndex];
+          const prefix = parts[plateIndex === 0 ? 1 : 0]; // The other major part
+          
+          // Remaining parts form the model or just use defaults
+          const otherParts = parts.filter((_, i) => i !== plateIndex && i !== (plateIndex === 0 ? 1 : 0));
+          const model = otherParts.join(' ') || (type === 'mo' ? 'MOTOCICLETA' : 'Viatura');
+          
+          const vehicleId = plate.replace(/[^A-Z0-9]/g, '').toUpperCase();
+          
+          if (currentPlateIds.has(vehicleId)) {
+            console.warn(`[CadChecking] Duplicate vehicle ID detected in settings: ${vehicleId} (from "${s}"). Skipping...`);
+            continue;
+          }
+          
           currentPlateIds.add(vehicleId);
+          console.log(`[CadChecking] Syncing vehicle: ${prefix} | Plate: ${plate} | ID: ${vehicleId}`);
           
           const docRef = doc(db, 'vehicles', vehicleId);
           const snap = await getDoc(docRef);
@@ -2717,7 +2740,16 @@ export default function App() {
       await setDoc(doc(db, 'settings', 'lists'), updatedSettings);
       console.log("Settings saved successfully!");
       setSuccess(true);
-      addNotification("Configurações persistidas com sucesso no banco de dados!", "success");
+      addNotification("Configurações persistidas com sucesso!", "success");
+      
+      // Automatically sync fleet to reflect changes (e.g. newly added plates) immediately
+      try {
+        console.log("Automatically triggering fleet sync after settings save...");
+        await bootstrapVehicles(true);
+      } catch (syncErr) {
+        console.error("Settings saved but fleet sync failed:", syncErr);
+      }
+
       setTimeout(() => setSuccess(false), 2000);
     } catch (error: any) {
       console.error("Error saving settings:", error);
