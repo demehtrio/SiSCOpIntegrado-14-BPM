@@ -5,7 +5,7 @@ export interface Vehicle {
   prefix: string;
   plate: string;
   model: string;
-  status: 'available' | 'in_use' | 'maintenance';
+  status: 'available' | 'in_use' | 'maintenance' | 'inactive';
   lastMileage: number;
   currentDriver?: string | null;
   currentDriverEmail?: string | null;

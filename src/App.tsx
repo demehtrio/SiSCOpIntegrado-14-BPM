@@ -854,13 +854,17 @@ export default function App() {
     if (force) setIsSyncing(true);
     
     // Always use the latest lists from state (which come from settings/lists in Firestore)
-    const allPatrimonio = [...patrimonioVtList, ...patrimonioMoList];
-    console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} vehicles from SisCOpI settings...`);
+    const allPatrimonio = [
+      ...patrimonioVtList.map(item => ({ item, type: 'vt' })),
+      ...patrimonioMoList.map(item => ({ item, type: 'mo' }))
+    ];
+    console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} items (VTs and Motos) from SisCOpI settings...`);
     
     const currentPlateIds = new Set<string>();
     
     try {
-      for (const s of allPatrimonio) {
+      for (const entry of allPatrimonio) {
+        const { item: s, type } = entry;
         // Flexible parsing for "PREFIX - PLATE - MODEL"
         const normalized = s.replace(/\s*-\s*/g, ' - ').replace(/\s*-\s*/, ' - ');
         const parts = normalized.split(' - ').map(p => p.trim());
@@ -868,7 +872,7 @@ export default function App() {
         if (parts.length >= 2) {
           const prefix = parts[0];
           const plate = parts[1];
-          const model = parts[2] || 'Viatura';
+          const model = parts[2] || (type === 'mo' ? 'MOTO' : 'Viatura');
           const vehicleId = plate.replace(/[\s-]/g, '').toUpperCase();
           currentPlateIds.add(vehicleId);
           
@@ -877,6 +881,8 @@ export default function App() {
           
           let correctedModel = model;
           const upperModel = model.toUpperCase();
+          
+          // Standardization logic
           if (upperModel.includes('HILUX') || upperModel.includes('HILLUX')) {
             correctedModel = 'TOYOTA/HILUX';
           } else if (upperModel === 'RANGER' || upperModel.includes('RANGER')) {
@@ -893,6 +899,8 @@ export default function App() {
             correctedModel = 'CHEVROLET/ONIX';
           } else if (upperModel === 'L200' || upperModel.includes('L 200') || upperModel.includes('L-200')) {
             correctedModel = 'MITSUBISHI/L200';
+          } else if (type === 'mo' && (upperModel === 'MOTO' || upperModel === 'MOTOCICLETA')) {
+            correctedModel = 'MOTOCICLETA';
           }
 
           if (snap.exists()) {
@@ -928,7 +936,7 @@ export default function App() {
         }
       }
 
-      if (force) addNotification("Frota sincronizada com o SisCOpI!", "success");
+      if (force) addNotification("Frota (Viaturas e Motos) sincronizada!", "success");
     } catch (err) {
       console.error("[CadChecking] Sync error:", err);
       handleFirestoreError(err, OperationType.WRITE, 'vehicles');
@@ -5978,7 +5986,7 @@ function CadChecking({
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 active:scale-95 ml-2"
             >
               <RefreshCw className={isSyncing ? "animate-spin" : ""} size={16} />
-              <span className="hidden sm:inline">Sincronizar Frota</span>
+              <span className="hidden sm:inline">Sincronizar Frota Completa</span>
               <span className="sm:hidden">Sincronizar</span>
             </button>
           )}
