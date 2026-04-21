@@ -1099,30 +1099,29 @@ export default function App() {
       },
       source: 'cadchecking'
     });
-    setCadcheckingView('record');
+    setCadcheckingView('list');
     setSubmitting(false);
   };
 
   const formatWhatsAppMessage = (record: RecordEntry) => {
-    // Check if it's a Cadastro VTR record
-    const isCadastroVTR = record.source === 'cadchecking' || record.source === 'standalone_checklist';
+    // Check if it's a Cadastro VTR record (Movement)
+    const isMovement = record.source === 'cadchecking';
     const isExit = record.type === 'check-out' || record.type === 'maintenance-out';
     const isIn = record.type === 'check-in' || record.type === 'maintenance-in';
     const typeLabel = isExit ? 'SAÍDA' : 'RETORNO';
     const kmLabel = isExit ? 'Km inic' : 'Km final';
     const hourLabel = isExit ? 'Hora que armou' : 'Hora que desarmou';
     
-    // Formatting plate (removing spaces as requested: PBG5G37)
+    // Formatting plate (PBG5G37)
     const plateFormatted = record.identification?.plate?.replace(/\s/g, '').toUpperCase() || '---';
     
-    // Formatting driver name to include the separator (e.g. 2° TEN FLORO / 126757-4)
+    // Formatting driver name
     let driverFormatted = record.drivers?.driverName || '---';
     if (driverFormatted !== '---') {
       const matriculaMatch = driverFormatted.match(/(\s)(\d{5,})/);
       if (matriculaMatch) {
         driverFormatted = driverFormatted.replace(/(\s)(\d{5,})/, ' / $2');
       } else {
-        // Fallback for names already formatted or with different space patterns
         driverFormatted = driverFormatted.replace(/ (\d)/, ' / $1');
       }
     }
@@ -1134,8 +1133,8 @@ export default function App() {
       dateFormatted = `${d}/${m}/${y}`;
     }
 
-    if (isCadastroVTR) {
-      let title = record.source === 'cadchecking' ? 'CADASTRO VTR' : 'CHECKLIST VTR';
+    if (isMovement) {
+      let title = 'CADASTRO VTR';
       let msg = `*${title} - ${typeLabel}*\n\n`;
       if (record.identification?.prefix) msg += `🚩 *Patrimônio:* ${record.identification.prefix}\n`;
       if (plateFormatted !== '---') msg += `🔢 *Placa:* ${plateFormatted}\n`;
@@ -1147,7 +1146,6 @@ export default function App() {
       if (record.identification?.time) msg += `⏰ *Hora:* ${record.identification.time}\n`;
       if (driverFormatted !== '---') msg += `👮 *Condutor e Matrícula:* ${driverFormatted}\n`;
 
-      // Conditional details if present
       if (record.checklist?.descricaoAlteracoes) {
         msg += `\n📝 *Alterações:* ${record.checklist.descricaoAlteracoes}`;
       }
@@ -1159,8 +1157,9 @@ export default function App() {
       return msg;
     }
 
-    // Standard Checklist WhatsApp Format
-    let message = `*CHECKLIST ${isExit ? 'SAÍDA' : 'RETORNO'}*\n\n`;
+    // Standard Checklist WhatsApp Format (Used by standalone_checklist)
+    let titleMsg = record.source === 'standalone_checklist' ? 'CHECAGEM DE VIATURA' : `CHECKLIST ${typeLabel}`;
+    let message = `*${titleMsg}*\n\n`;
     message += `🚩 *Prefixo:* ${record.identification?.prefix || '---'}\n`;
     message += `🔢 *Placa:* ${plateFormatted}\n`;
     if (record.identification?.operationalPrefix) {
@@ -1172,27 +1171,43 @@ export default function App() {
 
     message += `👮 *Condutor:* ${driverFormatted}\n`;
     message += `🛞 *Emprego:* ${record.drivers?.serviceType || '---'}\n`;
-    message += `⏲️ *${kmLabel}:* ${record.mileage?.currentMileage || '---'} km\n\n`;
+    message += `⏲️ *Km:* ${record.mileage?.currentMileage || '---'} km\n\n`;
 
     if (record.checklist) {
       const c = record.checklist;
       message += `*ESTADO GERAL*\n`;
       message += `📑 *Mapa Diário:* ${c.mapaDiario || '---'}\n`;
-      message += `✨ *Limpeza:* ${c.limpeza || '---'}\n`;
+      message += `✨ *Limpeza/Conservação:* ${c.limpeza || '---'}\n`;
       message += `🛢️ *Óleo Motor:* ${c.oleoMotor || '---'}\n`;
+      if (c.proxTrocaOleoKm) message += `🔜 *Próx. Troca Óleo (Km):* ${c.proxTrocaOleoKm}\n`;
       message += `🛞 *Pneus:* ${c.pneus || '---'}\n`;
       message += `🛑 *Freio:* ${c.sistemaFreio || '---'}\n`;
+      if (c.sistemaTracao) message += `⛓️ *Sist. Tração:* ${c.sistemaTracao || '---'}\n`;
       
-      if (c.luzFarolAlto) {
-        message += `\n*ILUMINAÇÃO*\n`;
-        message += `💡 *Farol Alto:* ${c.luzFarolAlto || '---'}\n`;
-        message += `💡 *Farol Baixo:* ${c.luzFarolBaixo || '---'}\n`;
-        message += `💡 *Lanterna/Pisca:* ${c.luzLanterna || '---'}\n`;
-        message += `💡 *Luz de Placa:* ${c.luzPlaca || '---'}\n`;
+      message += `\n*ILUMINAÇÃO*\n`;
+      message += `💡 *Farol Alto:* ${c.luzFarolAlto || '---'}\n`;
+      message += `💡 *Farol Baixo:* ${c.luzFarolBaixo || '---'}\n`;
+      message += `💡 *Lanterna/Pisca:* ${c.luzLanterna || '---'}\n`;
+      message += `💡 *Luz de Placa:* ${c.luzPlaca || '---'}\n`;
+      if (c.luzFreioLanternaTraseira) {
+        const l = Array.isArray(c.luzFreioLanternaTraseira) ? c.luzFreioLanternaTraseira.join(', ') : c.luzFreioLanternaTraseira;
+        message += `💡 *Luz Freio/Traseira:* ${l || '---'}\n`;
+      }
+      
+      if (c.equipamentos && Array.isArray(c.equipamentos) && c.equipamentos.length > 0) {
+        message += `\n*EQUIPAMENTOS*\n🛠️ ${c.equipamentos.join(', ')}\n`;
+      }
+      
+      if (c.partesInternas && Array.isArray(c.partesInternas) && c.partesInternas.length > 0) {
+        message += `\n*PARTES INTERNAS*\n🛋️ ${c.partesInternas.join(', ')}\n`;
+      }
+      
+      if (c.partesExternas && Array.isArray(c.partesExternas) && c.partesExternas.length > 0) {
+        message += `\n*PARTES EXTERNAS*\n🚗 ${c.partesExternas.join(', ')}\n`;
       }
       
       if (c.descricaoAlteracoes) {
-        message += `\n*DESCRIÇÃO DE ALTERAÇÕES*\n${c.descricaoAlteracoes}\n`;
+        message += `\n*OBSERVAÇÕES/ALTERAÇÕES*\n📝 ${c.descricaoAlteracoes}\n`;
       }
     }
 
@@ -5276,11 +5291,11 @@ function ChecklistHistoryItem({
               <h4 className="font-black text-slate-900">{record.identification.prefix}</h4>
               <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[10px] font-bold font-mono">{record.identification.plate}</span>
               <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                record.type === 'check-out' || record.type === 'maintenance-out'
-                  ? 'bg-orange-100 text-orange-700'
-                  : 'bg-emerald-100 text-emerald-700'
+                record.source === 'standalone_checklist'
+                  ? 'bg-blue-100 text-blue-700'
+                  : (record.type === 'check-out' || record.type === 'maintenance-out' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700')
               }`}>
-                {record.type === 'check-out' || record.type === 'maintenance-out' ? 'SAÍDA' : 'RETORNO'}
+                {record.source === 'standalone_checklist' ? 'CHECAGEM' : (record.type === 'check-out' || record.type === 'maintenance-out' ? 'SAÍDA' : 'RETORNO')}
               </span>
             </div>
             <p className="text-xs text-slate-500 font-bold">
@@ -5578,54 +5593,26 @@ function ChecklistModule({
                         variant="blue"
                       />
                     </div>
-                      <div className="space-y-4">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setFormData({...formData, type: 'check-out'})}
-                            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
-                              formData.type === 'check-out' 
-                                ? 'bg-orange-600 text-white shadow-lg' 
-                                : 'bg-slate-50 text-slate-400 border border-slate-100'
-                            }`}
-                          >
-                            <LogOut size={20} />
-                            SAÍDA
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setFormData({...formData, type: 'check-in'})}
-                            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
-                              formData.type === 'check-in' 
-                                ? 'bg-emerald-600 text-white shadow-lg' 
-                                : 'bg-slate-50 text-slate-400 border border-slate-100'
-                            }`}
-                          >
-                            <LogIn size={20} />
-                            RETORNO
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                            <input 
-                              type="date"
-                              value={formData.identification.date}
-                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
-                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
-                            <input 
-                              type="time"
-                              value={formData.identification.time}
-                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
-                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                      <input 
+                        type="date"
+                        value={formData.identification.date}
+                        onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
+                      <input 
+                        type="time"
+                        value={formData.identification.time}
+                        onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
+                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
+                      />
+                    </div>
                   </div>
                 </motion.div>
               )}
