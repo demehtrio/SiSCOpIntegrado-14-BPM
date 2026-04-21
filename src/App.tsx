@@ -1206,6 +1206,8 @@ export default function App() {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       
+      const logoPM = await loadImage(LOGO_14BPM_URL);
+      
       // Header
       doc.setFillColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
       doc.rect(0, 0, pageWidth, 40, 'F');
@@ -1221,7 +1223,7 @@ export default function App() {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      const isCadastroVTR = record.source === 'cadchecking' || record.source === 'standalone_checklist';
+      const isCadastroVTR = record.source === 'cadchecking';
       doc.text(isCadastroVTR ? 'CADASTRO VTR' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(10);
@@ -1369,43 +1371,44 @@ export default function App() {
           ['Partes Internas', c.partesInternas.join(', ')],
           ['Partes Externas', c.partesExternas.join(', ')]
         ]);
+      }
+      
+      // Fotos (Always show if present)
+      if (record.checklist?.fotos && record.checklist.fotos.length > 0) {
+        const c = record.checklist;
+        if (currentY > 200) {
+          doc.addPage();
+          currentY = 20;
+        }
+        
+        doc.setFontSize(12);
+        doc.setTextColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.text('FOTOS ANEXADAS', 14, currentY);
+        currentY += 10;
 
-        // Fotos
-        if (c.fotos && c.fotos.length > 0) {
-          if (currentY > 200) {
+        const imgWidth = 80;
+        const imgHeight = 60;
+        const margin = 14;
+        const spacing = 10;
+
+        c.fotos.forEach((foto, index) => {
+          if (currentY + imgHeight > 280) {
             doc.addPage();
             currentY = 20;
           }
+          const x = index % 2 === 0 ? margin : margin + imgWidth + spacing;
+          try {
+            const format = foto.includes('png') ? 'PNG' : 'JPEG';
+            doc.addImage(foto, format, x, currentY, imgWidth, imgHeight);
+          } catch (err) {
+            console.error("Error adding image to PDF:", err);
+          }
           
-          doc.setFontSize(12);
-          doc.setTextColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
-          doc.setFont('helvetica', 'bold');
-          doc.text('FOTOS ANEXADAS', 14, currentY);
-          currentY += 10;
-
-          const imgWidth = 80;
-          const imgHeight = 60;
-          const margin = 14;
-          const spacing = 10;
-
-          c.fotos.forEach((foto, index) => {
-            if (currentY + imgHeight > 280) {
-              doc.addPage();
-              currentY = 20;
-            }
-            const x = index % 2 === 0 ? margin : margin + imgWidth + spacing;
-            try {
-              const format = foto.includes('png') ? 'PNG' : 'JPEG';
-              doc.addImage(foto, format, x, currentY, imgWidth, imgHeight);
-            } catch (err) {
-              console.error("Error adding image to PDF:", err);
-            }
-            
-            if (index % 2 !== 0 || index === c.fotos.length - 1) {
-              currentY += imgHeight + spacing;
-            }
-          });
-        }
+          if (index % 2 !== 0 || index === c.fotos.length - 1) {
+            currentY += imgHeight + spacing;
+          }
+        });
       }
 
       // Footer
