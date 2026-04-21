@@ -107,6 +107,7 @@ import {
   HORARIO_LINHA_LIST, 
   TIPO_SERVICO_LIST, 
   TIPO_SERVICO_VT_LIST,
+  OME_ORIGEM,
   OPERATIONAL_PREFIXES,
   CADASTRO_VTR_SERVICE_TYPES,
   EQUIPAMENTOS_VTR,
@@ -608,6 +609,8 @@ export default function App() {
   const [horarioLinhaList, setHorarioLinhaList] = useState<string[]>([]);
   const [tipoServicoList, setTipoServicoList] = useState<string[]>([]);
   const [tipoServicoVtList, setTipoServicoVtList] = useState<string[]>([]);
+  const [omeOrigem, setOmeOrigem] = useState<string>(OME_ORIGEM);
+  const [omeOrigemList, setOmeOrigemList] = useState<string[]>(["14º BPM"]);
   const [adminList, setAdminList] = useState<string[]>(["demetriomarques@gmail.com"]);
   const [authorizedList, setAuthorizedList] = useState<string[]>([]);
   
@@ -1153,7 +1156,7 @@ export default function App() {
         msg += `\n📝 *Observações:* ${record.mileage.notes}`;
       }
       
-      msg += `\n\n_Gerado via SisCOpI - 14º BPM_`;
+      msg += `\n\n_Gerado via SisCOpI - ${omeOrigem}_`;
       return msg;
     }
 
@@ -1211,7 +1214,7 @@ export default function App() {
       }
     }
 
-    message += `\n_Gerado via SisCOpI - 14º BPM_`;
+    message += `\n_Gerado via SisCOpI - ${omeOrigem}_`;
     return message;
   };
 
@@ -1243,7 +1246,7 @@ export default function App() {
       doc.text(isCadastroVTR ? 'CADASTRO VTR' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(10);
-      doc.text('14º BPM - SERRA TALHADA', pageWidth / 2, 22, { align: 'center' });
+      doc.text(`${omeOrigem} - SERRA TALHADA`, pageWidth / 2, 22, { align: 'center' });
       doc.text('POLÍCIA MILITAR DE PERNAMBUCO', pageWidth / 2, 28, { align: 'center' });
       
       let timestamp = new Date();
@@ -1433,7 +1436,7 @@ export default function App() {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(`Página ${i} de ${pageCount} - SisCOpI 14º BPM`, pageWidth / 2, 285, { align: 'center' });
+        doc.text(`Página ${i} de ${pageCount} - SisCOpI ${omeOrigem}`, pageWidth / 2, 285, { align: 'center' });
       }
 
       const blob = doc.output('blob');
@@ -1484,7 +1487,7 @@ export default function App() {
         createdAt: serverTimestamp(), // For compatibility with main history
         userEmail: user.email,
         userName: user.displayName || user.email?.split('@')[0],
-        unidade: '14º BPM', // Consistent with other records
+        unidade: omeOrigem, // Use configured OME
         identification: cadcheckingFormData.identification,
         drivers: cadcheckingFormData.drivers,
         mileage: cadcheckingFormData.mileage,
@@ -1632,7 +1635,7 @@ export default function App() {
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
-      doc.text('14º BPM', 45, 15);
+      doc.text(omeOrigem, 45, 15);
       doc.setFontSize(9);
       doc.text('SERRA TALHADA', 45, 20);
       doc.setTextColor(APP_RED[0], APP_RED[1], APP_RED[2]);
@@ -1691,7 +1694,7 @@ export default function App() {
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(`Página ${i} de ${pageCount}`, 105, 285, { align: 'center' });
-        doc.text('14º BPM - POLÍCIA MILITAR DE PERNAMBUCO | Cadastro VTR', 10, 285);
+        doc.text(`${omeOrigem} - POLÍCIA MILITAR DE PERNAMBUCO | Cadastro VTR`, 10, 285);
       }
 
       const blob = doc.output('blob');
@@ -1943,6 +1946,8 @@ export default function App() {
         if (data.horarioLinhaList) setHorarioLinhaList(data.horarioLinhaList);
         if (data.tipoServicoList) setTipoServicoList(data.tipoServicoList);
         if (data.tipoServicoVtList) setTipoServicoVtList(data.tipoServicoVtList);
+        if (data.omeOrigem) setOmeOrigem(data.omeOrigem);
+        if (data.omeOrigemList) setOmeOrigemList(data.omeOrigemList);
         if (data.adminList) setAdminList(data.adminList);
         if (data.authorizedList) setAuthorizedList(data.authorizedList);
         setSettingsLoaded(true);
@@ -1959,6 +1964,8 @@ export default function App() {
           horarioLinhaList: HORARIO_LINHA_LIST,
           tipoServicoList: TIPO_SERVICO_LIST,
           tipoServicoVtList: TIPO_SERVICO_VT_LIST,
+          omeOrigem: OME_ORIGEM,
+          omeOrigemList: ["14º BPM"],
           adminList: ["demetriomarques@gmail.com"],
           authorizedList: ["demetriomarques@gmail.com"]
         };
@@ -2184,7 +2191,7 @@ export default function App() {
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
-      doc.text('14º BPM', 45, 15);
+      doc.text(omeOrigem, 45, 15);
       doc.setFontSize(9);
       doc.text('SERRA TALHADA', 45, 20);
       doc.setTextColor(APP_RED[0], APP_RED[1], APP_RED[2]);
@@ -2237,7 +2244,7 @@ export default function App() {
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(`Página ${i} de ${pageCount}`, 105, 285, { align: 'center' });
-        doc.text('14º BPM - POLÍCIA MILITAR DE PERNAMBUCO | Sistema de Gestão de Efetivo', 10, 285);
+        doc.text(`${omeOrigem} - POLÍCIA MILITAR DE PERNAMBUCO | Sistema de Gestão de Efetivo`, 10, 285);
       }
 
       const blob = doc.output('blob');
@@ -2284,7 +2291,7 @@ export default function App() {
         doc.text('POLÍCIA MILITAR DE PERNAMBUCO', 105, 15, { align: 'center' });
         doc.setFontSize(9);
         doc.text('DIRETORIA INTEGRADA DO INTERIOR - II', 105, 21, { align: 'center' });
-        doc.text('14º BATALHÃO DE POLÍCIA MILITAR', 105, 26, { align: 'center' });
+        doc.text(`${omeOrigem.toUpperCase()} - PMPE`, 105, 26, { align: 'center' });
         doc.setTextColor(APP_RED[0], APP_RED[1], APP_RED[2]);
         doc.setFontSize(10);
         doc.text('SisCOpI', 105, 31, { align: 'center' });
@@ -2579,14 +2586,14 @@ export default function App() {
         });
       }
 
-      // Add Footer and Page Numbers
+/* Page Numbers for consolidated report */
       const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(`Página ${i} de ${pageCount}`, 105, 285, { align: 'center' });
-        doc.text('14º BPM - POLÍCIA MILITAR DE PERNAMBUCO | Sistema de Gestão de Efetivo', 10, 285);
+        doc.text(`${omeOrigem} - POLÍCIA MILITAR DE PERNAMBUCO | Sistema de Gestão de Efetivo`, 10, 285);
       }
 
       const blob = doc.output('blob');
@@ -2794,6 +2801,8 @@ export default function App() {
         horarioLinhaList,
         tipoServicoList,
         tipoServicoVtList,
+        omeOrigem,
+        omeOrigemList,
         adminList,
         authorizedList
       };
@@ -2829,6 +2838,8 @@ export default function App() {
     setPatrimonioVtList(PATRIMONIO_VT_LIST);
     setMoList(MO_LIST);
     setPatrimonioMoList(PATRIMONIO_LIST);
+    setOmeOrigem(OME_ORIGEM);
+    setOmeOrigemList(["14º BPM"]);
     
     setSuccess(true);
     setTimeout(() => setSuccess(false), 2000);
@@ -2874,13 +2885,13 @@ export default function App() {
           <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg p-3">
             <img 
               src={getProxiedLogoUrl()} 
-              alt="Logo 14º BPM" 
+              alt={`Logo ${omeOrigem}`} 
               className="w-full h-full object-contain" 
               referrerPolicy="no-referrer"
               onError={handleLogoError}
             />
           </div>
-          <h1 className="text-4xl font-black text-blue-900 mb-0 uppercase tracking-tighter">14º BPM</h1>
+          <h1 className="text-4xl font-black text-blue-900 mb-0 uppercase tracking-tighter">{omeOrigem}</h1>
           <p className="text-slate-500 font-black text-xs uppercase tracking-widest mb-2">PMPE</p>
           <p className="text-slate-400 font-medium mb-2 text-[10px]">Batalhão Cel. PM Manoel de Souza Ferraz</p>
           <img 
@@ -2998,7 +3009,7 @@ export default function App() {
           </div>
 
           <p className="mt-10 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-            14º BPM - Serra Talhada/PE
+            {omeOrigem} - Serra Talhada/PE
           </p>
         </motion.div>
       </div>
@@ -3081,14 +3092,14 @@ export default function App() {
               <div className="bg-white p-1.5 rounded-xl shadow-inner">
                 <img 
                   src={getProxiedLogoUrl()} 
-                  alt="Logo 14º BPM" 
+                  alt={`Logo ${omeOrigem}`} 
                   className="w-12 h-12 object-contain" 
                   referrerPolicy="no-referrer"
                   onError={handleLogoError}
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-black text-xl tracking-tighter leading-none">14º BPM</span>
+                <span className="font-black text-xl tracking-tighter leading-none">{omeOrigem}</span>
                 <span className="text-[10px] font-bold opacity-80 uppercase tracking-tighter">PMPE</span>
                 <img 
                   src={getProxiedSisCOpILogoUrl()} 
@@ -3194,14 +3205,14 @@ export default function App() {
             <div className="bg-white p-1 rounded-lg shadow-sm">
               <img 
                 src={getProxiedLogoUrl()} 
-                alt="Logo 14º BPM" 
+                alt={`Logo ${omeOrigem}`} 
                 className="w-10 h-10 object-contain" 
                 referrerPolicy="no-referrer"
                 onError={handleLogoError}
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-lg tracking-tighter leading-none">14º BPM</span>
+              <span className="font-black text-lg tracking-tighter leading-none">{omeOrigem}</span>
               <span className="text-[9px] font-bold opacity-80 uppercase">PMPE</span>
               <img 
                 src={getProxiedSisCOpILogoUrl()} 
@@ -3255,7 +3266,7 @@ export default function App() {
                   <div className="bg-white p-5 rounded-[2.5rem] shadow-xl mb-6 relative z-10">
                     <img 
                       src={getProxiedLogoUrl()} 
-                      alt="Logo 14º BPM" 
+                      alt={`Logo ${omeOrigem}`} 
                       className="w-32 h-32 object-contain" 
                       referrerPolicy="no-referrer"
                       onError={handleLogoError}
@@ -3263,7 +3274,7 @@ export default function App() {
                   </div>
                   <div className="relative z-10">
                     <h1 className="text-5xl font-black text-slate-900 tracking-tighter mb-2"><span>Olá, {user.displayName?.split(' ')[0]}!</span></h1>
-                    <p className="text-blue-900 font-black text-2xl uppercase tracking-tight"><span>14º Batalhão de Polícia Militar</span></p>
+                    <p className="text-blue-900 font-black text-2xl uppercase tracking-tight"><span>{omeOrigem}</span></p>
                     <p className="text-slate-500 font-bold text-base uppercase tracking-widest opacity-60"><span>PMPE</span></p>
                     <div className="flex flex-col items-center justify-center gap-2 mt-4">
                       <div className="flex items-center justify-center gap-4">
@@ -3317,7 +3328,7 @@ export default function App() {
                   />
                   <DashboardCard 
                     title="Checklist VTR"
-                    description="Sistema integrado de checklist de viaturas do 14º BPM."
+                    description={`Sistema integrado de checklist de viaturas do ${omeOrigem}.`}
                     color="red"
                     icon={<ClipboardList size={32} />}
                     onClick={() => setActiveTab('checklist')}
@@ -3333,7 +3344,7 @@ export default function App() {
                     title="Gestão de Serviços"
                     description="Acesso ao sistema externo de gestão de serviços (Base44)."
                     color="indigo"
-                    icon={<img src={LOGO_14BPM_URL} alt="Brasão 14º BPM" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
+                    icon={<img src={LOGO_14BPM_URL} alt={`Brasão ${omeOrigem}`} className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
                     onClick={() => window.open('https://14-bpm.base44.app/AppLogin', '_blank')}
                   />
                   <DashboardCard 
@@ -3457,7 +3468,7 @@ export default function App() {
                   />
                   <DashboardCard 
                     title="Checklist"
-                    description="Acesso ao sistema externo de checklist de viaturas do 14º BPM."
+                    description={`Acesso ao sistema externo de checklist de viaturas do ${omeOrigem}.`}
                     color="red"
                     icon={<img src="https://i.pinimg.com/originals/44/e4/8c/44e48c5ff461edb7623bab64bd898d8d.png" alt="Checklist" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
                     onClick={() => window.open('https://checklist-14-bpm.vercel.app/', '_blank')}
@@ -4468,6 +4479,22 @@ export default function App() {
                     </div>
                   ) : (
                     <form onSubmit={handleSaveSettings} className="space-y-8">
+                      <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 flex flex-col md:flex-row items-center gap-6 mb-8">
+                        <div className="flex-1">
+                          <h4 className="text-lg font-bold text-blue-900 mb-1">Identidade da Unidade (OME)</h4>
+                          <p className="text-sm text-blue-600/70 font-medium">Define a OME que aparecerá em todos os relatórios e mensagens do sistema.</p>
+                        </div>
+                        <div className="w-full md:w-64">
+                          <input 
+                            type="text"
+                            value={omeOrigem}
+                            onChange={(e) => setOmeOrigem(e.target.value)}
+                            placeholder="Ex: 14º BPM"
+                            className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
+                          />
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <SettingsListEditor 
                           label="Efetivo (Graduação/Nome/Matrícula)" 
@@ -4518,6 +4545,11 @@ export default function App() {
                           label="Tipos de Serviço (Viatura)" 
                           value={tipoServicoVtList.join('\n')} 
                           onChange={(val) => setTipoServicoVtList(val.split('\n').filter(i => i.trim()))} 
+                        />
+                        <SettingsListEditor 
+                          label="OME (Lista de Referência)" 
+                          value={omeOrigemList.join('\n')} 
+                          onChange={(val) => setOmeOrigemList(val.split('\n').filter(i => i.trim()))} 
                         />
                       </div>
 
@@ -4690,6 +4722,7 @@ export default function App() {
                 <ChecklistModule 
                   user={user}
                   vehicles={vehicles}
+                  omeOrigem={omeOrigem}
                   personnelList={personnelList}
                   prefixoVtList={prefixoVtList}
                   moList={moList}
@@ -5362,6 +5395,7 @@ function ChecklistHistoryItem({
 function ChecklistModule({ 
   user, 
   vehicles, 
+  omeOrigem,
   personnelList, 
   prefixoVtList, 
   moList, 
@@ -5376,6 +5410,7 @@ function ChecklistModule({
 }: {
   user: User | null;
   vehicles: Vehicle[];
+  omeOrigem: string;
   personnelList: string[];
   prefixoVtList: string[];
   moList: string[];
@@ -5466,7 +5501,7 @@ function ChecklistModule({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div>
           <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Checklist de Viaturas</h2>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-60">Sistema de Conferência 14º BPM</p>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-60">Sistema de Conferência {omeOrigem}</p>
         </div>
         <div className="flex gap-3">
           {view === 'form' && (
