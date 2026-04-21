@@ -1517,6 +1517,8 @@ export default function App() {
       setSelectedVehicle(null);
       setOperationType(null);
       setCurrentCadcheckingTab(0);
+      setCadcheckingView('history');
+      addNotification("Registro de VTR salvo com sucesso!", "success");
     } catch (err: any) {
       handleFirestoreError(err, OperationType.WRITE, 'checklists');
       addNotification("Erro ao salvar registro.", "error");
@@ -1998,6 +2000,7 @@ export default function App() {
   }, [user]);
 
   const handleClearAllHistories = async () => {
+    if (!isAdmin) return;
     setClearingHistory(true);
     try {
       const collectionsToClear = [
@@ -2014,16 +2017,26 @@ export default function App() {
         await Promise.all(deletePromises);
       }
 
-      // Reset local state if needed (mostly snapshot listeners will handle it)
+      // Reset all vehicles state
+      const vehiclesSnapshot = await getDocs(collection(db, 'vehicles'));
+      const vehicleResetPromises = vehiclesSnapshot.docs.map(vDoc => 
+        updateDoc(doc(db, 'vehicles', vDoc.id), {
+          status: 'available',
+          lastMileage: 0
+        })
+      );
+      await Promise.all(vehicleResetPromises);
+
+      // Reset local state
       setHistoryData([]);
       setCadcheckingHistory([]);
       setStandaloneHistory([]);
       
       setShowClearHistoryModal(false);
-      alert('Todos os históricos foram removidos com sucesso para a nova fase de testes.');
+      addNotification('Todos os históricos removidos e frota resetada com sucesso.', 'success');
     } catch (error) {
       console.error("Error clearing histories:", error);
-      alert('Erro ao limpar históricos. Verifique o console para mais detalhes.');
+      handleFirestoreError(error, OperationType.WRITE, 'multiple_collections', 'Limpeza de histórico');
     } finally {
       setClearingHistory(false);
     }
@@ -2125,10 +2138,7 @@ export default function App() {
   };
 
   const generatePDF = async (data: any) => {
-    if (data.type === 'checklists') {
-      return generateDetailedChecklistPDF(data);
-    }
-    if (data.type === 'standalone_checklists') {
+    if (data.type === 'checklists' || data.type === 'standalone_checklists' || data.source === 'standalone_checklist' || data.source === 'cadchecking') {
       return generateDetailedChecklistPDF(data);
     }
 
@@ -2144,7 +2154,7 @@ export default function App() {
                           data.type === 'efetivo_viaturas' ? APP_EMERALD :
                           APP_ORANGE;
 
-      const logoPM = await loadImage(LOGO_14BPM_URL);
+      const logoPM = await loadImage(getProxiedLogoUrl());
       
       // Header
       doc.setFillColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
@@ -2241,7 +2251,7 @@ export default function App() {
       const APP_EMERALD = [5, 150, 105];
       const APP_ORANGE = [234, 88, 12];
 
-      const logoPM = await loadImage(LOGO_14BPM_URL);
+      const logoPM = await loadImage(getProxiedLogoUrl());
 
       const drawHeader = () => {
         doc.setFillColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
@@ -5267,10 +5277,10 @@ function ChecklistHistoryItem({
               <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[10px] font-bold font-mono">{record.identification.plate}</span>
               <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
                 record.type === 'check-out' || record.type === 'maintenance-out'
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-blue-100 text-blue-700'
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'bg-emerald-100 text-emerald-700'
               }`}>
-                {record.type === 'check-out' || record.type === 'maintenance-out' ? 'RETORNO' : 'SAÍDA'}
+                {record.type === 'check-out' || record.type === 'maintenance-out' ? 'SAÍDA' : 'RETORNO'}
               </span>
             </div>
             <p className="text-xs text-slate-500 font-bold">
@@ -5572,26 +5582,26 @@ function ChecklistModule({
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => setFormData({...formData, type: 'check-in'})}
-                            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
-                              formData.type === 'check-in' 
-                                ? 'bg-blue-600 text-white shadow-lg' 
-                                : 'bg-slate-50 text-slate-400 border border-slate-100'
-                            }`}
-                          >
-                            <LogIn size={20} />
-                            SAÍDA
-                          </button>
-                          <button
-                            type="button"
                             onClick={() => setFormData({...formData, type: 'check-out'})}
                             className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
                               formData.type === 'check-out' 
-                                ? 'bg-emerald-600 text-white shadow-lg' 
+                                ? 'bg-orange-600 text-white shadow-lg' 
                                 : 'bg-slate-50 text-slate-400 border border-slate-100'
                             }`}
                           >
                             <LogOut size={20} />
+                            SAÍDA
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({...formData, type: 'check-in'})}
+                            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                              formData.type === 'check-in' 
+                                ? 'bg-emerald-600 text-white shadow-lg' 
+                                : 'bg-slate-50 text-slate-400 border border-slate-100'
+                            }`}
+                          >
+                            <LogIn size={20} />
                             RETORNO
                           </button>
                         </div>
@@ -5878,7 +5888,7 @@ function ChecklistModule({
                       type="number"
                       placeholder="Digite a KM do painel..."
                       value={formData.mileage.currentMileage}
-                      onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value}})}
+                      onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value === '' ? '' : Number(e.target.value)}})}
                       className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 focus:ring-red-500/20 outline-none font-black text-3xl text-slate-900 text-center"
                     />
                   </div>
