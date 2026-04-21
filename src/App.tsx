@@ -1931,7 +1931,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    const collections = ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos'];
+    const collections = ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos', 'checklists', 'standalone_checklists'];
     const unsubscribes: (() => void)[] = [];
 
     collections.forEach(collName => {
@@ -3267,7 +3267,10 @@ export default function App() {
                   </div>
                   <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
                     <div className="min-w-[600px] md:min-w-0">
-                      {historyData.slice(0, 5).map((item, idx) => (
+                      {historyData
+                        .filter(item => ['atividades_linha', 'efetivo_viaturas', 'efetivo_mos'].includes(item.type))
+                        .slice(0, 5)
+                        .map((item, idx) => (
                         <HistoryItem 
                           key={item.id} 
                           item={item} 
@@ -4775,29 +4778,34 @@ interface HistoryItemProps {
 }
 
 function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, userId, isExpanded, onToggle }: HistoryItemProps) {
-  const date = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+  const date = item.createdAt?.toDate ? item.createdAt.toDate() : (item.timestamp?.toDate ? item.timestamp.toDate() : new Date(item.createdAt || item.timestamp || Date.now()));
   const isOwner = item.createdBy === userId;
-  const typeLabel = item.type === 'atividades_linha' ? 'Linha' :
-                    item.type === 'efetivo_viaturas' ? 'Viatura' : 
-                    item.type === 'efetivo_mos' ? 'MO' :
-                    item.type === 'checklists' ? 'Cadastro VTR' : 'Checklist VTR';
-  const typeColor = item.type === 'atividades_linha' ? 'bg-blue-900 text-white' :
-                    item.type === 'efetivo_viaturas' ? 'bg-emerald-700 text-white' : 
-                    item.type === 'efetivo_mos' ? 'bg-orange-700 text-white' :
-                    item.type === 'checklists' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-white';
+  
+  const typeLabel = item.sourceColl === 'atividades_linha' ? 'Linha' :
+                    item.sourceColl === 'efetivo_viaturas' ? 'Viatura' : 
+                    item.sourceColl === 'efetivo_mos' ? 'MO' :
+                    item.sourceColl === 'checklists' ? 'Cadastro VTR' : 
+                    item.sourceColl === 'standalone_checklists' ? 'Checklist VTR' : 
+                    (item.type === 'atividades_linha' ? 'Linha' : 'Registro');
+
+  const typeColor = item.sourceColl === 'atividades_linha' ? 'bg-blue-900 text-white' :
+                    item.sourceColl === 'efetivo_viaturas' ? 'bg-emerald-700 text-white' : 
+                    item.sourceColl === 'efetivo_mos' ? 'bg-orange-700 text-white' :
+                    item.sourceColl === 'checklists' ? 'bg-blue-600 text-white' : 
+                    item.sourceColl === 'standalone_checklists' ? 'bg-slate-700 text-white' : 'bg-slate-600';
   
   // Helper to get effective names
   const getEffectiveNames = () => {
-    if (item.type === 'atividades_linha') {
+    if (item.sourceColl === 'atividades_linha' || item.type === 'atividades_linha') {
       return item.graduacaoNomeMatricula || '';
     }
-    if (item.type === 'checklists') {
+    if (item.sourceColl === 'checklists' || item.source === 'cadchecking') {
       return item.drivers?.driverName || '';
     }
-    if (item.type === 'standalone_checklists') {
-      return item.driverName || '';
+    if (item.sourceColl === 'standalone_checklists' || item.source === 'standalone_checklist') {
+      return item.drivers?.driverName || item.driverName || '';
     }
-    if (item.type === 'efetivo_viaturas') {
+    if (item.sourceColl === 'efetivo_viaturas' || item.type === 'efetivo_viaturas') {
       const names = [
         item.comandante, 
         item.condutor, 
@@ -4809,7 +4817,7 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
       ].filter(Boolean);
       return names.join(', ');
     }
-    if (item.type === 'efetivo_mos') {
+    if (item.sourceColl === 'efetivo_mos' || item.type === 'efetivo_mos') {
       const names = [
         item.cmtR1, 
         item.r2, 
@@ -4822,7 +4830,7 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
   };
 
   const effectiveNames = getEffectiveNames();
-  const patrimony = item.identification?.plate || item.patrimonio || item.patrimonioViatura || item.patrimonioR1 || item.patrimonioR2 || item.patrimonioR3 || item.patrimonioR4 || '';
+  const patrimony = item.identification?.plate || item.plate || item.patrimony || item.patrimonioViatura || item.patrimonioR1 || item.patrimonioR2 || item.patrimonioR3 || item.patrimonioR4 || '';
   const city = item.cidade || '';
   const spec = item.especificacaoEfetivo || '';
 
@@ -4831,16 +4839,16 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
       <div className="p-4 flex items-center justify-between cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${
-            item.type === 'atividades_linha' ? 'bg-blue-50 text-blue-900' : 
-            item.type === 'efetivo_viaturas' ? 'bg-emerald-50 text-emerald-700' : 
-            item.type === 'efetivo_mos' ? 'bg-orange-50 text-orange-700' :
-            item.type === 'checklists' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-700'
+            item.sourceColl === 'atividades_linha' ? 'bg-blue-50 text-blue-900' : 
+            item.sourceColl === 'efetivo_viaturas' ? 'bg-emerald-50 text-emerald-700' : 
+            item.sourceColl === 'efetivo_mos' ? 'bg-orange-50 text-orange-700' :
+            item.sourceColl === 'checklists' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-700'
           }`}>
             <span className="font-bold">
-              {item.type === 'atividades_linha' ? 'AL' : 
-               item.type === 'efetivo_viaturas' ? 'EV' : 
-               item.type === 'efetivo_mos' ? 'EM' : 
-               item.type === 'checklists' ? 'CV' : 'CK'}
+              {item.sourceColl === 'atividades_linha' ? 'AL' : 
+               item.sourceColl === 'efetivo_viaturas' ? 'EV' : 
+               item.sourceColl === 'efetivo_mos' ? 'EM' : 
+               item.sourceColl === 'checklists' ? 'CV' : 'CK'}
             </span>
           </div>
           <div>
@@ -4848,7 +4856,7 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
               <span>{item.identification?.prefix || item.prefixoViatura || item.prefixo || item.unidade || item.funcao || item.graduacaoNomeMatricula || "Registro"}</span>
               {patrimony && (
                 <span className="text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  {item.type === 'checklists' || item.type === 'standalone_checklists' ? 'Placa: ' : 'Pat: '}{patrimony}
+                  {item.sourceColl === 'checklists' || item.sourceColl === 'standalone_checklists' ? 'Placa: ' : 'Pat: '}{patrimony}
                 </span>
               )}
               {item.isEdited && (
@@ -4923,19 +4931,36 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
                   </>
                 )}
 
-                {(item.type === 'efetivo_viaturas' || item.type === 'efetivo_mos') && (
+                {(item.type === 'efetivo_viaturas' || item.type === 'efetivo_mos' || item.sourceColl === 'efetivo_viaturas' || item.sourceColl === 'efetivo_mos') && (
                   <>
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Chamada</p>
-                      <p className="text-sm font-bold text-slate-700">{item.chamada}</p>
+                      <p className="text-sm font-bold text-slate-700">{item.chamada || '---'}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Prefixo</p>
-                      <p className="text-sm font-bold text-slate-700">{item.prefixo}</p>
+                      <p className="text-sm font-bold text-slate-700">{item.prefixo || item.prefixoViatura || '---'}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Patrimônio</p>
                       <p className="text-sm font-bold text-slate-700">{patrimony}</p>
+                    </div>
+                  </>
+                )}
+
+                {(item.sourceColl === 'checklists' || item.sourceColl === 'standalone_checklists') && (
+                  <>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tipo</p>
+                      <p className="text-sm font-bold text-slate-700">{(item.type === 'check-out' || item.type === 'maintenance-out') ? 'SAÍDA' : 'RETORNO'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Km</p>
+                      <p className="text-sm font-bold text-slate-700">{item.mileage?.currentMileage || '0'} km</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Patrimônio</p>
+                      <p className="text-sm font-bold text-slate-700">{item.identification?.prefix || '---'}</p>
                     </div>
                   </>
                 )}
