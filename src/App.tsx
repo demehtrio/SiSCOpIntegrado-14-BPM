@@ -2692,7 +2692,11 @@ export default function App() {
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAdmin) return;
+    console.log("handleSaveSettings called. isAdmin:", isAdmin);
+    if (!isAdmin) {
+      addNotification("Apenas administradores podem salvar configurações.", "error");
+      return;
+    }
     setSubmitting(true);
     try {
       const updatedSettings = {
@@ -2711,10 +2715,14 @@ export default function App() {
       };
       console.log("Saving settings to Firestore:", updatedSettings);
       await setDoc(doc(db, 'settings', 'lists'), updatedSettings);
+      console.log("Settings saved successfully!");
       setSuccess(true);
+      addNotification("Configurações persistidas com sucesso no banco de dados!", "success");
       setTimeout(() => setSuccess(false), 2000);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error saving settings:", error);
       handleFirestoreError(error, OperationType.WRITE, 'settings/lists', 'Salvamento de configurações de listas');
+      addNotification(`Erro ao salvar: ${error.message || 'Erro desconhecido'}`, "error");
     } finally {
       setSubmitting(false);
     }

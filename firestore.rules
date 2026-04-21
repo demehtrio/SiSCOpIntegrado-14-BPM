@@ -20,7 +20,7 @@ service cloud.firestore {
     // Helper Functions
     // ===============================================================
     function isAuthenticated() {
-      return request.auth != null && request.auth.token.email_verified == true;
+      return request.auth != null;
     }
 
     function isOwner(userId) {
@@ -33,11 +33,11 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        (request.auth.token.email.toLower() == "demetriomarques@gmail.com") ||
+        (request.auth.token.email.lower() == "demetriomarques@gmail.com") ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
         (exists(/databases/$(database)/documents/settings/lists) &&
-         request.auth.token.email.toLower() in get(/databases/$(database)/documents/settings/lists).data.adminList)
+         request.auth.token.email.lower() in get(/databases/$(database)/documents/settings/lists).data.adminList)
       );
     }
 
@@ -78,7 +78,7 @@ service cloud.firestore {
       return hasRequiredFields(['vehicleId', 'type', 'timestamp', 'userEmail', 'identification', 'drivers', 'mileage']) &&
              data.vehicleId is string &&
              data.type in ['check-out', 'check-in', 'maintenance-in', 'maintenance-out'] &&
-             data.userEmail.toLower() == request.auth.token.email.toLower() &&
+             data.userEmail.lower() == request.auth.token.email.lower() &&
              data.identification is map &&
              data.drivers is map &&
              data.mileage is map &&
