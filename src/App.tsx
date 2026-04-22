@@ -1311,7 +1311,7 @@ export default function App() {
           ['Pat', ident.prefix || '---'],
           ['Placa', (ident.plate || '').replace(/\s/g, '').toUpperCase() || '---'],
           ['Prefixo', ident.operationalPrefix || '---'],
-          ['Emprego', drv.serviceType || '---'],
+          ['OME de Origem', drv.serviceType || '---'],
           ['Vtr', ident.model || '---'],
           [isOut ? 'Km inic' : 'Km final', `${record.mileage?.currentMileage || 0}`],
           ['Data', format(timestamp, 'dd/MM/yyyy')],
@@ -1340,7 +1340,7 @@ export default function App() {
 
         addSection('Responsável', [
           ['Condutor/Mat', driverFormatted],
-          ['Emprego', drv.serviceType || '---'],
+          ['OME de Origem', drv.serviceType || '---'],
           ['Quilometragem', `${record.mileage?.currentMileage || 0} km`]
         ]);
       }
@@ -3140,12 +3140,14 @@ export default function App() {
               }}
               icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
               label="Cadastro VTR"
+              badge="NOVO"
             />
             <SidebarLink 
               active={activeTab === 'checklist'} 
               onClick={() => setActiveTab('checklist')}
               icon={<ClipboardList size={20} />}
               label="Checklist VTR"
+              badge="NOVO"
             />
             {isAdmin && (
               <SidebarLink 
@@ -3192,7 +3194,7 @@ export default function App() {
               setCadcheckingSearchTerm('');
               setCadcheckingStatusFilter('all');
             }} 
-            icon={<Truck size={20} />} 
+            icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />} 
             label="Cadastro VTR" 
           />
           <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist VTR" />
@@ -3466,12 +3468,12 @@ export default function App() {
                     icon={<Bike size={32} />}
                     onClick={() => { setFormType('mo'); setIsPermuta(false); }}
                   />
-                  <DashboardCard 
-                    title="Checklist"
-                    description={`Acesso ao sistema externo de checklist de viaturas do ${omeOrigem}.`}
-                    color="red"
+                    <DashboardCard 
+                      title="Checklist VTR"
+                      description={`Sistema integrado de conferência de viaturas do ${omeOrigem}.`}
+                      color="red"
                     icon={<img src="https://i.pinimg.com/originals/44/e4/8c/44e48c5ff461edb7623bab64bd898d8d.png" alt="Checklist" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
-                    onClick={() => window.open('https://checklist-14-bpm.vercel.app/', '_blank')}
+                    onClick={() => setActiveTab('checklist')}
                   />
                 </div>
               </motion.div>
@@ -4546,8 +4548,19 @@ export default function App() {
                           value={tipoServicoVtList.join('\n')} 
                           onChange={(val) => setTipoServicoVtList(val.split('\n').filter(i => i.trim()))} 
                         />
+                        <div className="flex flex-col gap-2 mb-6">
+                          <label className="text-sm font-bold text-slate-700">Identificação da OME (Sigla)</label>
+                          <input 
+                            type="text" 
+                            value={omeOrigem} 
+                            onChange={(e) => setOmeOrigem(e.target.value)}
+                            className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                            placeholder="Ex: 14º BPM"
+                          />
+                          <p className="text-[10px] text-slate-400 italic">Esta sigla aparece no cabeçalho e nos relatórios.</p>
+                        </div>
                         <SettingsListEditor 
-                          label="OME (Lista de Referência)" 
+                          label="OME (Lista de Referência de Origem)" 
                           value={omeOrigemList.join('\n')} 
                           onChange={(val) => setOmeOrigemList(val.split('\n').filter(i => i.trim()))} 
                         />
@@ -4706,6 +4719,7 @@ export default function App() {
                   moList={moList}
                   patrimonioVtList={patrimonioVtList}
                   patrimonioMoList={patrimonioMoList}
+                  omeOrigemList={omeOrigemList}
                   isExtractingPlate={isExtractingPlate}
                   onExtractPlate={handleExtractPlate}
                 />
@@ -4782,18 +4796,23 @@ export default function App() {
 
 // ... (SidebarLink, MobileNavLink, DashboardCard, HistoryItemProps, HistoryItem remain same)
 
-function SidebarLink({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
+function SidebarLink({ active, onClick, icon, label, badge }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, badge?: string }) {
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold ${
+      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold group relative ${
         active ? 'bg-blue-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
       }`}
     >
-      <div className={`${active ? 'text-red-500' : ''}`}>
+      <div className={`${active ? 'text-red-500' : 'text-slate-400 group-hover:text-blue-600'} transition-transform duration-300 group-hover:scale-110`}>
         {icon}
       </div>
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {badge && (
+        <span className="bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md animate-pulse">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -6167,7 +6186,8 @@ function CadChecking({
   patrimonioMoList,
   isExtractingPlate,
   onExtractPlate,
-  onGenerateDetailedPDF
+  onGenerateDetailedPDF,
+  omeOrigemList
 }: {
   user: User | null;
   isAdmin: boolean;
@@ -6209,6 +6229,7 @@ function CadChecking({
   isExtractingPlate: boolean;
   onExtractPlate: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerateDetailedPDF: (record: RecordEntry) => void;
+  omeOrigemList: string[];
 }) {
   
   console.log(`[CadChecking] Rendering with ${vehicles.length} total vehicles`);
@@ -6713,15 +6734,15 @@ function CadChecking({
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Modalidade de Emprego</label>
-                          <select 
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">OME de Origem do Efetivo</label>
+                          <ChecklistSearchableSelect 
+                            label="OME de Origem"
                             value={formData.drivers.serviceType}
-                            onChange={(e) => setFormData({...formData, drivers: {...formData.drivers, serviceType: e.target.value}})}
-                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
-                          >
-                            <option value="">Selecione o Emprego...</option>
-                      {CADASTRO_VTR_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
+                            onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, serviceType: val}})}
+                            options={omeOrigemList}
+                            placeholder="Selecione a OME..."
+                            variant="blue"
+                          />
                         </div>
                       </motion.div>
                     )}
