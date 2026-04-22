@@ -5670,14 +5670,14 @@ function ChecklistModule({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">OME de Origem</label>
-                    <select 
+                    <ChecklistSearchableSelect 
+                      label="OME"
                       value={formData.drivers.serviceType}
-                      onChange={(e) => setFormData({...formData, drivers: {...formData.drivers, serviceType: e.target.value}})}
-                      className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
-                    >
-                      <option value="">Selecione a OME...</option>
-                      {omeOrigemList.map(ome => <option key={ome} value={ome}>{ome}</option>)}
-                    </select>
+                      onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, serviceType: val}})}
+                      options={omeOrigemList}
+                      placeholder="Pesquisar OME..."
+                      variant="blue"
+                    />
                   </div>
                 </motion.div>
               )}
