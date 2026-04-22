@@ -5311,34 +5311,50 @@ function ChecklistHistoryItem({
   const timestamp = record.timestamp?.toDate ? record.timestamp.toDate() : new Date(record.timestamp);
   
   return (
-    <div className={`bg-white rounded-3xl border transition-all ${isExpanded ? 'border-red-200 shadow-xl shadow-red-50' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}>
+    <div className={`bg-white rounded-3xl border transition-all duration-300 ${
+      isExpanded 
+        ? 'border-blue-200 shadow-xl shadow-blue-50 ring-1 ring-blue-100' 
+        : 'border-slate-100 hover:border-slate-200 shadow-sm hover:shadow-md'
+    }`}>
       <div 
         onClick={onToggle}
-        className="p-6 cursor-pointer flex items-center justify-between"
+        className="p-5 cursor-pointer flex items-center justify-between gap-4"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
-            <ClipboardList size={24} />
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-none transition-colors ${
+            isExpanded ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'
+          }`}>
+            <ClipboardList size={28} />
           </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-black text-slate-900">{record.identification.prefix}</h4>
-              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[10px] font-bold font-mono">{record.identification.plate}</span>
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                record.source === 'standalone_checklist'
-                  ? 'bg-blue-100 text-blue-700'
-                  : (record.type === 'check-out' || record.type === 'maintenance-out' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700')
-              }`}>
-                {record.source === 'standalone_checklist' ? 'CHECAGEM' : (record.type === 'check-out' || record.type === 'maintenance-out' ? 'SAÍDA' : 'RETORNO')}
-              </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h4 className="font-black text-slate-900 text-lg leading-tight truncate">{record.identification.prefix}</h4>
+              <div className="flex items-center gap-1.5">
+                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black font-mono border border-slate-200/50">
+                  {record.identification.plate}
+                </span>
+                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
+                  record.source === 'standalone_checklist'
+                    ? 'bg-blue-50 text-blue-700 border-blue-100'
+                    : (record.type === 'check-out' || record.type === 'maintenance-out' 
+                        ? 'bg-orange-50 text-orange-700 border-orange-100' 
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-100')
+                }`}>
+                  {record.source === 'standalone_checklist' ? 'CHECAGEM' : (record.type === 'check-out' || record.type === 'maintenance-out' ? 'SAÍDA' : 'RETORNO')}
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 font-bold">
-              {format(timestamp, "dd/MM/yyyy HH:mm")} • {record.drivers.driverName}
-            </p>
+            <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+              <Calendar size={14} className="opacity-40" />
+              <span>{format(timestamp, "dd/MM/yyyy")}</span>
+              <span className="opacity-20">•</span>
+              <UserRound size={14} className="opacity-40" />
+              <span className="truncate">{record.drivers.driverName}</span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <ChevronDown size={20} className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+        <div className="flex-none p-2 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-slate-100 transition-colors">
+          <ChevronDown size={20} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180 text-blue-600' : ''}`} />
         </div>
       </div>
 
@@ -5348,40 +5364,71 @@ function ChecklistHistoryItem({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-slate-50"
+            transition={{ duration: 0.3, ease: "circOut" }}
+            className="overflow-hidden border-t border-slate-100 bg-slate-50/50"
           >
-            <div className="p-6 space-y-6 bg-slate-50/30">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsável</p>
-                  <p className="text-sm font-bold text-slate-700">{record.drivers.driverName}</p>
-                  <p className="text-[10px] text-slate-500">{record.drivers.serviceType}</p>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2 text-slate-400 uppercase tracking-widest text-[10px] font-black">
+                    <UserRound size={12} />
+                    Responsável
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-slate-800 leading-none mb-1">{record.drivers.driverName}</p>
+                    <p className="text-[11px] font-bold text-slate-400">{record.drivers.serviceType}</p>
+                  </div>
                 </div>
-                <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Quilometragem</p>
-                  <p className="text-sm font-bold text-slate-700">{record.mileage.currentMileage} km</p>
+                
+                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2 text-slate-400 uppercase tracking-widest text-[10px] font-black">
+                    <RefreshCw size={12} />
+                    Quilometragem
+                  </div>
+                  <p className="text-2xl font-black text-slate-800 leading-none">
+                    {record.mileage.currentMileage} <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">km</span>
+                  </p>
                 </div>
-                <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Estado Geral</p>
-                  <p className="text-sm font-bold text-slate-700">{record.checklist.mapaDiario === 'SIM' ? '✅ Mapa OK' : '❌ Sem Mapa'}</p>
-                  <p className="text-[10px] text-slate-500">{record.checklist.limpeza === 'SIM' ? '✅ Limpa' : '❌ Suja'}</p>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2 text-slate-400 uppercase tracking-widest text-[10px] font-black">
+                    <ShieldCheck size={12} />
+                    Status da Checagem
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase border ${record.checklist.mapaDiario === 'SIM' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                      {record.checklist.mapaDiario === 'SIM' ? 'Mapa OK' : 'S/ MAPA'}
+                    </span>
+                    <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase border ${record.checklist.limpeza === 'SIM' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                      {record.checklist.limpeza === 'SIM' ? 'Limpa' : 'Suja'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100">
+              {record.checklist.descricaoAlteracoes && (
+                <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-100/50 space-y-2">
+                   <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                      <AlertTriangle size={12} /> Alterações Relatadas
+                   </p>
+                   <p className="text-sm font-medium text-slate-700 leading-relaxed italic">"{record.checklist.descricaoAlteracoes}"</p>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200/50">
                 <button 
                   onClick={() => onGenerateDetailedPDF(record)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-xl active:scale-95"
                 >
-                  <FileText size={18} />
-                  Gerar PDF Detalhado
+                  <FileText size={20} className="text-blue-400" />
+                  Visualizar Documento (PDF)
                 </button>
                 <button 
                   onClick={() => onResendWhatsApp(record)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                  className="flex-[0.8] flex items-center justify-center gap-2 px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-sm hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-95"
                 >
-                  <MessageCircle size={18} />
-                  WhatsApp
+                  <MessageCircle size={20} />
+                  Enviar WhatsApp
                 </button>
               </div>
             </div>
@@ -5521,15 +5568,18 @@ function ChecklistModule({
 
       {view === 'list' ? (
         <div className="space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/50">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-black text-slate-900">Histórico Recente</h3>
+          <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-10">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Histórico de Conferência</h3>
+                <p className="text-slate-500 font-medium">Veja os checklists realizados anteriormente.</p>
+              </div>
               <button 
                 onClick={handleStartNew}
-                className="p-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-100 flex items-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 bg-red-600 text-white rounded-[1.5rem] font-black hover:bg-red-700 transition-all shadow-xl shadow-red-100 flex items-center justify-center gap-3 active:scale-95"
               >
-                <Plus size={20} />
-                Novo Checklist
+                <PlusCircle size={24} />
+                Realizar Novo Checklist
               </button>
             </div>
 
@@ -5545,52 +5595,78 @@ function ChecklistModule({
                 />
               ))}
               {history.length === 0 && (
-                <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-[2.5rem]">
-                  <p className="text-slate-400 font-bold">Nenhum checklist encontrado.</p>
+                <div className="py-24 text-center border-2 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/50">
+                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <ClipboardList size={40} className="text-slate-300" />
+                  </div>
+                  <h4 className="text-xl font-bold text-slate-900 mb-2">Nenhum checklist encontrado</h4>
+                  <p className="text-slate-500 font-medium">Os checklists de viatura aparecerão nesta lista.</p>
                 </div>
               )}
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden">
-          {/* Multi-step Form Header */}
-          <div className="bg-slate-50 p-8 border-b border-slate-100">
-            <div className="flex gap-2 mb-8 overflow-x-auto pb-2 custom-scrollbar">
-              {[
-                { icon: <Siren size={18} />, label: 'Identificação' },
-                { icon: <UserRound size={18} />, label: 'Responsável' },
-                { icon: <ShieldCheck size={18} />, label: 'Estado Técnico' },
-                { icon: <Lightbulb size={18} />, label: 'Iluminação' },
-                { icon: <Settings size={18} />, label: 'Mecânica' },
-                { icon: <ShieldAlert size={18} />, label: 'Conservação' },
-                { icon: <Camera size={18} />, label: 'Fotos' }
-              ].map((step, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentTab(idx)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                    currentTab === idx 
-                    ? 'bg-red-600 text-white shadow-lg shadow-red-100' 
-                    : 'bg-white text-slate-400 hover:text-slate-600 border border-slate-100'
-                  }`}
+        <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
+          {/* Progress Header */}
+          <div className="bg-slate-900 p-6 sm:p-10 text-white relative">
+            <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block text-blue-400">
+                    ETAPA {currentTab + 1} DE 7
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                    {[
+                      'Identificação Básica',
+                      'Responsável Técnico',
+                      'Estado Técnico & Equipamentos',
+                      'Sistema de Iluminação',
+                      'Mecânica & Fluidos',
+                      'Conservação Interna/Externa',
+                      'Conferência Final & Fotos'
+                    ][currentTab]}
+                  </h3>
+                </div>
+                <button 
+                   onClick={() => setView('list')}
+                   className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all text-white/60 hover:text-white"
                 >
-                  {step.icon}
-                  {step.label}
+                  <X size={24} />
                 </button>
-              ))}
+              </div>
+
+              {/* Step Navigation Dots/Bar */}
+              <div className="flex gap-2">
+                {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
+                  <div 
+                    key={idx}
+                    className={`h-2 flex-1 rounded-full transition-all duration-500 ${
+                      idx <= currentTab ? 'bg-blue-500' : 'bg-white/10'
+                    } ${idx === currentTab ? 'shadow-[0_0_15px_rgba(59,130,246,0.5)]' : ''}`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="p-8">
-            <div className="min-h-[400px]">
-              {currentTab === 0 && (
-                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Placa</label>
+          {/* Form Content */}
+          <div className="p-8 sm:p-12 flex-1 overflow-y-auto max-h-[70vh] custom-scrollbar">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={currentTab}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-10"
+              >
+                {currentTab === 0 && (
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                       <ChecklistSearchableSelect 
-                        label="Placa"
+                        label="Placa da Viatura"
                         value={formData.identification.plate}
                         onChange={(val: string) => {
                           const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
@@ -5605,14 +5681,11 @@ function ChecklistModule({
                           });
                         }}
                         options={vehicles.map((v: Vehicle) => v.plate)}
-                        placeholder="Selecione a placa..."
+                        placeholder="Pesquise a placa..."
                         variant="blue"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Viatura</label>
                       <ChecklistSearchableSelect 
-                        label="Viatura"
+                        label="Prefixo / VTR"
                         value={formData.identification.prefix}
                         onChange={(val: string) => {
                           const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
@@ -5627,397 +5700,425 @@ function ChecklistModule({
                           });
                         }}
                         options={vehicles.map((v: Vehicle) => v.prefix)}
-                        placeholder="Selecione a viatura..."
+                        placeholder="Pesquise a viatura..."
                         variant="blue"
                       />
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                      <input 
-                        type="date"
-                        value={formData.identification.date}
-                        onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
-                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                        <input 
+                          type="date"
+                          value={formData.identification.date}
+                          onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                          className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 outline-none font-bold text-slate-700 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
+                        <input 
+                          type="time"
+                          value={formData.identification.time}
+                          onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
+                          className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 outline-none font-bold text-slate-700 transition-all"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
-                      <input 
-                        type="time"
-                        value={formData.identification.time}
-                        onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
-                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
-                      />
-                    </div>
                   </div>
-                </motion.div>
-              )}
+                )}
 
-              {currentTab === 1 && (
-                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Motorista / Matrícula</label>
+                {currentTab === 1 && (
+                  <div className="space-y-8">
                     <ChecklistSearchableSelect 
-                      label="Motorista"
+                      label="Motorista / Matrícula Responsável"
                       value={formData.drivers.driverName}
                       onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, driverName: val}})}
                       options={personnelList}
-                      placeholder="Selecione o Motorista..."
+                      placeholder="Pesquise por nome ou matrícula..."
                       variant="blue"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">OME de Origem</label>
                     <ChecklistSearchableSelect 
-                      label="OME"
+                      label="OME de Origem do Efetivo"
                       value={formData.drivers.serviceType}
                       onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, serviceType: val}})}
                       options={omeOrigemList}
-                      placeholder="Pesquisar OME..."
+                      placeholder="Pesquisar Unidade (Ex: 14 BPM)..."
                       variant="blue"
                     />
                   </div>
-                </motion.div>
-              )}
+                )}
 
-              {currentTab === 2 && (
-                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
-                      <label className="text-xs font-bold uppercase text-red-600">Mapa Diário</label>
-                      <div className="flex gap-2 mt-2">
-                        {['SIM', 'NÃO'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFormData({...formData, checklist: {...formData.checklist, mapaDiario: opt}})}
-                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
-                              formData.checklist.mapaDiario === opt 
-                              ? 'bg-red-600 text-white border-transparent shadow-md' 
-                              : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
+                {currentTab === 2 && (
+                  <div className="space-y-12">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 ml-1">Possui Mapa Diário?</label>
+                        <div className="flex gap-3">
+                          {['SIM', 'NÃO'].map(opt => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => setFormData({...formData, checklist: {...formData.checklist, mapaDiario: opt}})}
+                              className={`flex-1 py-4 rounded-2xl text-sm font-black transition-all border ${
+                                formData.checklist.mapaDiario === opt 
+                                ? 'bg-slate-900 text-white border-transparent shadow-xl' 
+                                : 'bg-white border-slate-200 text-slate-500 hover:bg-white/80'
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 ml-1">Viatura Higienizada?</label>
+                        <div className="flex gap-3">
+                          {['SIM', 'NÃO'].map(opt => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => setFormData({...formData, checklist: {...formData.checklist, limpeza: opt}})}
+                              className={`flex-1 py-4 rounded-2xl text-sm font-black transition-all border ${
+                                formData.checklist.limpeza === opt 
+                                ? 'bg-slate-900 text-white border-transparent shadow-xl' 
+                                : 'bg-white border-slate-200 text-slate-500 hover:bg-white/80'
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
-                      <label className="text-xs font-bold uppercase text-red-600">Limpeza</label>
-                      <div className="flex gap-2 mt-2">
-                        {['SIM', 'NÃO'].map(opt => (
+
+                    <div className="space-y-6">
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                        Equipamentos Obrigatórios
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {EQUIPAMENTOS_VTR.map(eq => (
                           <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFormData({...formData, checklist: {...formData.checklist, limpeza: opt}})}
-                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
-                              formData.checklist.limpeza === opt 
-                              ? 'bg-red-600 text-white border-transparent shadow-md' 
-                              : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Equipamentos Presentes</label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {EQUIPAMENTOS_VTR.map(eq => (
-                        <button
-                          key={eq}
-                          type="button"
-                          onClick={() => {
-                            const current = formData.checklist.equipamentos;
-                            const next = current.includes(eq) ? current.filter((i: string) => i !== eq) : [...current, eq];
-                            setFormData({...formData, checklist: {...formData.checklist, equipamentos: next}});
-                          }}
-                          className={`p-3 rounded-xl text-xs text-left transition-all border ${
-                            formData.checklist.equipamentos.includes(eq) 
-                            ? 'bg-red-600 text-white border-transparent shadow-lg scale-[1.02]' 
-                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                          }`}
-                        >
-                          {eq}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {currentTab === 3 && (
-                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {[
-                      { label: 'Farol Alto', field: 'luzFarolAlto' },
-                      { label: 'Farol Baixo', field: 'luzFarolBaixo' },
-                      { label: 'Lanterna/Pisca', field: 'luzLanterna' },
-                      { label: 'Luz de Placa', field: 'luzPlaca' }
-                    ].map(item => (
-                      <div key={item.field} className="space-y-2">
-                        <label className="text-xs font-bold uppercase text-slate-400">{item.label}</label>
-                        <select 
-                          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                          value={formData.checklist[item.field]}
-                          onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, [item.field]: e.target.value}})}
-                        >
-                          <option value="Todos funcionam">Todos funcionam</option>
-                          <option value="Direito queimado">Direito queimado</option>
-                          <option value="Esquerdo queimado">Esquerdo queimado</option>
-                          <option value="Todas queimados">Todas queimados</option>
-                          <option value="Funciona">Funciona</option>
-                          <option value="Queimada">Queimada</option>
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Luz de Freio e Lanterna Traseira</label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {LUZES_TRASEIRAS.map(item => (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => {
-                            const current = formData.checklist.luzFreioLanternaTraseira;
-                            const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
-                            setFormData({...formData, checklist: {...formData.checklist, luzFreioLanternaTraseira: next}});
-                          }}
-                          className={`p-3 rounded-xl text-xs text-left transition-all border ${
-                            formData.checklist.luzFreioLanternaTraseira.includes(item) 
-                            ? 'bg-red-600 text-white border-transparent shadow-md' 
-                            : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-red-200'
-                          }`}
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {currentTab === 4 && (
-                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase text-slate-400">Pneus</label>
-                      <select 
-                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                        value={formData.checklist.pneus}
-                        onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, pneus: e.target.value}})}
-                      >
-                        <option value="Novo">Novo</option>
-                        <option value="Meia vida">Meia vida</option>
-                        <option value="Inutilizável (Motivo de baixa)">Inutilizável (Motivo de baixa)</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase text-slate-400">Sistema de Freio</label>
-                      <select 
-                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                        value={formData.checklist.sistemaFreio}
-                        onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, sistemaFreio: e.target.value}})}
-                      >
-                        <option value="Freio funcionando">Freio funcionando</option>
-                        <option value="Freio falhando">Freio falhando</option>
-                        <option value="Sem Freios (Motivo de baixa)">Sem Freios (Motivo de baixa)</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase text-slate-400">Óleo Motor</label>
-                      <select 
-                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                        value={formData.checklist.oleoMotor}
-                        onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, oleoMotor: e.target.value}})}
-                      >
-                        <option value="Nível Normal">Nível Normal</option>
-                        <option value="Nível Baixo">Nível Baixo</option>
-                        <option value="Nível sem condições (Baixar VTR)">Nível sem condições (Baixar VTR)</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase text-slate-400">Próx. Troca Óleo KM</label>
-                      <input 
-                        type="number"
-                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700"
-                        value={formData.checklist.proxTrocaOleoKm}
-                        onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, proxTrocaOleoKm: e.target.value}})}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {currentTab === 5 && (
-                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Partes Internas</label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {PARTES_INTERNAS.map(item => (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => {
-                            const current = formData.checklist.partesInternas;
-                            const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
-                            setFormData({...formData, checklist: {...formData.checklist, partesInternas: next}});
-                          }}
-                          className={`p-3 rounded-xl text-xs text-left transition-all border ${
-                            formData.checklist.partesInternas.includes(item) 
-                            ? 'bg-red-600 text-white border-transparent shadow-md' 
-                            : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-red-200'
-                          }`}
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest">Partes Externas</label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {PARTES_EXTERNAS.map(item => (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => {
-                            const current = formData.checklist.partesExternas;
-                            const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
-                            setFormData({...formData, checklist: {...formData.checklist, partesExternas: next}});
-                          }}
-                          className={`p-3 rounded-xl text-xs text-left transition-all border ${
-                            formData.checklist.partesExternas.includes(item) 
-                            ? 'bg-red-600 text-white border-transparent shadow-md' 
-                            : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-red-200'
-                          }`}
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {currentTab === 6 && (
-                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Quilometragem Atual</label>
-                    <input 
-                      type="number"
-                      placeholder="Digite a KM do painel..."
-                      value={formData.mileage.currentMileage}
-                      onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value === '' ? '' : Number(e.target.value)}})}
-                      className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 focus:ring-red-500/20 outline-none font-black text-3xl text-slate-900 text-center"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observações Adicionais</label>
-                    <textarea 
-                      placeholder="Relate qualquer observação importante..."
-                      value={formData.mileage.notes}
-                      onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, notes: e.target.value}})}
-                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700 min-h-[120px]"
-                    />
-                  </div>
-
-                  <div className="space-y-4 pt-4 border-t border-slate-100">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                      <Camera size={14} />
-                      Fotos da Viatura
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {formData.checklist.fotos.map((foto: string, index: number) => (
-                        <div key={index} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
-                          <img src={foto} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
-                          <button
+                            key={eq}
                             type="button"
                             onClick={() => {
-                              const next = formData.checklist.fotos.filter((_: string, i: number) => i !== index);
-                              setFormData({...formData, checklist: {...formData.checklist, fotos: next}});
+                              const current = formData.checklist.equipamentos;
+                              const next = current.includes(eq) ? current.filter((i: string) => i !== eq) : [...current, eq];
+                              setFormData({...formData, checklist: {...formData.checklist, equipamentos: next}});
                             }}
-                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                            className={`p-4 rounded-2xl text-xs text-left font-bold transition-all border flex items-center justify-between ${
+                              formData.checklist.equipamentos.includes(eq) 
+                              ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' 
+                              : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
+                            }`}
                           >
-                            <X size={16} />
+                            <span className="truncate">{eq}</span>
+                            {formData.checklist.equipamentos.includes(eq) && <CheckCircle2 size={16} className="flex-none" />}
                           </button>
-                        </div>
-                      ))}
-                      {formData.checklist.fotos.length < 8 && (
-                        <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all text-slate-400 hover:text-red-600 group">
-                          <Camera size={24} className="group-hover:scale-110 transition-transform" />
-                          <span className="text-[10px] font-black uppercase">Adicionar Foto</span>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            multiple 
-                            className="hidden" 
-                            onChange={async (e) => {
-                              const files = Array.from(e.target.files || []);
-                              const newFotos = await Promise.all(files.map(async (file: Blob) => {
-                                const base64 = await new Promise<string>((resolve) => {
-                                  const reader = new FileReader();
-                                  reader.onload = () => resolve(reader.result as string);
-                                  reader.readAsDataURL(file);
-                                });
-                                return await compressImage(base64);
-                              }));
-                              setFormData({...formData, checklist: {...formData.checklist, fotos: [...formData.checklist.fotos, ...newFotos]}});
-                            }}
-                          />
-                        </label>
-                      )}
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </motion.div>
-              )}
-            </div>
+                )}
 
-            {/* Navigation Buttons */}
-            <div className="flex gap-4 mt-10">
-              {currentTab > 0 && (
+                {currentTab === 3 && (
+                  <div className="space-y-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      {[
+                        { label: 'Farol Alto', field: 'luzFarolAlto', icon: <Sparkles size={16} /> },
+                        { label: 'Farol Baixo', field: 'luzFarolBaixo', icon: <Lightbulb size={16} /> },
+                        { label: 'Lanterna/Pisca', field: 'luzLanterna', icon: <Siren size={16} /> },
+                        { label: 'Luz de Placa', field: 'luzPlaca', icon: <Car size={16} /> }
+                      ].map(item => (
+                        <div key={item.field} className="space-y-3">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                             {item.icon} {item.label}
+                          </label>
+                          <select 
+                            className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all appearance-none cursor-pointer"
+                            value={formData.checklist[item.field]}
+                            onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, [item.field]: e.target.value}})}
+                          >
+                            <option value="Todos funcionam">Todos funcionam</option>
+                            <option value="Direito queimado">Direito queimado</option>
+                            <option value="Esquerdo queimado">Esquerdo queimado</option>
+                            <option value="Todas queimados">Todas queimados</option>
+                            <option value="Funciona">Funciona</option>
+                            <option value="Queimada">Queimada</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-6 pt-4">
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                        Luz de Freio e Lanterna Traseira
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {LUZES_TRASEIRAS.map(item => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => {
+                              const current = formData.checklist.luzFreioLanternaTraseira;
+                              const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                              setFormData({...formData, checklist: {...formData.checklist, luzFreioLanternaTraseira: next}});
+                            }}
+                            className={`p-4 rounded-2xl text-xs text-left font-bold transition-all border flex items-center justify-between ${
+                              formData.checklist.luzFreioLanternaTraseira.includes(item) 
+                              ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                              : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{item}</span>
+                            {formData.checklist.luzFreioLanternaTraseira.includes(item) && <CheckCircle2 size={16} className="text-blue-600" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentTab === 4 && (
+                  <div className="space-y-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Pneus</label>
+                        <select 
+                          className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
+                          value={formData.checklist.pneus}
+                          onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, pneus: e.target.value}})}
+                        >
+                          <option value="Novo">Novo</option>
+                          <option value="Meia vida">Meia vida</option>
+                          <option value="Inutilizável (Motivo de baixa)">Inutilizável (Motivo de baixa)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Sistema de Freio</label>
+                        <select 
+                          className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
+                          value={formData.checklist.sistemaFreio}
+                          onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, sistemaFreio: e.target.value}})}
+                        >
+                          <option value="Freio funcionando">Freio funcionando</option>
+                          <option value="Freio falhando">Freio falhando</option>
+                          <option value="Sem Freios (Motivo de baixa)">Sem Freios (Motivo de baixa)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100">
+                      <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Condição do Óleo do Motor</label>
+                        <select 
+                          className="w-full p-5 bg-white border border-blue-100 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
+                          value={formData.checklist.oleoMotor}
+                          onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, oleoMotor: e.target.value}})}
+                        >
+                          <option value="Nível Normal">Nível Normal</option>
+                          <option value="Nível Baixo">Nível Baixo</option>
+                          <option value="Nível sem condições (Baixar VTR)">Nível sem condições (Baixar VTR)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Previsão Próx. Troca (KM)</label>
+                        <input 
+                          type="number"
+                          placeholder="Ex: 85000"
+                          className="w-full p-5 bg-white border border-blue-100 rounded-2xl text-lg font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
+                          value={formData.checklist.proxTrocaOleoKm}
+                          onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, proxTrocaOleoKm: e.target.value}})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentTab === 5 && (
+                  <div className="space-y-12">
+                    <div className="space-y-6">
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                        Partes Internas (Com Avarias)
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {PARTES_INTERNAS.map(item => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => {
+                              const current = formData.checklist.partesInternas;
+                              const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                              setFormData({...formData, checklist: {...formData.checklist, partesInternas: next}});
+                            }}
+                            className={`p-4 rounded-2xl text-xs text-left font-bold transition-all border flex items-center justify-between ${
+                              formData.checklist.partesInternas.includes(item) 
+                              ? 'bg-red-50 text-red-700 border-red-100' 
+                              : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{item}</span>
+                            {formData.checklist.partesInternas.includes(item) && <AlertTriangle size={16} className="text-red-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                        Partes Externas (Com Avarias)
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {PARTES_EXTERNAS.map(item => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => {
+                              const current = formData.checklist.partesExternas;
+                              const next = current.includes(item) ? current.filter((i: string) => i !== item) : [...current, item];
+                              setFormData({...formData, checklist: {...formData.checklist, partesExternas: next}});
+                            }}
+                            className={`p-4 rounded-2xl text-xs text-left font-bold transition-all border flex items-center justify-between ${
+                              formData.checklist.partesExternas.includes(item) 
+                              ? 'bg-red-50 text-red-700 border-red-100' 
+                              : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{item}</span>
+                            {formData.checklist.partesExternas.includes(item) && <AlertTriangle size={16} className="text-red-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentTab === 6 && (
+                  <div className="space-y-10">
+                    <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col items-center gap-6 shadow-2xl">
+                      <label className="text-xs font-black text-blue-400 uppercase tracking-widest text-center">Quilometragem no Painel</label>
+                      <input 
+                        type="number"
+                        placeholder="000.000"
+                        value={formData.mileage.currentMileage}
+                        onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value === '' ? '' : Number(e.target.value)}})}
+                        className="w-full max-w-sm px-6 py-6 bg-white/5 border border-white/10 rounded-[2rem] focus:ring-4 focus:ring-blue-500/20 outline-none font-black text-5xl text-blue-500 text-center transition-all placeholder:text-white/5"
+                      />
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Descrição de Avarias / Observações</label>
+                      <textarea 
+                        placeholder="Relate detalhadamente qualquer divergência ou observação importante..."
+                        value={formData.mileage.notes}
+                        onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, notes: e.target.value}})}
+                        className="w-full px-8 py-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] focus:ring-4 focus:ring-blue-500/10 outline-none font-bold text-slate-700 min-h-[150px] transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-6">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <Camera size={16} />
+                        Galeria de Fotos (Obrigatórias em casos de avaria)
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {formData.checklist.fotos.map((foto: string, index: number) => (
+                          <motion.div 
+                            key={index} 
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="relative group aspect-square rounded-[1.5rem] overflow-hidden border border-slate-200 bg-slate-50 shadow-sm"
+                          >
+                            <img src={foto} alt={`Foto ${index + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = formData.checklist.fotos.filter((_: string, i: number) => i !== index);
+                                setFormData({...formData, checklist: {...formData.checklist, fotos: next}});
+                              }}
+                              className="absolute top-3 right-3 p-2 bg-red-600 text-white rounded-xl shadow-lg hover:bg-red-700 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </motion.div>
+                        ))}
+                        {formData.checklist.fotos.length < 8 && (
+                          <label className="aspect-square rounded-[1.5rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all text-slate-300 hover:text-blue-600 group">
+                            <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-blue-100/50 transition-colors">
+                              <Camera size={32} className="group-hover:scale-110 transition-transform" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Adicionar Captura</span>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              multiple 
+                              className="hidden" 
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files || []);
+                                const newFotos = await Promise.all(files.map(async (file: Blob) => {
+                                  const base64 = await new Promise<string>((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onload = () => resolve(reader.result as string);
+                                    reader.readAsDataURL(file);
+                                  });
+                                  return await compressImage(base64);
+                                }));
+                                setFormData({...formData, checklist: {...formData.checklist, fotos: [...formData.checklist.fotos, ...newFotos]}});
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Fixed Bottom Footer */}
+          <div className="p-8 sm:px-12 sm:py-10 bg-slate-50 border-t border-slate-100 flex gap-4">
+            {currentTab > 0 && (
+              <button 
+                onClick={() => setCurrentTab(currentTab - 1)}
+                className="flex-1 py-5 bg-white text-slate-600 border border-slate-200 rounded-[1.5rem] font-bold hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+              >
+                <ChevronLeft size={24} />
+                Voltar
+              </button>
+            )}
+            {currentTab < 6 ? (
+              <button 
+                onClick={() => setCurrentTab(currentTab + 1)}
+                className="flex-[2.5] py-5 bg-slate-900 text-white rounded-[1.5rem] font-black hover:bg-slate-800 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
+              >
+                Continuar Processo
+                <ChevronRight size={24} />
+              </button>
+            ) : (
+              <div className="flex-[2.5] flex flex-col sm:flex-row gap-3">
                 <button 
-                  onClick={() => setCurrentTab(currentTab - 1)}
-                  className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                  onClick={() => handleSave(true)}
+                  disabled={submitting}
+                  className="flex-1 py-5 bg-white text-slate-600 border border-slate-200 rounded-[1.5rem] font-bold hover:bg-slate-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <ChevronLeft size={20} />
-                  Anterior
+                  {submitting ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} />}
+                  Salvar Rascunho
                 </button>
-              )}
-              {currentTab < 6 ? (
                 <button 
-                  onClick={() => setCurrentTab(currentTab + 1)}
-                  className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-xl"
+                  onClick={() => handleSave(false)}
+                  disabled={submitting || !formData.identification.plate || !formData.mileage.currentMileage}
+                  className="flex-[2] py-5 bg-emerald-600 text-white rounded-[1.5rem] font-black hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-100 disabled:opacity-50 active:scale-95"
                 >
-                  Próximo
-                  <ChevronRight size={20} />
+                  {submitting ? <Loader2 className="animate-spin" size={24} /> : <MessageCircle size={24} />}
+                  Finalizar & WhatsApp
                 </button>
-              ) : (
-                <div className="flex-[2] flex flex-col sm:flex-row gap-3">
-                  <button 
-                    onClick={() => handleSave(true)}
-                    disabled={submitting}
-                    className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                    Salvar
-                  </button>
-                  <button 
-                    onClick={() => handleSave(false)}
-                    disabled={submitting}
-                    className="flex-[2] py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-100 disabled:opacity-50"
-                  >
-                    {submitting ? <Loader2 className="animate-spin" size={20} /> : <MessageCircle size={20} />}
-                    Salvar e Enviar WhatsApp
-                  </button>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
