@@ -6177,30 +6177,28 @@ function CadChecking({
           <p className="text-slate-500 font-medium">Gerenciamento de cautela e manutenção de viaturas.</p>
         </div>
         
-        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl">
+        <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-[1.25rem]">
           <button 
             onClick={() => setView('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${view === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${view === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Truck size={18} />
             Frota
           </button>
           <button 
             onClick={() => setView('history')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${view === 'history' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${view === 'history' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <History size={18} />
             Histórico
           </button>
           {isAdmin && (
             <button 
-              onClick={() => onBootstrap(true)}
-              disabled={isSyncing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 active:scale-95 ml-2"
+              onClick={() => setView('admin')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${view === 'admin' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              <RefreshCw className={isSyncing ? "animate-spin" : ""} size={16} />
-              <span className="hidden sm:inline">Sincronizar Frota Completa</span>
-              <span className="sm:hidden">Sincronizar</span>
+              <SettingsIcon size={18} />
+              Gestão
             </button>
           )}
         </div>
@@ -6216,39 +6214,49 @@ function CadChecking({
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            {/* Filters */}
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="relative flex-1 lg:flex-[0.45]">
+            {/* Fleet Status Summary - Compact */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', icon: <Truck size={16} /> },
+                { id: 'available', label: 'Disponíveis', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: <CheckCircle2 size={16} /> },
+                { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', icon: <RefreshCw size={16} /> },
+                { id: 'maintenance', label: 'Manutenção', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', icon: <Wrench size={16} /> }
+              ].map((stat) => (
+                <div key={stat.id} className={`${stat.bg} p-4 rounded-2xl border border-slate-100 flex items-center gap-3`}>
+                  <div className={`${stat.color} opacity-60`}>{stat.icon}</div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1">{stat.label}</p>
+                    <p className={`text-xl font-black ${stat.color}`}>{stat.count}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Search and Filters */}
+            <div className="flex flex-col lg:flex-row gap-4 bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100">
+              <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input 
                   type="text"
                   placeholder="Buscar por placa, modelo ou patrimônio..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all shadow-sm font-medium"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
                 />
               </div>
               
-              <div className="flex flex-wrap gap-2 flex-1 lg:flex-[0.55]">
-                {[
-                  { id: 'all', label: 'Todos', count: counts.all, color: 'bg-slate-100 text-slate-700', activeColor: 'bg-slate-900 text-white' },
-                  { id: 'available', label: 'Disponíveis', count: counts.available, color: 'bg-emerald-50 text-emerald-700 border-emerald-100', activeColor: 'bg-emerald-600 text-white' },
-                  { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'bg-blue-50 text-blue-700 border-blue-100', activeColor: 'bg-blue-600 text-white' },
-                  { id: 'maintenance', label: 'Manutenção', count: counts.maintenance, color: 'bg-amber-50 text-amber-700 border-amber-100', activeColor: 'bg-amber-600 text-white' }
-                ].map((opt) => (
+              <div className="flex gap-2">
+                {['all', 'available', 'in_use', 'maintenance'].map((id) => (
                   <button
-                    key={opt.id}
-                    onClick={() => setStatusFilter(opt.id as any)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold transition-all border shadow-sm min-w-[120px] ${
-                      statusFilter === opt.id 
-                        ? `${opt.activeColor} border-transparent shadow-md scale-[1.02]` 
-                        : `${opt.color} border-transparent hover:border-current/20`
+                    key={id}
+                    onClick={() => setStatusFilter(id as any)}
+                    className={`px-6 py-2 rounded-xl font-bold text-sm transition-all border ${
+                      statusFilter === id 
+                        ? 'bg-slate-900 text-white border-transparent shadow-lg' 
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                     }`}
                   >
-                    <span className="text-xs whitespace-nowrap">{opt.label}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusFilter === opt.id ? 'bg-white/20' : 'bg-current/10'}`}>
-                      {opt.count}
-                    </span>
+                    {id === 'all' ? 'Ver Todos' : id === 'available' ? 'Livres' : id === 'in_use' ? 'Em Uso' : 'Baixados'}
                   </button>
                 ))}
               </div>
@@ -6288,51 +6296,77 @@ function CadChecking({
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            {/* History Filters */}
-            <div className="flex flex-col lg:flex-row gap-4 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-              <div className="flex-1 space-y-4">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Filtrar por Tipo</label>
-                <div className="flex flex-wrap gap-2">
-                  {['all', 'check-in', 'check-out', 'maintenance'].map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setHistoryFilter(f as any)}
-                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${historyFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-                    >
-                      {f === 'all' ? 'Todos' : f === 'check-out' ? 'Saídas' : f === 'check-in' ? 'Retornos' : 'Manutenção'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-4">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Filtrar por Período</label>
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="date"
-                    value={dateFilter.start}
-                    onChange={(e) => setDateFilter({...dateFilter, start: e.target.value})}
-                    className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-sm"
-                  />
-                  <span className="text-slate-400 font-bold">até</span>
-                  <input 
-                    type="date"
-                    value={dateFilter.end}
-                    onChange={(e) => setDateFilter({...dateFilter, end: e.target.value})}
-                    className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-end">
-                <button 
+            {/* History Header Card */}
+            <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-20 bg-blue-600/20 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+               <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                 <div>
+                    <h3 className="text-3xl font-black tracking-tight mb-2">Histórico de Movimentações</h3>
+                    <p className="text-slate-400 font-medium max-w-md">Consulte o log completo de saídas, retornos e manutenções da frota.</p>
+                 </div>
+                 <button 
                   onClick={onGeneratePDF}
                   disabled={submitting}
-                  className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                  className="flex items-center gap-3 px-8 py-4 bg-white text-slate-900 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl active:scale-95 disabled:opacity-50"
                 >
-                  <FileText size={20} />
-                  Gerar PDF
+                  <FileText size={20} className="text-blue-600" />
+                  Exportar Relatório PDF
                 </button>
+               </div>
+            </div>
+
+            {/* History Filters */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
+                <div>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">Tipo de Movimentação</label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: 'all', label: 'Todos' },
+                      { id: 'check-in', label: 'Retornos' },
+                      { id: 'check-out', label: 'Saídas' },
+                      { id: 'maintenance', label: 'Manutenção' }
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setHistoryFilter(f.id as any)}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all border ${
+                          historyFilter === f.id 
+                          ? 'bg-blue-600 text-white border-transparent shadow-lg shadow-blue-100' 
+                          : 'bg-slate-50 text-slate-500 border-transparent hover:bg-slate-100'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
+                <div>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">Período de Consulta</label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 space-y-1">
+                       <span className="text-[10px] font-bold text-slate-400 ml-1">DE:</span>
+                       <input 
+                        type="date"
+                        value={dateFilter.start}
+                        onChange={(e) => setDateFilter({...dateFilter, start: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-sm"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                       <span className="text-[10px] font-bold text-slate-400 ml-1">ATÉ:</span>
+                       <input 
+                        type="date"
+                        value={dateFilter.end}
+                        onChange={(e) => setDateFilter({...dateFilter, end: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -6354,9 +6388,80 @@ function CadChecking({
                     <History className="text-slate-300" size={40} />
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">Nenhum registro encontrado</h3>
-                  <p className="text-slate-500">Os registros de cautela aparecerão aqui.</p>
+                  <p className="text-slate-500">Refine os filtros para localizar registros passados.</p>
                 </div>
               )}
+            </div>
+          </motion.div>
+        )}
+
+        {view === 'admin' && isAdmin && (
+          <motion.div 
+            key="admin"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {/* Admin Header */}
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+               <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Gestão Operacional</h3>
+               <p className="text-slate-500 font-medium">Ferramentas avançadas para administração da frota e sincronização de dados.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {/* Fleet Synchronization Card */}
+               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-blue-600">
+                       <RefreshCw size={32} className={isSyncing ? "animate-spin" : ""} />
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-black text-slate-900">Sincronização Forçada</h4>
+                      <p className="text-slate-500 text-sm leading-relaxed">Atualize manualmente todos os dados das viaturas a partir da base principal. Útil quando novas viaturas forem adicionadas ou houver discrepância nos status.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onBootstrap(true)}
+                    disabled={isSyncing}
+                    className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-blue-600 text-white rounded-[2rem] font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-50 mt-6"
+                  >
+                    <RefreshCw className={isSyncing ? "animate-spin" : ""} size={20} />
+                    Sincronizar Frota Completa
+                  </button>
+               </div>
+
+               {/* Fleet Stats Detail Card */}
+               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
+                  <h4 className="text-xl font-black text-slate-900 mb-6">Resumo de Ativos</h4>
+                  <div className="space-y-4">
+                    {[
+                      { label: 'Viaturas Cadastradas', value: vehicles.length, color: 'text-slate-900', icon: <Truck size={20} /> },
+                      { label: 'Em Condições de Uso', value: counts.available, color: 'text-emerald-600', icon: <CheckCircle2 size={20} /> },
+                      { label: 'Em Empenho Operacional', value: counts.in_use, color: 'text-blue-600', icon: <RefreshCw size={20} /> },
+                      { label: 'Fora de Serviço (Baixadas)', value: counts.maintenance, color: 'text-amber-600', icon: <Wrench size={20} /> }
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                        <div className="flex items-center gap-3">
+                          <div className={`${item.color} opacity-40`}>{item.icon}</div>
+                          <span className="font-bold text-slate-600 text-sm">{item.label}</span>
+                        </div>
+                        <span className={`text-xl font-black ${item.color}`}>{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+               </div>
+            </div>
+
+            {/* Admin Warning/Info */}
+            <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 flex items-start gap-4">
+               <div className="bg-amber-100 p-3 rounded-2xl text-amber-600 flex-none">
+                  <ShieldAlert size={24} />
+               </div>
+               <div>
+                  <h5 className="font-black text-amber-900 text-sm uppercase tracking-tight mb-1">Acesso Restrito</h5>
+                  <p className="text-amber-800/70 text-sm leading-relaxed">Você está na área de gestão. Alterações feitas aqui podem impactar a visibilidade de toda a frota para os demais usuários.</p>
+               </div>
             </div>
           </motion.div>
         )}
