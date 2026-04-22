@@ -975,6 +975,40 @@ export default function App() {
     }
   };
 
+  const handleSanitizeFleet = async () => {
+    setIsSyncing(true);
+    addNotification("Iniciando saneamento da frota...", "info");
+    try {
+      const q = query(collection(db, 'vehicles'));
+      const snapshot = await getDocs(q);
+      let deletedCount = 0;
+      
+      const promises = snapshot.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        const id = docSnap.id;
+        const plate = (data.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
+        
+        // Se o ID é um ID aleatório do Firebase (geralmente 20 chars) ou 
+        // se o ID não bate com a placa sanitizada (que é o novo padrão)
+        if ((id.length > 10 && !/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(id)) || (plate && id !== plate)) {
+          console.log(`[Sanitize] Deleting legacy/duplicate vehicle: ${id} (Plate: ${plate})`);
+          await deleteDoc(doc(db, 'vehicles', id));
+          deletedCount++;
+        }
+      });
+      
+      await Promise.all(promises);
+      addNotification(`Saneamento concluído! ${deletedCount} registros excedentes removidos.`, "success");
+      // Re-bootstrap para garantir que a frota atual está correta nos novos moldes
+      await bootstrapVehicles(true);
+    } catch (error) {
+      console.error("Error sanitizing fleet:", error);
+      addNotification("Erro ao sanear frota.", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleToggleMaintenance = async (vehicle: Vehicle, notes: string = '') => {
     const isEnteringMaintenance = vehicle.status !== 'maintenance';
     
@@ -4704,6 +4738,7 @@ export default function App() {
                   onSaveRecord={handleSaveCadcheckingRecord}
                   onResendWhatsApp={handleResendWhatsApp}
                   onBootstrap={bootstrapVehicles}
+                  onSanitizeFleet={handleSanitizeFleet}
                   isSyncing={isSyncing}
                   formData={cadcheckingFormData}
                   setFormData={setCadcheckingFormData}
@@ -6168,6 +6203,7 @@ function CadChecking({
   onSaveRecord,
   onResendWhatsApp,
   onBootstrap,
+  onSanitizeFleet,
   isSyncing,
   formData,
   setFormData,
@@ -6210,6 +6246,7 @@ function CadChecking({
   onSaveRecord: (skipWhatsApp?: boolean) => void;
   onResendWhatsApp: (record: RecordEntry) => void;
   onBootstrap: (force?: boolean) => void;
+  onSanitizeFleet: () => void;
   isSyncing: boolean;
   formData: RecordEntry;
   setFormData: React.Dispatch<React.SetStateAction<RecordEntry>>;
@@ -6230,8 +6267,7 @@ function CadChecking({
   onExtractPlate: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerateDetailedPDF: (record: RecordEntry) => void;
   omeOrigemList: string[];
-}) {
-  
+}) {  
   console.log(`[CadChecking] Rendering with ${vehicles.length} total vehicles`);
   
   const uniqueVehicles = React.useMemo(() => {
@@ -6550,6 +6586,31 @@ function CadChecking({
                   >
                     <RefreshCw className={isSyncing ? "animate-spin" : ""} size={20} />
                     Sincronizar Frota Completa
+                  </button>
+               </div>
+
+               {/* Database Cleanup Card */}
+               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="bg-rose-50 w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-rose-600">
+                       <Trash2 size={32} />
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-black text-slate-900">Limpeza de Base</h4>
+                      <p className="text-slate-500 text-sm leading-relaxed">Identifica e remove automaticamente registros duplicados ou com IDs antigos (aleatórios) que causam discrepâncias na contagem total.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (confirm('Deseja realmente sanear a frota? Registros com IDs não padronizados serão removidos.')) {
+                        onSanitizeFleet();
+                      }
+                    }}
+                    disabled={isSyncing}
+                    className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-rose-600 text-white rounded-[2rem] font-black hover:bg-rose-700 transition-all shadow-xl shadow-rose-100 active:scale-95 disabled:opacity-50 mt-6"
+                  >
+                    <ShieldCheck size={20} />
+                    Sanear Banco de Dados
                   </button>
                </div>
 
