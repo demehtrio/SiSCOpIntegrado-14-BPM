@@ -4723,6 +4723,7 @@ export default function App() {
                   user={user}
                   vehicles={vehicles}
                   omeOrigem={omeOrigem}
+                  omeOrigemList={omeOrigemList}
                   personnelList={personnelList}
                   prefixoVtList={prefixoVtList}
                   moList={moList}
@@ -5396,6 +5397,7 @@ function ChecklistModule({
   user, 
   vehicles, 
   omeOrigem,
+  omeOrigemList,
   personnelList, 
   prefixoVtList, 
   moList, 
@@ -5411,6 +5413,7 @@ function ChecklistModule({
   user: User | null;
   vehicles: Vehicle[];
   omeOrigem: string;
+  omeOrigemList: string[];
   personnelList: string[];
   prefixoVtList: string[];
   moList: string[];
@@ -5439,7 +5442,7 @@ function ChecklistModule({
     type: 'check-in' as 'check-in' | 'check-out',
     drivers: {
       driverName: '',
-      serviceType: '',
+      serviceType: omeOrigem || '',
     },
     mileage: {
       currentMileage: '',
@@ -5666,14 +5669,14 @@ function ChecklistModule({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Modalidade de Emprego</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">OME de Origem</label>
                     <select 
                       value={formData.drivers.serviceType}
                       onChange={(e) => setFormData({...formData, drivers: {...formData.drivers, serviceType: e.target.value}})}
                       className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-700"
                     >
-                      <option value="">Selecione o Emprego...</option>
-                      {CADASTRO_VTR_SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                      <option value="">Selecione a OME...</option>
+                      {omeOrigemList.map(ome => <option key={ome} value={ome}>{ome}</option>)}
                     </select>
                   </div>
                 </motion.div>
