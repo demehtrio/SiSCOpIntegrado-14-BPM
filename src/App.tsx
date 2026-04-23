@@ -6285,14 +6285,29 @@ function CadChecking({
     return Array.from(unique.values());
   }, [vehicles]);
 
-  const counts = React.useMemo(() => ({
-    all: uniqueVehicles.length,
-    cars: uniqueVehicles.filter((v: Vehicle) => (v.category === 'car' || !v.category)).length,
-    motos: uniqueVehicles.filter((v: Vehicle) => v.category === 'moto').length,
-    available: uniqueVehicles.filter((v: Vehicle) => v.status === 'available').length,
-    in_use: uniqueVehicles.filter((v: Vehicle) => v.status === 'in_use').length,
-    maintenance: uniqueVehicles.filter((v: Vehicle) => v.status === 'maintenance').length
-  }), [uniqueVehicles]);
+  const counts = React.useMemo(() => {
+    const cars = uniqueVehicles.filter((v: Vehicle) => (v.category === 'car' || !v.category));
+    const motos = uniqueVehicles.filter((v: Vehicle) => v.category === 'moto');
+    
+    const available = uniqueVehicles.filter((v: Vehicle) => v.status === 'available');
+    const inUse = uniqueVehicles.filter((v: Vehicle) => v.status === 'in_use');
+    const maintenance = uniqueVehicles.filter((v: Vehicle) => v.status === 'maintenance');
+
+    return {
+      all: uniqueVehicles.length,
+      cars: cars.length,
+      motos: motos.length,
+      available: available.length,
+      availableCars: available.filter(v => v.category === 'car' || !v.category).length,
+      availableMotos: available.filter(v => v.category === 'moto').length,
+      in_use: inUse.length,
+      inUseCars: inUse.filter(v => v.category === 'car' || !v.category).length,
+      inUseMotos: inUse.filter(v => v.category === 'moto').length,
+      maintenance: maintenance.length,
+      maintenanceCars: maintenance.filter(v => v.category === 'car' || !v.category).length,
+      maintenanceMotos: maintenance.filter(v => v.category === 'moto').length,
+    };
+  }, [uniqueVehicles]);
 
   const filteredVehicles = React.useMemo(() => uniqueVehicles.filter((v: Vehicle) => {
     const plate = (v.plate || '').toLowerCase();
@@ -6381,17 +6396,21 @@ function CadChecking({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', icon: <Truck size={16} />, sub: `${counts.cars} Carros • ${counts.motos} Motos` },
-                { id: 'available', label: 'Disponíveis', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: <CheckCircle2 size={16} /> },
-                { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', icon: <RefreshCw size={16} /> },
-                { id: 'maintenance', label: 'Manutenção', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', icon: <Wrench size={16} /> }
+                { id: 'available', label: 'Disponíveis', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: <CheckCircle2 size={16} />, sub: `${counts.availableCars} • ${counts.availableMotos}` },
+                { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', icon: <RefreshCw size={16} />, sub: `${counts.inUseCars} • ${counts.inUseMotos}` },
+                { id: 'maintenance', label: 'Manutenção', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', icon: <Wrench size={16} />, sub: `${counts.maintenanceCars} • ${counts.maintenanceMotos}` }
               ].map((stat) => (
                 <div key={stat.id} className={`${stat.bg} p-4 rounded-2xl border border-slate-100 flex items-center gap-3`}>
                   <div className={`${stat.color} opacity-60`}>{stat.icon}</div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1">{stat.label}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1 truncate">{stat.label}</p>
                     <div className="flex items-baseline gap-2">
                        <p className={`text-xl font-black ${stat.color}`}>{stat.count}</p>
-                       {stat.sub && <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{stat.sub}</span>}
+                       {stat.sub && (
+                         <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-white/50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                           {stat.sub}
+                         </span>
+                       )}
                     </div>
                   </div>
                 </div>
@@ -6630,14 +6649,17 @@ function CadChecking({
                       { label: 'Viaturas Cadastradas', value: vehicles.length, color: 'text-slate-900', icon: <Truck size={20} /> },
                       { label: 'Total de Carros (4 Rodas)', value: counts.cars, color: 'text-slate-600', icon: <Car size={20} /> },
                       { label: 'Total de Motos (2 Rodas)', value: counts.motos, color: 'text-slate-600', icon: <Bike size={20} /> },
-                      { label: 'Em Condições de Uso', value: counts.available, color: 'text-emerald-600', icon: <CheckCircle2 size={20} /> },
-                      { label: 'Em Empenho Operacional', value: counts.in_use, color: 'text-blue-600', icon: <RefreshCw size={20} /> },
-                      { label: 'Fora de Serviço (Baixadas)', value: counts.maintenance, color: 'text-amber-600', icon: <Wrench size={20} /> }
+                      { label: 'Em Condições de Uso', value: counts.available, color: 'text-emerald-600', icon: <CheckCircle2 size={20} />, sub: `${counts.availableCars} Carros / ${counts.availableMotos} Motos` },
+                      { label: 'Em Empenho Operacional', value: counts.in_use, color: 'text-blue-600', icon: <RefreshCw size={20} />, sub: `${counts.inUseCars} Carros / ${counts.inUseMotos} Motos` },
+                      { label: 'Fora de Serviço (Baixadas)', value: counts.maintenance, color: 'text-amber-600', icon: <Wrench size={20} />, sub: `${counts.maintenanceCars} Carros / ${counts.maintenanceMotos} Motos` }
                     ].map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                         <div className="flex items-center gap-3">
                           <div className={`${item.color} opacity-40`}>{item.icon}</div>
-                          <span className="font-bold text-slate-600 text-sm">{item.label}</span>
+                          <div>
+                            <span className="font-bold text-slate-600 text-sm block leading-none mb-1">{item.label}</span>
+                            {item.sub && <span className="text-[10px] font-medium text-slate-400 italic">({item.sub})</span>}
+                          </div>
                         </div>
                         <span className={`text-xl font-black ${item.color}`}>{item.value}</span>
                       </div>
