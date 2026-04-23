@@ -6485,17 +6485,17 @@ function CadChecking({
           <p className="text-slate-500 font-medium">Gerenciamento de cautela e manutenção de viaturas.</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-[1.25rem]">
+        <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-[1.25rem] w-full md:w-auto">
           <button 
             onClick={() => setView('list')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${view === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-xl font-bold transition-all text-sm md:text-base ${view === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Truck size={18} />
             Frota
           </button>
           <button 
             onClick={() => setView('history')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${view === 'history' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-xl font-bold transition-all text-sm md:text-base ${view === 'history' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <History size={18} />
             Histórico
@@ -6503,7 +6503,7 @@ function CadChecking({
           {isAdmin && (
             <button 
               onClick={() => setView('admin')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${view === 'admin' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-xl font-bold transition-all text-sm md:text-base ${view === 'admin' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <SettingsIcon size={18} />
               Gestão
@@ -6525,19 +6525,19 @@ function CadChecking({
             {/* Fleet Status Summary - Compact */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', icon: <Truck size={16} />, sub: `${counts.cars} Carros • ${counts.motos} Motos` },
-                { id: 'available', label: 'Disponíveis', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: <CheckCircle2 size={16} />, sub: `${counts.availableCars} • ${counts.availableMotos}` },
-                { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', icon: <RefreshCw size={16} />, sub: `${counts.inUseCars} • ${counts.inUseMotos}` },
-                { id: 'maintenance', label: 'Manutenção', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', icon: <Wrench size={16} />, sub: `${counts.maintenanceCars} • ${counts.maintenanceMotos}` }
+                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', icon: <Truck size={16} />, sub: `${counts.cars} C / ${counts.motos} M` },
+                { id: 'available', label: 'Livres', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: <CheckCircle2 size={16} />, sub: `${counts.availableCars} / ${counts.availableMotos}` },
+                { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', icon: <RefreshCw size={16} />, sub: `${counts.inUseCars} / ${counts.inUseMotos}` },
+                { id: 'maintenance', label: 'Baixa', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', icon: <Wrench size={16} />, sub: `${counts.maintenanceCars} / ${counts.maintenanceMotos}` }
               ].map((stat) => (
-                <div key={stat.id} className={`${stat.bg} p-4 rounded-2xl border border-slate-100 flex items-center gap-3`}>
-                  <div className={`${stat.color} opacity-60`}>{stat.icon}</div>
+                <div key={stat.id} className={`${stat.bg} p-3 sm:p-4 rounded-2xl border border-slate-100 flex items-center gap-2 sm:gap-3`}>
+                  <div className={`${stat.color} opacity-60 hidden xs:block`}>{stat.icon}</div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1 truncate">{stat.label}</p>
-                    <div className="flex items-baseline gap-2">
-                       <p className={`text-xl font-black ${stat.color}`}>{stat.count}</p>
+                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1 truncate">{stat.label}</p>
+                    <div className="flex flex-wrap items-baseline gap-1 sm:gap-2">
+                       <p className={`text-lg sm:text-xl font-black ${stat.color}`}>{stat.count}</p>
                        {stat.sub && (
-                         <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-white/50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                         <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 bg-white/50 px-1 py-0.5 rounded border border-slate-100 hidden sm:block">
                            {stat.sub}
                          </span>
                        )}
@@ -6560,12 +6560,12 @@ function CadChecking({
                 />
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {['all', 'available', 'in_use', 'maintenance'].map((id) => (
                   <button
                     key={id}
                     onClick={() => setStatusFilter(id as any)}
-                    className={`px-6 py-2 rounded-xl font-bold text-sm transition-all border ${
+                    className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all border ${
                       statusFilter === id 
                         ? 'bg-slate-900 text-white border-transparent shadow-lg' 
                         : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
@@ -6616,13 +6616,13 @@ function CadChecking({
                <div className="absolute top-0 right-0 p-20 bg-blue-600/20 rounded-full -mr-20 -mt-20 blur-3xl"></div>
                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                  <div>
-                    <h3 className="text-3xl font-black tracking-tight mb-2">Histórico de Movimentações</h3>
-                    <p className="text-slate-400 font-medium max-w-md">Consulte o log completo de saídas, retornos e manutenções da frota.</p>
+                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">Histórico de Movimentações</h3>
+                    <p className="text-slate-400 font-medium max-w-md text-sm sm:text-base">Consulte o log completo de saídas, retornos e manutenções da frota.</p>
                  </div>
                  <button 
                   onClick={onGeneratePDF}
                   disabled={submitting}
-                  className="flex items-center gap-3 px-8 py-4 bg-white text-slate-900 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl active:scale-95 disabled:opacity-50"
+                  className="w-full md:w-auto flex items-center justify-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white text-slate-900 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl active:scale-95 disabled:opacity-50"
                 >
                   <FileText size={20} className="text-blue-600" />
                   Exportar Relatório PDF
@@ -6661,8 +6661,8 @@ function CadChecking({
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
                 <div>
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">Período de Consulta</label>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 space-y-1">
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="w-full sm:flex-1 space-y-1">
                        <span className="text-[10px] font-bold text-slate-400 ml-1">DE:</span>
                        <input 
                         type="date"
@@ -6671,7 +6671,7 @@ function CadChecking({
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 text-sm"
                       />
                     </div>
-                    <div className="flex-1 space-y-1">
+                    <div className="w-full sm:flex-1 space-y-1">
                        <span className="text-[10px] font-bold text-slate-400 ml-1">ATÉ:</span>
                        <input 
                         type="date"
@@ -6719,9 +6719,9 @@ function CadChecking({
             className="space-y-6"
           >
             {/* Admin Header */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-               <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Gestão Operacional</h3>
-               <p className="text-slate-500 font-medium">Ferramentas avançadas para administração da frota e sincronização de dados.</p>
+            <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] shadow-sm border border-slate-100">
+               <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">Gestão Operacional</h3>
+               <p className="text-slate-500 font-medium text-sm sm:text-base">Ferramentas avançadas para administração da frota e sincronização de dados.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -6739,7 +6739,7 @@ function CadChecking({
                   <button 
                     onClick={() => onBootstrap(true)}
                     disabled={isSyncing}
-                    className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-blue-600 text-white rounded-[2rem] font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-50 mt-6"
+                    className="w-full flex items-center justify-center gap-3 px-6 sm:px-8 py-4 sm:py-5 bg-blue-600 text-white rounded-2xl sm:rounded-[2rem] font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-50 mt-6 text-sm sm:text-base"
                   >
                     <RefreshCw className={isSyncing ? "animate-spin" : ""} size={20} />
                     Sincronizar Frota Completa
@@ -6764,7 +6764,7 @@ function CadChecking({
                       }
                     }}
                     disabled={isSyncing}
-                    className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-rose-600 text-white rounded-[2rem] font-black hover:bg-rose-700 transition-all shadow-xl shadow-rose-100 active:scale-95 disabled:opacity-50 mt-6"
+                    className="w-full flex items-center justify-center gap-3 px-6 sm:px-8 py-4 sm:py-5 bg-rose-600 text-white rounded-2xl sm:rounded-[2rem] font-black hover:bg-rose-700 transition-all shadow-xl shadow-rose-100 active:scale-95 disabled:opacity-50 mt-6 text-sm sm:text-base"
                   >
                     <ShieldCheck size={20} />
                     Sanear Banco de Dados
@@ -6823,15 +6823,15 @@ function CadChecking({
               className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl flex flex-col border border-slate-200 my-auto"
             >
               {/* Modal Header */}
-              <div className={`p-8 text-white relative overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+              <div className={`p-6 sm:p-8 text-white relative overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
                 <div className="absolute top-0 right-0 p-12 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
                     <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">
                       {operationType === 'check-out' ? 'SAÍDA (Cautelar Viatura)' : 'RETORNO (Devolução Viatura)'}
                     </span>
-                    <h3 className="text-3xl font-black tracking-tight">{selectedVehicle?.prefix}</h3>
-                    <p className="opacity-90 font-bold text-lg">{selectedVehicle?.model} • <span className="font-mono">{selectedVehicle?.plate}</span></p>
+                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight">{selectedVehicle?.prefix}</h3>
+                    <p className="opacity-90 font-bold text-sm sm:text-lg">{selectedVehicle?.model} • <span className="font-mono">{selectedVehicle?.plate}</span></p>
                   </div>
                   <button 
                     onClick={() => onStartRecord(null, null)}
@@ -6843,7 +6843,7 @@ function CadChecking({
               </div>
 
               {/* Modal Body - Multi-step Form */}
-              <div className="p-8">
+              <div className="p-6 sm:p-8">
 
                   <div className="flex gap-2 mb-8 bg-slate-50 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar">
                     {[
@@ -7006,18 +7006,18 @@ function CadChecking({
                     )}
                   </div>
 
-                <div className="mt-10 flex gap-4">
+                <div className="mt-10 flex flex-col sm:flex-row gap-4">
                   {currentTab > 0 ? (
                     <button 
                       onClick={() => setCurrentTab(currentTab - 1)}
-                      className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                      className="w-full sm:flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                     >
                       Voltar
                     </button>
                   ) : (
                     <button 
                       onClick={() => onStartRecord(null, null)}
-                      className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                      className="w-full sm:flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                     >
                       Cancelar
                     </button>
@@ -7026,12 +7026,12 @@ function CadChecking({
                   {currentTab < 2 ? (
                     <button 
                       onClick={() => setCurrentTab(currentTab + 1)}
-                      className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                      className="w-full sm:flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
                     >
                       Próximo Passo
                     </button>
                   ) : (
-                    <div className="flex flex-col sm:flex-row gap-3 flex-[2]">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:flex-[2]">
                       <button 
                         onClick={() => onSaveRecord(true)}
                         disabled={submitting || formData.mileage.currentMileage === ''}
@@ -7184,19 +7184,19 @@ function VehicleCard({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap sm:flex-nowrap gap-2">
         {isAvailable && (
           <button 
             onClick={() => onStartRecord(vehicle, 'check-out')}
             disabled={submitting}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 disabled:opacity-50"
+            className="flex-1 min-w-[120px] flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 disabled:opacity-50"
           >
             {submitting ? <Loader2 className="animate-spin" size={18} /> : <LogOut size={18} />}
             Saída
           </button>
         )}
         {isInUse && (
-          <div className="flex-1 flex flex-col gap-1">
+          <div className="flex-1 min-w-[120px] flex flex-col gap-1">
             <button 
               onClick={() => canCheckOut && onStartRecord(vehicle, 'check-in')}
               disabled={!canCheckOut || submitting}
@@ -7217,9 +7217,9 @@ function VehicleCard({
           </div>
         )}
         {isMaintenance && (
-          <div className="flex-1 py-3 bg-amber-100 text-amber-700 rounded-2xl font-bold text-center text-sm flex items-center justify-center gap-2">
+          <div className="flex-1 min-w-[120px] py-3 bg-amber-100 text-amber-700 rounded-2xl font-bold text-center text-sm flex items-center justify-center gap-2">
             <AlertCircle size={18} />
-            Em Manutenção
+            Baixada
           </div>
         )}
         
@@ -7227,7 +7227,7 @@ function VehicleCard({
           <button 
             onClick={() => onToggleMaintenance(vehicle)}
             title={isMaintenance ? "Retirar da Manutenção" : "Colocar em Manutenção"}
-            className={`p-3 rounded-2xl transition-all border-2 ${
+            className={`p-3 rounded-2xl transition-all border-2 flex items-center justify-center ${
               isMaintenance ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-400 border-slate-100 hover:border-amber-200 hover:text-amber-600'
             }`}
           >
