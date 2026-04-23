@@ -9,6 +9,7 @@ export interface Vehicle {
   lastMileage: number;
   currentDriver?: string | null;
   currentDriverEmail?: string | null;
+  category?: 'car' | 'moto';
 }
 
 export interface ChecklistData {

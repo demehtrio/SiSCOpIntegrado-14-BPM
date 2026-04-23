@@ -636,7 +636,8 @@ export default function App() {
     plate: '',
     model: '',
     status: 'available' as 'available' | 'in_use' | 'maintenance',
-    lastMileage: 0
+    lastMileage: 0,
+    category: 'car' as 'car' | 'moto'
   });
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
@@ -792,7 +793,7 @@ export default function App() {
       }
       setIsVehicleModalOpen(false);
       setEditingVehicle(null);
-      setVehicleForm({ prefix: '', plate: '', model: '', status: 'available', lastMileage: 0 });
+      setVehicleForm({ prefix: '', plate: '', model: '', status: 'available', lastMileage: 0, category: 'car' });
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'vehicles');
       addNotification("Erro ao salvar viatura.", "error");
@@ -939,7 +940,8 @@ export default function App() {
               prefix, 
               model: correctedModel,
               plate,
-              status
+              status,
+              category: type === 'mo' ? 'moto' : 'car'
             });
           } else {
             await setDoc(docRef, { 
@@ -948,7 +950,8 @@ export default function App() {
               plate,
               model: correctedModel,
               status: 'available',
-              lastMileage: 0
+              lastMileage: 0,
+              category: type === 'mo' ? 'moto' : 'car'
             });
           }
         }
@@ -6284,6 +6287,8 @@ function CadChecking({
 
   const counts = React.useMemo(() => ({
     all: uniqueVehicles.length,
+    cars: uniqueVehicles.filter((v: Vehicle) => (v.category === 'car' || !v.category)).length,
+    motos: uniqueVehicles.filter((v: Vehicle) => v.category === 'moto').length,
     available: uniqueVehicles.filter((v: Vehicle) => v.status === 'available').length,
     in_use: uniqueVehicles.filter((v: Vehicle) => v.status === 'in_use').length,
     maintenance: uniqueVehicles.filter((v: Vehicle) => v.status === 'maintenance').length
@@ -6375,7 +6380,7 @@ function CadChecking({
             {/* Fleet Status Summary - Compact */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', icon: <Truck size={16} /> },
+                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', icon: <Truck size={16} />, sub: `${counts.cars} Carros • ${counts.motos} Motos` },
                 { id: 'available', label: 'Disponíveis', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: <CheckCircle2 size={16} /> },
                 { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', icon: <RefreshCw size={16} /> },
                 { id: 'maintenance', label: 'Manutenção', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', icon: <Wrench size={16} /> }
@@ -6384,7 +6389,10 @@ function CadChecking({
                   <div className={`${stat.color} opacity-60`}>{stat.icon}</div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1">{stat.label}</p>
-                    <p className={`text-xl font-black ${stat.color}`}>{stat.count}</p>
+                    <div className="flex items-baseline gap-2">
+                       <p className={`text-xl font-black ${stat.color}`}>{stat.count}</p>
+                       {stat.sub && <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{stat.sub}</span>}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -6620,6 +6628,8 @@ function CadChecking({
                   <div className="space-y-4">
                     {[
                       { label: 'Viaturas Cadastradas', value: vehicles.length, color: 'text-slate-900', icon: <Truck size={20} /> },
+                      { label: 'Total de Carros (4 Rodas)', value: counts.cars, color: 'text-slate-600', icon: <Car size={20} /> },
+                      { label: 'Total de Motos (2 Rodas)', value: counts.motos, color: 'text-slate-600', icon: <Bike size={20} /> },
                       { label: 'Em Condições de Uso', value: counts.available, color: 'text-emerald-600', icon: <CheckCircle2 size={20} /> },
                       { label: 'Em Empenho Operacional', value: counts.in_use, color: 'text-blue-600', icon: <RefreshCw size={20} /> },
                       { label: 'Fora de Serviço (Baixadas)', value: counts.maintenance, color: 'text-amber-600', icon: <Wrench size={20} /> }
@@ -6984,6 +6994,11 @@ function VehicleCard({
         'border-amber-100 bg-amber-50/30'
       }`}
     >
+      {/* Category Icon - Background Decoration */}
+      <div className="absolute -top-4 -right-4 text-slate-100 opacity-20 group-hover:opacity-30 transition-opacity rotate-12 pointer-events-none">
+        {vehicle.category === 'moto' ? <Bike size={120} /> : <Car size={120} />}
+      </div>
+
       {/* Status Badge */}
       <div className="flex items-center justify-between mb-4">
         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
