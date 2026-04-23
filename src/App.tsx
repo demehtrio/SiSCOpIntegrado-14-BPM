@@ -687,6 +687,39 @@ export default function App() {
     }
   });
   const isBootstrapping = useRef(false);
+
+  const uniqueVehicles = React.useMemo(() => {
+    const byPlate = new Map<string, Vehicle>();
+    vehicles.forEach(v => {
+      const plate = (v.plate || '').replace(/[\s-]/g, '').toUpperCase();
+      const key = plate || v.id;
+      if (!byPlate.has(key) || v.id === key) byPlate.set(key, v);
+    });
+    const finalUnique = new Map<string, Vehicle>();
+    Array.from(byPlate.values()).forEach(v => {
+      const prefix = (v.prefix || '').trim().toUpperCase();
+      if (!prefix || prefix === 'RESERVA' || prefix === '---' || prefix === 'RESERVA/ROTAM') {
+        const fallbackKey = `extra-${v.id}`;
+        finalUnique.set(fallbackKey, v);
+        return;
+      }
+      if (!finalUnique.has(prefix)) {
+        finalUnique.set(prefix, v);
+      } else {
+        const existing = finalUnique.get(prefix)!;
+        const vPlate = (v.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
+        const ePlate = (existing.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
+        if (v.id === vPlate && existing.id !== ePlate) {
+          finalUnique.set(prefix, v);
+        } else if (v.id === vPlate === (existing.id === ePlate)) {
+          if (v.status === 'in_use' && existing.status !== 'in_use') {
+            finalUnique.set(prefix, v);
+          }
+        }
+      }
+    });
+    return Array.from(finalUnique.values());
+  }, [vehicles]);
   
   // --- CadChecking Effects ---
 
@@ -724,11 +757,14 @@ export default function App() {
     return () => unsubscribe();
   }, [user, isAdmin]);
 
-  // Bootstrap vehicles if empty and user is admin
+  // Bootstrap vehicles if empty or settings updated and user is admin
   useEffect(() => {
-    if (isAdmin && vehicles.length === 0 && !loading && settingsLoaded && patrimonioVtList.length > 0) {
-      console.log("[CadChecking] Fleet empty or settings updated, triggering bootstrap...");
-      bootstrapVehicles();
+    if (isAdmin && !loading && settingsLoaded && (patrimonioVtList.length > 0 || patrimonioMoList.length > 0)) {
+      // If fleet is empty, bootstrap immediately
+      if (vehicles.length === 0) {
+        console.log("[CadChecking] Fleet empty, triggering initial bootstrap...");
+        bootstrapVehicles();
+      }
     }
   }, [isAdmin, vehicles.length, loading, settingsLoaded, patrimonioVtList, patrimonioMoList]);
 
@@ -861,11 +897,37 @@ export default function App() {
     if (force) setIsSyncing(true);
     
     // Always use the latest lists from state (which come from settings/lists in Firestore)
-    const allPatrimonio = [
+    // Deduplicate source lists by prefix to avoid creating multiple documents for the same Pat
+    const allPatrimonioRaw = [
       ...patrimonioVtList.map(item => ({ item, type: 'vt' })),
       ...patrimonioMoList.map(item => ({ item, type: 'mo' }))
     ];
-    console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} items (VTs and Motos) from SisCOpI settings...`);
+
+    const deduplicatedSettingsMap = new Map<string, { item: string, type: string }>();
+    allPatrimonioRaw.forEach(entry => {
+      const parts = entry.item.split(/\s*-\s*/).map(p => p.trim()).filter(p => p.length > 0);
+      if (parts.length >= 2) {
+        // Find prefix (Pat) - usually the one that ISN'T a plate
+        const isPlatePattern = (str: string) => {
+          const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
+          return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(clean);
+        };
+        let plateIndex = parts.findIndex(isPlatePattern);
+        const prefix = parts[plateIndex === -1 ? 0 : (plateIndex === 0 ? 1 : 0)];
+        const normalizedPrefix = prefix.toUpperCase();
+        
+        if (!deduplicatedSettingsMap.has(normalizedPrefix)) {
+          deduplicatedSettingsMap.set(normalizedPrefix, entry);
+        } else {
+          console.warn(`[CadChecking] Duplicate prefix detected in settings: ${normalizedPrefix}. Keeping only first occurrence.`);
+        }
+      } else {
+        deduplicatedSettingsMap.set(`invalid-${Math.random()}`, entry);
+      }
+    });
+
+    const allPatrimonio = Array.from(deduplicatedSettingsMap.values());
+    console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} unique items (from ${allPatrimonioRaw.length} raw items) from SisCOpI settings...`);
     
     const currentPlateIds = new Set<string>();
     
@@ -5535,6 +5597,31 @@ function ChecklistModule({
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const uniqueVehicles = React.useMemo(() => {
+    const byPlate = new Map<string, Vehicle>();
+    vehicles.forEach(v => {
+      const plate = (v.plate || '').replace(/[\s-]/g, '').toUpperCase();
+      const key = plate || v.id;
+      if (!byPlate.has(key) || v.id === key) byPlate.set(key, v);
+    });
+    const finalUnique = new Map<string, Vehicle>();
+    Array.from(byPlate.values()).forEach(v => {
+      const prefix = (v.prefix || '').trim().toUpperCase();
+      if (!prefix || prefix === 'RESERVA' || prefix === '---' || prefix === 'RESERVA/ROTAM') {
+        finalUnique.set(`extra-${v.id}`, v);
+        return;
+      }
+      if (!finalUnique.has(prefix)) {
+        finalUnique.set(prefix, v);
+      } else {
+        const existing = finalUnique.get(prefix)!;
+        const vPlate = (v.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
+        if (v.id === vPlate) finalUnique.set(prefix, v);
+      }
+    });
+    return Array.from(finalUnique.values());
+  }, [vehicles]);
+
   const initialFormData = {
     identification: {
       prefix: '',
@@ -5726,7 +5813,7 @@ function ChecklistModule({
                         label="Placa da Viatura"
                         value={formData.identification.plate}
                         onChange={(val: string) => {
-                          const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
+                          const vehicle = uniqueVehicles.find((v: Vehicle) => v.plate === val);
                           setFormData({
                             ...formData, 
                             identification: {
@@ -5737,7 +5824,7 @@ function ChecklistModule({
                             }
                           });
                         }}
-                        options={vehicles.map((v: Vehicle) => v.plate)}
+                        options={uniqueVehicles.map((v: Vehicle) => v.plate)}
                         placeholder="Pesquise a placa..."
                         variant="blue"
                       />
@@ -5745,7 +5832,7 @@ function ChecklistModule({
                         label="Prefixo / VTR"
                         value={formData.identification.prefix}
                         onChange={(val: string) => {
-                          const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
+                          const vehicle = uniqueVehicles.find((v: Vehicle) => v.prefix === val);
                           setFormData({
                             ...formData, 
                             identification: {
@@ -5756,7 +5843,7 @@ function ChecklistModule({
                             }
                           });
                         }}
-                        options={vehicles.map((v: Vehicle) => v.prefix)}
+                        options={uniqueVehicles.map((v: Vehicle) => v.prefix)}
                         placeholder="Pesquise a viatura..."
                         variant="blue"
                       />
@@ -6274,15 +6361,58 @@ function CadChecking({
   console.log(`[CadChecking] Rendering with ${vehicles.length} total vehicles`);
   
   const uniqueVehicles = React.useMemo(() => {
-    const unique = new Map<string, Vehicle>();
+    // Fase 1: Deduplicação por Placa (padrão técnico)
+    const byPlate = new Map<string, Vehicle>();
     vehicles.forEach(v => {
-      const plateKey = (v.plate || '').replace(/[\s-]/g, '').toUpperCase();
-      // Se já existe, preferimos o que tem o ID padrão (igual à placa normalizada)
-      if (!unique.has(plateKey) || v.id === plateKey) {
-        unique.set(plateKey, v);
+      const plate = (v.plate || '').replace(/[\s-]/g, '').toUpperCase();
+      const key = plate || v.id;
+      
+      // Se não tem a placa ou se o ID é o ID padrão (igual à placa), preferimos este
+      if (!byPlate.has(key) || v.id === key) {
+        byPlate.set(key, v);
       }
     });
-    return Array.from(unique.values());
+
+    // Fase 2: Deduplicação por Prefixo (patrimônio)
+    // O usuário identifica viaturas pelo prefixo (Pat), então se houver 
+    // múltiplos registros ativos com o mesmo prefixo mas placas diferentes,
+    // tratamos como duplicatas do mesmo veículo.
+    const finalUnique = new Map<string, Vehicle>();
+    Array.from(byPlate.values()).forEach(v => {
+      const prefix = (v.prefix || '').trim().toUpperCase();
+      
+      // Não deduplicamos reservas ou viaturas sem prefixo
+      if (!prefix || prefix === 'RESERVA' || prefix === '---' || prefix === 'RESERVA/ROTAM') {
+        const fallbackKey = `extra-${v.id}`;
+        finalUnique.set(fallbackKey, v);
+        return;
+      }
+
+      if (!finalUnique.has(prefix)) {
+        finalUnique.set(prefix, v);
+      } else {
+        const existing = finalUnique.get(prefix)!;
+        
+        // Critérios de desempate:
+        // 1. Preferimos o que tem o ID padrão (ID == Placa)
+        const vPlate = (v.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
+        const ePlate = (existing.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
+        const vIsStandard = v.id === vPlate;
+        const eIsStandard = existing.id === ePlate;
+
+        if (vIsStandard && !eIsStandard) {
+          finalUnique.set(prefix, v);
+        } else if (vIsStandard === eIsStandard) {
+          // 2. Se ambos forem padrão ou ambos não, conferimos o status
+          // Se um está 'in_use' e o outro 'available', o 'in_use' é provavelmente o real/atual
+          if (v.status === 'in_use' && existing.status !== 'in_use') {
+            finalUnique.set(prefix, v);
+          }
+        }
+      }
+    });
+
+    return Array.from(finalUnique.values());
   }, [vehicles]);
 
   const counts = React.useMemo(() => {
@@ -6742,7 +6872,7 @@ function CadChecking({
                               label="Placa"
                               value={formData.identification.plate}
                               onChange={(val: string) => {
-                                const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
+                                const vehicle = uniqueVehicles.find((v: Vehicle) => v.plate === val);
                                 setFormData({
                                   ...formData, 
                                   identification: {
@@ -6753,7 +6883,7 @@ function CadChecking({
                                   }
                                 });
                               }}
-                              options={vehicles.map((v: Vehicle) => v.plate)}
+                              options={uniqueVehicles.map((v: Vehicle) => v.plate)}
                               placeholder="Selecione a placa..."
                               variant="blue"
                             />
@@ -6764,7 +6894,7 @@ function CadChecking({
                               label="Viatura"
                               value={formData.identification.prefix}
                               onChange={(val: string) => {
-                                const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
+                                const vehicle = uniqueVehicles.find((v: Vehicle) => v.prefix === val);
                                 setFormData({
                                   ...formData, 
                                   identification: {
@@ -6775,7 +6905,7 @@ function CadChecking({
                                   }
                                 });
                               }}
-                              options={vehicles.map((v: Vehicle) => v.prefix)}
+                              options={uniqueVehicles.map((v: Vehicle) => v.prefix)}
                               placeholder="Selecione a viatura..."
                               variant="blue"
                             />
