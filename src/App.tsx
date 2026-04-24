@@ -814,6 +814,10 @@ export default function App() {
     }, 5000);
   };
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
+
   // --- Cadastro VTR Handlers ---
 
   const handleSaveVehicle = async () => {
@@ -897,39 +901,55 @@ export default function App() {
     if (force) setIsSyncing(true);
     
     // Always use the latest lists from state (which come from settings/lists in Firestore)
-    // Deduplicate source lists by prefix to avoid creating multiple documents for the same Pat
+    // Processar itens da frota (Viaturas e Motos)
     const allPatrimonioRaw = [
       ...patrimonioVtList.map(item => ({ item, type: 'vt' })),
       ...patrimonioMoList.map(item => ({ item, type: 'mo' }))
     ];
 
-    // Usar a PLACA como chave principal de deduplicação conforme solicitado pelo usuário
-    const deduplicatedSettingsMap = new Map<string, { item: string, type: string }>();
+    // Mapeamento para sincronização - Usamos o registro bruto para evitar perder veículos
+    // se houver pequenas variações na string, mas permitimos vincular pela placa se encontrada.
+    const syncMap = new Map<string, { item: string, type: string, plate?: string }>();
+    
+    const isPlatePattern = (str: string) => {
+      const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
+      // Placa brasileira padrão ou Mercosul tem 7 caracteres e começa com 3 letras
+      return clean.length === 7 && /^[A-Z]{3}/.test(clean);
+    };
+
     allPatrimonioRaw.forEach(entry => {
       const parts = entry.item.split(/\s*-\s*/).map(p => p.trim()).filter(p => p.length > 0);
-      const isPlatePattern = (str: string) => {
-        const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
-        return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(clean);
-      };
-
-      let plateIndex = parts.findIndex(isPlatePattern);
-      if (plateIndex !== -1) {
-        const plate = parts[plateIndex].replace(/[^A-Z0-9]/g, '').toUpperCase();
-        if (!deduplicatedSettingsMap.has(plate)) {
-          deduplicatedSettingsMap.set(plate, entry);
-        } else {
-          console.warn(`[Cadastro VTR] Placa duplicada detectada nas configurações: ${plate}. Mantendo apenas a primeira ocorrência.`);
+      let foundPlate: string | undefined;
+      
+      // Tenta encontrar a placa em qualquer parte da string
+      for (const part of parts) {
+        const cleanPart = part.replace(/[^A-Z0-9]/g, '').toUpperCase();
+        if (isPlatePattern(cleanPart)) {
+          foundPlate = cleanPart;
+          break;
         }
-      } else {
-        // Se não encontrar uma placa válida, usa um ID aleatório para não perder o item no sincronismo
-        deduplicatedSettingsMap.set(`invalid-${Math.random()}`, entry);
       }
+
+      // Se não achou na separação por hífen, tenta na string inteira (dividindo por espaços)
+      if (!foundPlate) {
+        const subParts = entry.item.split(/\s+/);
+        for (const sp of subParts) {
+          const cleanSp = sp.replace(/[^A-Z0-9]/g, '').toUpperCase();
+          if (isPlatePattern(cleanSp)) {
+            foundPlate = cleanSp;
+            break;
+          }
+        }
+      }
+
+      // Usamos a placa como ID se encontrada, caso contrário usamos um hash da string
+      const syncKey = foundPlate || `v-${entry.item.replace(/[^A-Z0-9]/g, '')}`;
+      syncMap.set(syncKey, { ...entry, plate: foundPlate });
     });
 
-    const allPatrimonio = Array.from(deduplicatedSettingsMap.values());
-    console.log(`[Cadastro VTR] Starting sync of ${allPatrimonio.length} unique items (from ${allPatrimonioRaw.length} raw items) from SisCOpI settings...`);
+    console.log(`[Cadastro VTR] Sincronizando ${syncMap.size} itens únicos detectados (de ${allPatrimonioRaw.length} entradas brutas).`);
     
-    const currentPlateIds = new Set<string>();
+    const currentSyncIds = new Set<string>();
     
     try {
       // Get current vehicles in Firestore
@@ -939,97 +959,79 @@ export default function App() {
         existingInFirestore.set(doc.id, doc.data());
       });
 
-      for (const entry of allPatrimonio) {
-        const { item: s, type } = entry;
-        const parts = s.split(/\s*-\s*/).map(p => p.trim()).filter(p => p.length > 0);
+      for (const [vehicleId, syncEntry] of syncMap.entries()) {
+        const { item, type, plate: detectedPlate } = syncEntry;
+        const parts = item.split(/\s*-\s*/).map(p => p.trim()).filter(p => p.length > 0);
         
-        if (parts.length >= 2) {
-          const isPlatePattern = (str: string) => {
-            const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
-            return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(clean);
-          };
-
-          let plateIndex = parts.findIndex(isPlatePattern);
-          if (plateIndex === -1) {
-            plateIndex = isPlatePattern(parts[0]) ? 0 : 1;
-          }
-
-          const plate = parts[plateIndex];
-          const prefix = parts[plateIndex === 0 ? 1 : 0];
-          
-          const otherParts = parts.filter((_, i) => i !== plateIndex && i !== (plateIndex === 0 ? 1 : 0));
-          const model = otherParts.join(' ') || (type === 'mo' ? 'MOTOCICLETA' : 'Viatura');
-          
-          const vehicleId = plate.replace(/[^A-Z0-9]/g, '').toUpperCase();
-          
-          if (currentPlateIds.has(vehicleId)) {
-            console.warn(`[Cadastro VTR] Duplicate vehicle ID detected in settings: ${vehicleId}. Skipping...`);
-            continue;
-          }
-          
-          currentPlateIds.add(vehicleId);
-          console.log(`[Cadastro VTR] Syncing vehicle: ${prefix} | Plate: ${plate} | ID: ${vehicleId}`);
-          
-          const docRef = doc(db, 'vehicles', vehicleId);
-          const existing = existingInFirestore.get(vehicleId);
-          
-          let correctedModel = model;
-          const upperModel = model.toUpperCase();
-          
-          if (upperModel.includes('HILUX') || upperModel.includes('HILLUX')) {
-            correctedModel = 'TOYOTA/HILUX';
-          } else if (upperModel === 'RANGER' || upperModel.includes('RANGER')) {
-            correctedModel = 'FORD/RANGER';
-          } else if (upperModel === 'DUSTER' || upperModel.includes('DUSTER')) {
-            correctedModel = 'RENAULT/DUSTER';
-          } else if (upperModel === 'S10' || upperModel === 'S-10') {
-            correctedModel = 'CHEVROLET/S10';
-          } else if (upperModel === 'ARGO') {
-            correctedModel = 'FIAT/ARGO';
-          } else if (upperModel === 'POLO') {
-            correctedModel = 'VW/POLO';
-          } else if (upperModel === 'ONIX') {
-            correctedModel = 'CHEVROLET/ONIX';
-          } else if (upperModel === 'L200' || upperModel.includes('L 200') || upperModel.includes('L-200')) {
-            correctedModel = 'MITSUBISHI/L200';
-          } else if (type === 'mo' && (upperModel === 'MOTO' || upperModel === 'MOTOCICLETA')) {
-            correctedModel = 'MOTOCICLETA';
-          }
-
-          if (existing) {
-            const status = existing.status === 'inactive' ? 'available' : existing.status;
-            await updateDoc(docRef, { 
-              prefix, 
-              model: correctedModel,
-              plate,
-              status,
-              category: type === 'mo' ? 'moto' : 'car'
-            });
+        let plate = detectedPlate || parts[0] || '---';
+        let prefix = '---';
+        
+        if (detectedPlate) {
+          const plateIndex = parts.findIndex(p => p.replace(/[^A-Z0-9]/g, '').toUpperCase() === detectedPlate);
+          if (plateIndex !== -1) {
+            prefix = parts[plateIndex === 0 ? (parts.length > 1 ? 1 : 0) : 0];
           } else {
-            await setDoc(docRef, { 
-              id: vehicleId,
-              prefix,
-              plate,
-              model: correctedModel,
-              status: 'available',
-              lastMileage: 0,
-              category: type === 'mo' ? 'moto' : 'car'
-            });
+            prefix = parts[0];
           }
+        } else {
+          prefix = parts[0] || 'RESERVA';
+        }
+        
+        const otherParts = parts.filter(p => p !== plate && p !== prefix);
+        const model = otherParts.join(' ') || (type === 'mo' ? 'MOTOCICLETA' : 'Viatura');
+        
+        currentSyncIds.add(vehicleId);
+        console.log(`[Cadastro VTR] Sincronizando veículo: ${prefix} | Placa: ${plate} | ID: ${vehicleId}`);
+        
+        const docRef = doc(db, 'vehicles', vehicleId);
+        const existing = existingInFirestore.get(vehicleId);
+        
+        let correctedModel = model;
+        const upperModel = model.toUpperCase();
+        
+        // Padronização de modelos
+        if (upperModel.includes('HILUX') || upperModel.includes('HILLUX')) correctedModel = 'TOYOTA/HILUX';
+        else if (upperModel.includes('RANGER')) correctedModel = 'FORD/RANGER';
+        else if (upperModel.includes('DUSTER')) correctedModel = 'RENAULT/DUSTER';
+        else if (upperModel.includes('S10') || upperModel === 'S-10') correctedModel = 'CHEVROLET/S10';
+        else if (upperModel.includes('ARGO')) correctedModel = 'FIAT/ARGO';
+        else if (upperModel.includes('POLO')) correctedModel = 'VW/POLO';
+        else if (upperModel.includes('ONIX')) correctedModel = 'CHEVROLET/ONIX';
+        else if (upperModel.includes('L200') || upperModel.includes('L 200')) correctedModel = 'MITSUBISHI/L200';
+        else if (type === 'mo' && (upperModel === 'MOTO' || upperModel === 'MOTOCICLETA')) correctedModel = 'MOTOCICLETA';
+
+        const vehicleData = {
+          prefix,
+          plate,
+          model: correctedModel,
+          category: type === 'mo' ? 'moto' : 'car',
+          updatedAt: serverTimestamp()
+        };
+
+        if (existing) {
+          const status = existing.status === 'inactive' ? 'available' : existing.status;
+          await updateDoc(docRef, { ...vehicleData, status });
+        } else {
+          await setDoc(docRef, { 
+            ...vehicleData, 
+            status: 'available',
+            lastMileage: 0,
+            createdAt: serverTimestamp()
+          });
         }
       }
 
       // Mark vehicles that were in Firestore but are NOT in the new list as inactive
       const deactivationPromises = [];
       for (const [id, data] of existingInFirestore.entries()) {
-        if (!currentPlateIds.has(id) && data.status !== 'inactive') {
-          console.log(`[Cadastro VTR] Deactivating vehicle no longer in config: ${data.prefix} (${data.plate})`);
+        if (!currentSyncIds.has(id) && data.status !== 'inactive') {
+          console.log(`[Cadastro VTR] Desativando veículo (não na config): ${data.prefix} (${data.plate})`);
           deactivationPromises.push(updateDoc(doc(db, 'vehicles', id), { status: 'inactive' }));
         }
       }
       await Promise.all(deactivationPromises);
 
-      if (force) addNotification("Frota (Viaturas e Motos) sincronizada!", "success");
+      if (force) addNotification("Frota sincronizada!", "success");
     } catch (err) {
       console.error("[Cadastro VTR] Sync error:", err);
       handleFirestoreError(err, OperationType.WRITE, 'vehicles');
@@ -6360,45 +6362,16 @@ function CadastroVTR({
 }) {  
   console.log(`[Cadastro VTR] Rendering with ${vehicles.length} total vehicles`);
   
-  const uniqueVehicles = React.useMemo(() => {
-    // Deduplicação primária por Placa
-    const byPlate = new Map<string, Vehicle>();
-    vehicles.forEach(v => {
-      if (v.status === 'inactive') return;
-      
-      const plate = (v.plate || '').replace(/[\s-]/g, '').toUpperCase();
-      const key = plate || v.id;
-      
-      // Prioridade para o registro com ID padrão ou mais recente
-      if (!byPlate.has(key)) {
-        byPlate.set(key, v);
-      } else {
-        const existing = byPlate.get(key)!;
-        // Se este registro tem o ID padrão (igual à placa) e o existente não, substitui
-        const vPlate = (v.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
-        if (v.id === vPlate && existing.id !== vPlate) {
-          byPlate.set(key, v);
-        } else if (v.status === 'in_use' && existing.status !== 'in_use') {
-          // Se ambos têm IDs similares, preferimos o que está marcado como 'em uso'
-          byPlate.set(key, v);
-        }
-      }
-    });
-
-    // Retorna todos os veículos únicos por placa
-    return Array.from(byPlate.values());
-  }, [vehicles]);
-
   const counts = React.useMemo(() => {
-    const cars = uniqueVehicles.filter((v: Vehicle) => (v.category === 'car' || !v.category));
-    const motos = uniqueVehicles.filter((v: Vehicle) => v.category === 'moto');
+    const cars = vehicles.filter((v: Vehicle) => (v.category === 'car' || !v.category));
+    const motos = vehicles.filter((v: Vehicle) => v.category === 'moto');
     
-    const available = uniqueVehicles.filter((v: Vehicle) => v.status === 'available');
-    const inUse = uniqueVehicles.filter((v: Vehicle) => v.status === 'in_use');
-    const maintenance = uniqueVehicles.filter((v: Vehicle) => v.status === 'maintenance');
+    const available = vehicles.filter((v: Vehicle) => v.status === 'available');
+    const inUse = vehicles.filter((v: Vehicle) => v.status === 'in_use');
+    const maintenance = vehicles.filter((v: Vehicle) => v.status === 'maintenance');
 
     return {
-      all: uniqueVehicles.length,
+      all: vehicles.length,
       cars: cars.length,
       motos: motos.length,
       available: available.length,
@@ -6411,9 +6384,9 @@ function CadastroVTR({
       maintenanceCars: maintenance.filter(v => v.category === 'car' || !v.category).length,
       maintenanceMotos: maintenance.filter(v => v.category === 'moto').length,
     };
-  }, [uniqueVehicles]);
+  }, [vehicles]);
 
-  const filteredVehicles = React.useMemo(() => uniqueVehicles.filter((v: Vehicle) => {
+  const filteredVehicles = React.useMemo(() => vehicles.filter((v: Vehicle) => {
     const plate = (v.plate || '').toLowerCase();
     const model = (v.model || '').toLowerCase();
     const prefix = (v.prefix || '').toLowerCase();
@@ -6424,7 +6397,7 @@ function CadastroVTR({
                          prefix.includes(search);
     const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
     return matchesSearch && matchesStatus;
-  }), [uniqueVehicles, searchTerm, statusFilter]);
+  }), [vehicles, searchTerm, statusFilter]);
 
   console.log(`[Cadastro VTR] Filtered to ${filteredVehicles.length} vehicles (Search: "${searchTerm}", Status: "${statusFilter}")`);
 
@@ -6846,7 +6819,7 @@ function CadastroVTR({
                               label="Placa"
                               value={formData.identification.plate}
                               onChange={(val: string) => {
-                                const vehicle = uniqueVehicles.find((v: Vehicle) => v.plate === val);
+                                const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
                                 setFormData({
                                   ...formData, 
                                   identification: {
@@ -6857,7 +6830,7 @@ function CadastroVTR({
                                   }
                                 });
                               }}
-                              options={uniqueVehicles.map((v: Vehicle) => v.plate)}
+                              options={vehicles.map((v: Vehicle) => v.plate)}
                               placeholder="Selecione a placa..."
                               variant="blue"
                             />
@@ -6868,7 +6841,7 @@ function CadastroVTR({
                               label="Viatura"
                               value={formData.identification.prefix}
                               onChange={(val: string) => {
-                                const vehicle = uniqueVehicles.find((v: Vehicle) => v.prefix === val);
+                                const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
                                 setFormData({
                                   ...formData, 
                                   identification: {
@@ -6879,7 +6852,7 @@ function CadastroVTR({
                                   }
                                 });
                               }}
-                              options={uniqueVehicles.map((v: Vehicle) => v.prefix)}
+                              options={vehicles.map((v: Vehicle) => v.prefix)}
                               placeholder="Selecione a viatura..."
                               variant="blue"
                             />
