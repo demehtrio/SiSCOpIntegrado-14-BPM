@@ -903,25 +903,25 @@ export default function App() {
       ...patrimonioMoList.map(item => ({ item, type: 'mo' }))
     ];
 
+    // Usar a PLACA como chave principal de deduplicação conforme solicitado pelo usuário
     const deduplicatedSettingsMap = new Map<string, { item: string, type: string }>();
     allPatrimonioRaw.forEach(entry => {
       const parts = entry.item.split(/\s*-\s*/).map(p => p.trim()).filter(p => p.length > 0);
-      if (parts.length >= 2) {
-        // Find prefix (Pat) - usually the one that ISN'T a plate
-        const isPlatePattern = (str: string) => {
-          const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
-          return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(clean);
-        };
-        let plateIndex = parts.findIndex(isPlatePattern);
-        const prefix = parts[plateIndex === -1 ? 0 : (plateIndex === 0 ? 1 : 0)];
-        const normalizedPrefix = prefix.toUpperCase();
-        
-        if (!deduplicatedSettingsMap.has(normalizedPrefix)) {
-          deduplicatedSettingsMap.set(normalizedPrefix, entry);
+      const isPlatePattern = (str: string) => {
+        const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
+        return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(clean);
+      };
+
+      let plateIndex = parts.findIndex(isPlatePattern);
+      if (plateIndex !== -1) {
+        const plate = parts[plateIndex].replace(/[^A-Z0-9]/g, '').toUpperCase();
+        if (!deduplicatedSettingsMap.has(plate)) {
+          deduplicatedSettingsMap.set(plate, entry);
         } else {
-          console.warn(`[Cadastro VTR] Duplicate prefix detected in settings: ${normalizedPrefix}. Keeping only first occurrence.`);
+          console.warn(`[Cadastro VTR] Placa duplicada detectada nas configurações: ${plate}. Mantendo apenas a primeira ocorrência.`);
         }
       } else {
+        // Se não encontrar uma placa válida, usa um ID aleatório para não perder o item no sincronismo
         deduplicatedSettingsMap.set(`invalid-${Math.random()}`, entry);
       }
     });
@@ -4783,7 +4783,6 @@ export default function App() {
                   user={user}
                   isAdmin={isAdmin}
                   vehicles={vehicles}
-                  uniqueVehicles={uniqueVehicles}
                   history={cadastroVtrHistory}
                   selectedVehicle={selectedVehicle}
                   operationType={operationType}
@@ -6362,58 +6361,32 @@ function CadastroVTR({
   console.log(`[Cadastro VTR] Rendering with ${vehicles.length} total vehicles`);
   
   const uniqueVehicles = React.useMemo(() => {
-    // Fase 1: Deduplicação por Placa (padrão técnico)
+    // Deduplicação primária por Placa
     const byPlate = new Map<string, Vehicle>();
     vehicles.forEach(v => {
+      if (v.status === 'inactive') return;
+      
       const plate = (v.plate || '').replace(/[\s-]/g, '').toUpperCase();
       const key = plate || v.id;
       
-      // Se não tem a placa ou se o ID é o ID padrão (igual à placa), preferimos este
-      if (!byPlate.has(key) || v.id === key) {
+      // Prioridade para o registro com ID padrão ou mais recente
+      if (!byPlate.has(key)) {
         byPlate.set(key, v);
-      }
-    });
-
-    // Fase 2: Deduplicação por Prefixo (patrimônio)
-    // O usuário identifica viaturas pelo prefixo (Pat), então se houver 
-    // múltiplos registros ativos com o mesmo prefixo mas placas diferentes,
-    // tratamos como duplicatas do mesmo veículo.
-    const finalUnique = new Map<string, Vehicle>();
-    Array.from(byPlate.values()).forEach(v => {
-      const prefix = (v.prefix || '').trim().toUpperCase();
-      
-      // Não deduplicamos reservas ou viaturas sem prefixo
-      if (!prefix || prefix === 'RESERVA' || prefix === '---' || prefix === 'RESERVA/ROTAM') {
-        const fallbackKey = `extra-${v.id}`;
-        finalUnique.set(fallbackKey, v);
-        return;
-      }
-
-      if (!finalUnique.has(prefix)) {
-        finalUnique.set(prefix, v);
       } else {
-        const existing = finalUnique.get(prefix)!;
-        
-        // Critérios de desempate:
-        // 1. Preferimos o que tem o ID padrão (ID == Placa)
+        const existing = byPlate.get(key)!;
+        // Se este registro tem o ID padrão (igual à placa) e o existente não, substitui
         const vPlate = (v.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
-        const ePlate = (existing.plate || '').replace(/[^A-Z0-9]/g, '').toUpperCase();
-        const vIsStandard = v.id === vPlate;
-        const eIsStandard = existing.id === ePlate;
-
-        if (vIsStandard && !eIsStandard) {
-          finalUnique.set(prefix, v);
-        } else if (vIsStandard === eIsStandard) {
-          // 2. Se ambos forem padrão ou ambos não, conferimos o status
-          // Se um está 'in_use' e o outro 'available', o 'in_use' é provavelmente o real/atual
-          if (v.status === 'in_use' && existing.status !== 'in_use') {
-            finalUnique.set(prefix, v);
-          }
+        if (v.id === vPlate && existing.id !== vPlate) {
+          byPlate.set(key, v);
+        } else if (v.status === 'in_use' && existing.status !== 'in_use') {
+          // Se ambos têm IDs similares, preferimos o que está marcado como 'em uso'
+          byPlate.set(key, v);
         }
       }
     });
 
-    return Array.from(finalUnique.values());
+    // Retorna todos os veículos únicos por placa
+    return Array.from(byPlate.values());
   }, [vehicles]);
 
   const counts = React.useMemo(() => {
