@@ -6469,16 +6469,24 @@ function CadastroVTR({
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            {/* Fleet Status Summary - Compact */}
+            {/* Fleet Status Summary - Interactive Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', icon: <Truck size={16} />, sub: `${counts.cars} C / ${counts.motos} M` },
-                { id: 'available', label: 'Livres', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: <CheckCircle2 size={16} />, sub: `${counts.availableCars} / ${counts.availableMotos}` },
-                { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', icon: <RefreshCw size={16} />, sub: `${counts.inUseCars} / ${counts.inUseMotos}` },
-                { id: 'maintenance', label: 'Baixa', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', icon: <Wrench size={16} />, sub: `${counts.maintenanceCars} / ${counts.maintenanceMotos}` }
+                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', activeBg: 'bg-slate-200', icon: <Truck size={16} />, sub: `${counts.cars} C / ${counts.motos} M` },
+                { id: 'available', label: 'Livres', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', activeBg: 'bg-emerald-100', icon: <CheckCircle2 size={16} />, sub: `${counts.availableCars} / ${counts.availableMotos}` },
+                { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', activeBg: 'bg-blue-100', icon: <RefreshCw size={16} />, sub: `${counts.inUseCars} / ${counts.inUseMotos}` },
+                { id: 'maintenance', label: 'Baixa', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', activeBg: 'bg-amber-100', icon: <Wrench size={16} />, sub: `${counts.maintenanceCars} / ${counts.maintenanceMotos}` }
               ].map((stat) => (
-                <div key={stat.id} className={`${stat.bg} p-3 sm:p-4 rounded-2xl border border-slate-100 flex items-center gap-2 sm:gap-3`}>
-                  <div className={`${stat.color} opacity-60 hidden xs:block`}>{stat.icon}</div>
+                <button 
+                  key={stat.id} 
+                  onClick={() => setStatusFilter(stat.id as any)}
+                  className={`relative p-3 sm:p-4 rounded-2xl border transition-all flex items-center gap-2 sm:gap-3 text-left group active:scale-95 ${
+                    statusFilter === stat.id 
+                      ? `${stat.activeBg} border-slate-300 shadow-inner` 
+                      : `${stat.bg} border-slate-100 hover:border-slate-200 hover:shadow-md`
+                  }`}
+                >
+                  <div className={`${stat.color} opacity-60 transition-transform group-hover:scale-110 hidden xs:block`}>{stat.icon}</div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1 truncate">{stat.label}</p>
                     <div className="flex flex-wrap items-baseline gap-1 sm:gap-2">
@@ -6490,7 +6498,10 @@ function CadastroVTR({
                        )}
                     </div>
                   </div>
-                </div>
+                  {statusFilter === stat.id && (
+                    <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                  )}
+                </button>
               ))}
             </div>
 
@@ -6505,22 +6516,6 @@ function CadastroVTR({
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
                 />
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                {['all', 'available', 'in_use', 'maintenance'].map((id) => (
-                  <button
-                    key={id}
-                    onClick={() => setStatusFilter(id as any)}
-                    className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all border ${
-                      statusFilter === id 
-                        ? 'bg-slate-900 text-white border-transparent shadow-lg' 
-                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                    }`}
-                  >
-                    {id === 'all' ? 'Ver Todos' : id === 'available' ? 'Livres' : id === 'in_use' ? 'Em Uso' : 'Baixados'}
-                  </button>
-                ))}
               </div>
             </div>
 
