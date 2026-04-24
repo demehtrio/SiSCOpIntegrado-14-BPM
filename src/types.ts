@@ -56,7 +56,7 @@ export interface RecordEntry {
     notes: string;
   };
   checklist?: ChecklistData;
-  source?: 'cadchecking' | 'standalone_checklist' | 'checklist_module';
+  source?: 'cadchecking' | 'cadastro_vtr' | 'standalone_checklist' | 'checklist_module';
 }
 
 export interface UserProfile {

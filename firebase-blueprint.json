@@ -122,8 +122,8 @@
       }
     },
     "Vehicle": {
-      "title": "Viatura (CadChecking)",
-      "description": "Cadastro de viatura para o sistema CadChecking",
+      "title": "Viatura (Cadastro VTR)",
+      "description": "Cadastro de viatura para o sistema Cadastro VTR",
       "type": "object",
       "properties": {
         "plate": { "type": "string", "description": "Placa da viatura" },
@@ -137,7 +137,7 @@
       "required": ["plate", "model", "prefix", "status", "lastMileage"]
     },
     "Checklist": {
-      "title": "Registro de Checklist (CadChecking)",
+      "title": "Registro de Checklist (Cadastro VTR)",
       "description": "Registro de check-in/check-out de viaturas",
       "type": "object",
       "properties": {
@@ -205,11 +205,11 @@
     },
     "/vehicles": {
       "schema": "Vehicle",
-      "description": "Coleção de viaturas do CadChecking"
+      "description": "Coleção de viaturas do Cadastro VTR"
     },
     "/checklists": {
       "schema": "Checklist",
-      "description": "Coleção de registros de uso (CadChecking)"
+      "description": "Coleção de registros de uso (Cadastro VTR)"
     },
     "/users": {
       "schema": "User",

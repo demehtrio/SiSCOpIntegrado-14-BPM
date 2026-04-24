@@ -591,7 +591,7 @@ export default function App() {
     day: '2-digit'
   }).format(new Date()).split('/').reverse().join('-');
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'form' | 'history' | 'reports' | 'settings' | 'cadchecking' | 'checklist'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'form' | 'history' | 'reports' | 'settings' | 'cadastro_vtr' | 'checklist'>('dashboard');
   const [formType, setFormType] = useState<'linha' | 'viatura' | 'mo' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -614,17 +614,17 @@ export default function App() {
   const [adminList, setAdminList] = useState<string[]>(["demetriomarques@gmail.com"]);
   const [authorizedList, setAuthorizedList] = useState<string[]>([]);
   
-  // --- CadChecking State ---
+  // --- Cadastro VTR State ---
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [cadcheckingHistory, setCadcheckingHistory] = useState<RecordEntry[]>([]);
+  const [cadastroVtrHistory, setCadastroVtrHistory] = useState<RecordEntry[]>([]);
   const [standaloneHistory, setStandaloneHistory] = useState<RecordEntry[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [operationType, setOperationType] = useState<'check-out' | 'check-in' | null>(null);
-  const [cadcheckingView, setCadcheckingView] = useState<'list' | 'history' | 'admin'>('list');
-  const [cadcheckingSearchTerm, setCadcheckingSearchTerm] = useState('');
-  const [cadcheckingStatusFilter, setCadcheckingStatusFilter] = useState<'all' | 'available' | 'in_use' | 'maintenance'>('all');
-  const [cadcheckingHistoryFilter, setCadcheckingHistoryFilter] = useState<'all' | 'check-out' | 'check-in' | 'maintenance'>('all');
-  const [cadcheckingDateFilter, setCadcheckingDateFilter] = useState({
+  const [cadastroVtrView, setCadastroVtrView] = useState<'list' | 'history' | 'admin'>('list');
+  const [cadastroVtrSearchTerm, setCadastroVtrSearchTerm] = useState('');
+  const [cadastroVtrStatusFilter, setCadastroVtrStatusFilter] = useState<'all' | 'available' | 'in_use' | 'maintenance'>('all');
+  const [cadastroVtrHistoryFilter, setCadastroVtrHistoryFilter] = useState<'all' | 'check-out' | 'check-in' | 'maintenance'>('all');
+  const [cadastroVtrDateFilter, setCadastroVtrDateFilter] = useState({
     start: format(new Date(), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
   });
@@ -645,11 +645,11 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, type: 'vehicle' | 'admin', label?: string } | null>(null);
   const [maintenanceModal, setMaintenanceModal] = useState<{ vehicle: Vehicle, notes: string } | null>(null);
-  const [currentCadcheckingTab, setCurrentCadcheckingTab] = useState<number>(0);
+  const [currentCadastroVtrTab, setCurrentCadastroVtrTab] = useState<number>(0);
   const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
   const [clearingHistory, setClearingHistory] = useState(false);
   const [isExtractingPlate, setIsExtractingPlate] = useState(false);
-  const [cadcheckingFormData, setCadcheckingFormData] = useState<any>({
+  const [cadastroVtrFormData, setCadastroVtrFormData] = useState<any>({
     identification: {
       prefix: '',
       operationalPrefix: '',
@@ -721,7 +721,7 @@ export default function App() {
     return Array.from(finalUnique.values());
   }, [vehicles]);
   
-  // --- CadChecking Effects ---
+  // --- CadastroVTR Effects ---
 
   // Vehicles listener
   useEffect(() => {
@@ -732,7 +732,7 @@ export default function App() {
         const data = doc.data() as Vehicle;
         vehicleList.push({ id: doc.id, ...data } as Vehicle);
       });
-      console.log(`[CadChecking] Vehicles updated: ${vehicleList.length} items`);
+      console.log(`[Cadastro VTR] Vehicles updated: ${vehicleList.length} items`);
       
       // Filter out inactive vehicles for the main UI
       const activeVehicles = vehicleList.filter(v => v.status !== 'inactive');
@@ -762,15 +762,15 @@ export default function App() {
     if (isAdmin && !loading && settingsLoaded && (patrimonioVtList.length > 0 || patrimonioMoList.length > 0)) {
       // If fleet is empty, bootstrap immediately
       if (vehicles.length === 0) {
-        console.log("[CadChecking] Fleet empty, triggering initial bootstrap...");
+        console.log("[Cadastro VTR] Fleet empty, triggering initial bootstrap...");
         bootstrapVehicles();
       }
     }
   }, [isAdmin, vehicles.length, loading, settingsLoaded, patrimonioVtList, patrimonioMoList]);
 
-  // CadChecking History listener
+  // Cadastro VTR History listener
   useEffect(() => {
-    if (!user || activeTab !== 'cadchecking' || cadcheckingView !== 'history') return;
+    if (!user || activeTab !== 'cadastro_vtr' || cadastroVtrView !== 'history') return;
     
     const constraints: any[] = [orderBy('timestamp', 'desc'), limit(50)];
     
@@ -784,16 +784,16 @@ export default function App() {
         const data = doc.data() as RecordEntry;
         recordList.push({ id: doc.id, ...data } as RecordEntry);
       });
-      setCadcheckingHistory(recordList);
+      setCadastroVtrHistory(recordList);
     }, (error) => {
-      console.error("Error fetching cadchecking history:", error);
+      console.error("Error fetching Cadastro VTR history:", error);
     });
     return () => unsubscribe();
-  }, [user, activeTab, cadcheckingView, isAdmin]);
+  }, [user, activeTab, cadastroVtrView, isAdmin]);
 
-  // Admin users listener (for CadChecking admin view)
+  // Admin users listener (for Cadastro VTR admin view)
   useEffect(() => {
-    if (!isAdmin || activeTab !== 'cadchecking' || cadcheckingView !== 'admin') return;
+    if (!isAdmin || activeTab !== 'cadastro_vtr' || cadastroVtrView !== 'admin') return;
     const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
       const userList: any[] = [];
       snapshot.forEach((doc) => {
@@ -802,7 +802,7 @@ export default function App() {
       setAdminUsers(userList);
     });
     return () => unsubscribe();
-  }, [isAdmin, activeTab, cadcheckingView]);
+  }, [isAdmin, activeTab, cadastroVtrView]);
 
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
 
@@ -814,7 +814,7 @@ export default function App() {
     }, 5000);
   };
 
-  // --- CadChecking Handlers ---
+  // --- Cadastro VTR Handlers ---
 
   const handleSaveVehicle = async () => {
     if (!isAdmin) return;
@@ -841,7 +841,7 @@ export default function App() {
     setDeleteConfirm({ id, type: 'vehicle', label: plate });
   };
 
-  const confirmCadcheckingDelete = async () => {
+  const confirmCadastroVtrDelete = async () => {
     if (!deleteConfirm) return;
     try {
       if (deleteConfirm.type === 'vehicle') {
@@ -919,7 +919,7 @@ export default function App() {
         if (!deduplicatedSettingsMap.has(normalizedPrefix)) {
           deduplicatedSettingsMap.set(normalizedPrefix, entry);
         } else {
-          console.warn(`[CadChecking] Duplicate prefix detected in settings: ${normalizedPrefix}. Keeping only first occurrence.`);
+          console.warn(`[Cadastro VTR] Duplicate prefix detected in settings: ${normalizedPrefix}. Keeping only first occurrence.`);
         }
       } else {
         deduplicatedSettingsMap.set(`invalid-${Math.random()}`, entry);
@@ -927,7 +927,7 @@ export default function App() {
     });
 
     const allPatrimonio = Array.from(deduplicatedSettingsMap.values());
-    console.log(`[CadChecking] Starting sync of ${allPatrimonio.length} unique items (from ${allPatrimonioRaw.length} raw items) from SisCOpI settings...`);
+    console.log(`[Cadastro VTR] Starting sync of ${allPatrimonio.length} unique items (from ${allPatrimonioRaw.length} raw items) from SisCOpI settings...`);
     
     const currentPlateIds = new Set<string>();
     
@@ -963,12 +963,12 @@ export default function App() {
           const vehicleId = plate.replace(/[^A-Z0-9]/g, '').toUpperCase();
           
           if (currentPlateIds.has(vehicleId)) {
-            console.warn(`[CadChecking] Duplicate vehicle ID detected in settings: ${vehicleId}. Skipping...`);
+            console.warn(`[Cadastro VTR] Duplicate vehicle ID detected in settings: ${vehicleId}. Skipping...`);
             continue;
           }
           
           currentPlateIds.add(vehicleId);
-          console.log(`[CadChecking] Syncing vehicle: ${prefix} | Plate: ${plate} | ID: ${vehicleId}`);
+          console.log(`[Cadastro VTR] Syncing vehicle: ${prefix} | Plate: ${plate} | ID: ${vehicleId}`);
           
           const docRef = doc(db, 'vehicles', vehicleId);
           const existing = existingInFirestore.get(vehicleId);
@@ -1023,7 +1023,7 @@ export default function App() {
       const deactivationPromises = [];
       for (const [id, data] of existingInFirestore.entries()) {
         if (!currentPlateIds.has(id) && data.status !== 'inactive') {
-          console.log(`[CadChecking] Deactivating vehicle no longer in config: ${data.prefix} (${data.plate})`);
+          console.log(`[Cadastro VTR] Deactivating vehicle no longer in config: ${data.prefix} (${data.plate})`);
           deactivationPromises.push(updateDoc(doc(db, 'vehicles', id), { status: 'inactive' }));
         }
       }
@@ -1031,7 +1031,7 @@ export default function App() {
 
       if (force) addNotification("Frota (Viaturas e Motos) sincronizada!", "success");
     } catch (err) {
-      console.error("[CadChecking] Sync error:", err);
+      console.error("[Cadastro VTR] Sync error:", err);
       handleFirestoreError(err, OperationType.WRITE, 'vehicles');
       if (force) addNotification("Erro ao sincronizar frota.", "error");
     } finally {
@@ -1122,7 +1122,7 @@ export default function App() {
     }
   };
 
-  const handleStartCadcheckingRecord = async (vehicle: Vehicle | null, type: 'check-out' | 'check-in' | null) => {
+  const handleStartCadastroVtrRecord = async (vehicle: Vehicle | null, type: 'check-out' | 'check-in' | null) => {
     if (!vehicle || !type) {
       setSelectedVehicle(null);
       setOperationType(null);
@@ -1162,8 +1162,8 @@ export default function App() {
     setSelectedVehicle(vehicle);
     setOperationType(type);
     // Para check-in (Retorno), abre direto na tela de quilometragem (aba 2)
-    setCurrentCadcheckingTab(type === 'check-in' ? 2 : 0);
-    setCadcheckingFormData({
+    setCurrentCadastroVtrTab(type === 'check-in' ? 2 : 0);
+    setCadastroVtrFormData({
       identification: {
         prefix: vehicle.prefix || 'RESERVA',
         operationalPrefix: lastCheckOut?.identification?.operationalPrefix || '',
@@ -1201,7 +1201,7 @@ export default function App() {
       },
       source: 'cadchecking'
     });
-    setCadcheckingView('list');
+    setCadastroVtrView('list');
     setSubmitting(false);
   };
 
@@ -1564,10 +1564,10 @@ export default function App() {
     }
   };
 
-  const handleSaveCadcheckingRecord = async (skipWhatsApp = false) => {
+  const handleSaveCadastroVtrRecord = async (skipWhatsApp = false) => {
     if (!selectedVehicle || !operationType || !user) return;
     
-    const currentMileage = Number(cadcheckingFormData.mileage.currentMileage);
+    const currentMileage = Number(cadastroVtrFormData.mileage.currentMileage);
     const lastMileage = Number(selectedVehicle.lastMileage || 0);
 
     if (isNaN(currentMileage) || currentMileage < lastMileage) {
@@ -1579,7 +1579,7 @@ export default function App() {
     try {
       // Add record to database
       await addDoc(collection(db, 'checklists'), {
-        data: cadcheckingFormData.identification.date || todayStr,
+        data: cadastroVtrFormData.identification.date || todayStr,
         vehicleId: selectedVehicle.id,
         type: operationType,
         timestamp: serverTimestamp(),
@@ -1587,17 +1587,17 @@ export default function App() {
         userEmail: user.email,
         userName: user.displayName || user.email?.split('@')[0],
         unidade: omeOrigem, // Use configured OME
-        identification: cadcheckingFormData.identification,
-        drivers: cadcheckingFormData.drivers,
-        mileage: cadcheckingFormData.mileage,
-        checklist: cadcheckingFormData.checklist,
+        identification: cadastroVtrFormData.identification,
+        drivers: cadastroVtrFormData.drivers,
+        mileage: cadastroVtrFormData.mileage,
+        checklist: cadastroVtrFormData.checklist,
         source: 'cadchecking'
       });
       // Update vehicle status
       await updateDoc(doc(db, 'vehicles', selectedVehicle.id), {
         status: operationType === 'check-out' ? 'in_use' : 'available',
-        lastMileage: cadcheckingFormData.mileage.currentMileage,
-        currentDriver: operationType === 'check-out' ? cadcheckingFormData.drivers.driverName : null,
+        lastMileage: cadastroVtrFormData.mileage.currentMileage,
+        currentDriver: operationType === 'check-out' ? cadastroVtrFormData.drivers.driverName : null,
         currentDriverEmail: operationType === 'check-out' ? user.email : null
       });
       
@@ -1606,7 +1606,7 @@ export default function App() {
       if (!skipWhatsApp) {
         // Format WhatsApp Message
         const recordToFormat: RecordEntry = {
-          ...cadcheckingFormData,
+          ...cadastroVtrFormData,
           id: '', // Not needed for formatting
           vehicleId: selectedVehicle.id,
           type: operationType!,
@@ -1633,8 +1633,8 @@ export default function App() {
       // Reset form
       setSelectedVehicle(null);
       setOperationType(null);
-      setCurrentCadcheckingTab(0);
-      setCadcheckingView('history');
+      setCurrentCadastroVtrTab(0);
+      setCadastroVtrView('history');
       addNotification("Registro de VTR salvo com sucesso!", "success");
     } catch (err: any) {
       handleFirestoreError(err, OperationType.WRITE, 'checklists');
@@ -1711,7 +1711,7 @@ export default function App() {
     }
   };
 
-  const generateCadcheckingHistoryPDF = async () => {
+  const generateCadastroVtrHistoryPDF = async () => {
     if (!user) return;
     setSubmitting(true);
     try {
@@ -1746,15 +1746,15 @@ export default function App() {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       
-      const period = `Período: ${format(new Date(cadcheckingDateFilter.start + 'T00:00:00'), 'dd/MM/yyyy')} até ${format(new Date(cadcheckingDateFilter.end + 'T00:00:00'), 'dd/MM/yyyy')}`;
+      const period = `Período: ${format(new Date(cadastroVtrDateFilter.start + 'T00:00:00'), 'dd/MM/yyyy')} até ${format(new Date(cadastroVtrDateFilter.end + 'T00:00:00'), 'dd/MM/yyyy')}`;
       doc.text(period, 45, 37);
 
-      const tableData = cadcheckingHistory.filter((h: any) => {
-        const matchesType = cadcheckingHistoryFilter === 'all' || 
-                           (cadcheckingHistoryFilter === 'maintenance' ? h.type.includes('maintenance') : h.type === cadcheckingHistoryFilter);
+      const tableData = cadastroVtrHistory.filter((h: any) => {
+        const matchesType = cadastroVtrHistoryFilter === 'all' || 
+                           (cadastroVtrHistoryFilter === 'maintenance' ? h.type.includes('maintenance') : h.type === cadastroVtrHistoryFilter);
         const recordDate = h.timestamp?.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
-        const start = new Date(cadcheckingDateFilter.start + 'T00:00:00');
-        const end = new Date(cadcheckingDateFilter.end + 'T23:59:59');
+        const start = new Date(cadastroVtrDateFilter.start + 'T00:00:00');
+        const end = new Date(cadastroVtrDateFilter.end + 'T23:59:59');
         const matchesDate = recordDate >= start && recordDate <= end;
         return matchesType && matchesDate;
       }).map((record: any) => {
@@ -1832,7 +1832,7 @@ export default function App() {
         // Find vehicle
         const vehicle = vehicles.find((v: any) => v.plate.replace(/[^A-Z0-9]/g, '').toUpperCase() === normalizedPlate);
         
-        setCadcheckingFormData((prev: any) => ({ 
+        setCadastroVtrFormData((prev: any) => ({ 
           ...prev, 
           identification: {
             ...prev.identification,
@@ -2150,7 +2150,7 @@ export default function App() {
 
       // Reset local state
       setHistoryData([]);
-      setCadcheckingHistory([]);
+      setCadastroVtrHistory([]);
       setStandaloneHistory([]);
       
       setShowClearHistoryModal(false);
@@ -3231,11 +3231,11 @@ export default function App() {
               label="Relatórios"
             />
             <SidebarLink 
-              active={activeTab === 'cadchecking'} 
+              active={activeTab === 'cadastro_vtr'} 
               onClick={() => {
-                setActiveTab('cadchecking');
-                setCadcheckingSearchTerm('');
-                setCadcheckingStatusFilter('all');
+                setActiveTab('cadastro_vtr');
+                setCadastroVtrSearchTerm('');
+                setCadastroVtrStatusFilter('all');
               }}
               icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
               label="Cadastro VTR"
@@ -3287,11 +3287,11 @@ export default function App() {
           <MobileNavLink active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={20} />} label="Histórico" />
           <MobileNavLink active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<BarChart3 size={20} />} label="Relatórios" />
           <MobileNavLink 
-            active={activeTab === 'cadchecking'} 
+            active={activeTab === 'cadastro_vtr'} 
             onClick={() => {
-              setActiveTab('cadchecking');
-              setCadcheckingSearchTerm('');
-              setCadcheckingStatusFilter('all');
+              setActiveTab('cadastro_vtr');
+              setCadastroVtrSearchTerm('');
+              setCadastroVtrStatusFilter('all');
             }} 
             icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />} 
             label="Cadastro VTR" 
@@ -3422,9 +3422,9 @@ export default function App() {
                     color="blue"
                     icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="Cadastro VTR" className="w-10 h-10 object-contain transition-transform group-hover:scale-110" referrerPolicy="no-referrer" />}
                     onClick={() => {
-                      setActiveTab('cadchecking');
-                      setCadcheckingSearchTerm('');
-                      setCadcheckingStatusFilter('all');
+                      setActiveTab('cadastro_vtr');
+                      setCadastroVtrSearchTerm('');
+                      setCadastroVtrStatusFilter('all');
                     }}
                   />
                   <DashboardCard 
@@ -3518,9 +3518,9 @@ export default function App() {
                   </div>
                   <button 
                     onClick={() => {
-                      setActiveTab('cadchecking');
-                      setCadcheckingSearchTerm('');
-                      setCadcheckingStatusFilter('all');
+                      setActiveTab('cadastro_vtr');
+                      setCadastroVtrSearchTerm('');
+                      setCadastroVtrStatusFilter('all');
                     }}
                     className="text-blue-600 font-bold hover:underline flex items-center gap-2"
                   >
@@ -4772,48 +4772,49 @@ export default function App() {
               </motion.div>
             )}
 
-            {activeTab === 'cadchecking' && (
+            {activeTab === 'cadastro_vtr' && (
               <motion.div 
-                key="cadchecking"
+                key="cadastro_vtr"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                <CadChecking 
+                <CadastroVTR 
                   user={user}
                   isAdmin={isAdmin}
                   vehicles={vehicles}
-                  history={cadcheckingHistory}
+                  uniqueVehicles={uniqueVehicles}
+                  history={cadastroVtrHistory}
                   selectedVehicle={selectedVehicle}
                   operationType={operationType}
-                  view={cadcheckingView}
-                  setView={setCadcheckingView}
-                  searchTerm={cadcheckingSearchTerm}
-                  setSearchTerm={setCadcheckingSearchTerm}
-                  statusFilter={cadcheckingStatusFilter}
-                  setStatusFilter={setCadcheckingStatusFilter}
-                  historyFilter={cadcheckingHistoryFilter}
-                  setHistoryFilter={setCadcheckingHistoryFilter}
+                  view={cadastroVtrView}
+                  setView={setCadastroVtrView}
+                  searchTerm={cadastroVtrSearchTerm}
+                  setSearchTerm={setCadastroVtrSearchTerm}
+                  statusFilter={cadastroVtrStatusFilter}
+                  setStatusFilter={setCadastroVtrStatusFilter}
+                  historyFilter={cadastroVtrHistoryFilter}
+                  setHistoryFilter={setCadastroVtrHistoryFilter}
                   expandedHistoryId={expandedHistoryId}
                   setExpandedHistoryId={setExpandedHistoryId}
-                  onStartRecord={handleStartCadcheckingRecord}
+                  onStartRecord={handleStartCadastroVtrRecord}
                   onToggleMaintenance={handleToggleMaintenance}
                   maintenanceModal={maintenanceModal}
                   setMaintenanceModal={setMaintenanceModal}
-                  onSaveRecord={handleSaveCadcheckingRecord}
+                  onSaveRecord={handleSaveCadastroVtrRecord}
                   onResendWhatsApp={handleResendWhatsApp}
                   onBootstrap={bootstrapVehicles}
                   onSanitizeFleet={handleSanitizeFleet}
                   isSyncing={isSyncing}
-                  formData={cadcheckingFormData}
-                  setFormData={setCadcheckingFormData}
+                  formData={cadastroVtrFormData}
+                  setFormData={setCadastroVtrFormData}
                   submitting={submitting}
-                  dateFilter={cadcheckingDateFilter}
-                  setDateFilter={setCadcheckingDateFilter}
-                  onGeneratePDF={generateCadcheckingHistoryPDF}
+                  dateFilter={cadastroVtrDateFilter}
+                  setDateFilter={setCadastroVtrDateFilter}
+                  onGeneratePDF={generateCadastroVtrHistoryPDF}
                   onGenerateDetailedPDF={generateDetailedChecklistPDF}
-                  currentTab={currentCadcheckingTab}
-                  setCurrentTab={setCurrentCadcheckingTab}
+                  currentTab={currentCadastroVtrTab}
+                  setCurrentTab={setCurrentCadastroVtrTab}
                   personnelList={personnelList}
                   prefixoVtList={prefixoVtList}
                   moList={moList}
@@ -6270,8 +6271,8 @@ function ChecklistModule({
   );
 }
 
-// --- CadChecking Component ---
-function CadChecking({ 
+// --- Cadastro VTR Component ---
+function CadastroVTR({ 
   user, 
   isAdmin, 
   vehicles, 
@@ -6358,7 +6359,7 @@ function CadChecking({
   onGenerateDetailedPDF: (record: RecordEntry) => void;
   omeOrigemList: string[];
 }) {  
-  console.log(`[CadChecking] Rendering with ${vehicles.length} total vehicles`);
+  console.log(`[Cadastro VTR] Rendering with ${vehicles.length} total vehicles`);
   
   const uniqueVehicles = React.useMemo(() => {
     // Fase 1: Deduplicação por Placa (padrão técnico)
@@ -6452,7 +6453,7 @@ function CadChecking({
     return matchesSearch && matchesStatus;
   }), [uniqueVehicles, searchTerm, statusFilter]);
 
-  console.log(`[CadChecking] Filtered to ${filteredVehicles.length} vehicles (Search: "${searchTerm}", Status: "${statusFilter}")`);
+  console.log(`[Cadastro VTR] Filtered to ${filteredVehicles.length} vehicles (Search: "${searchTerm}", Status: "${statusFilter}")`);
 
   const filteredHistory = React.useMemo(() => history.filter((h: RecordEntry) => {
     // Type filter
@@ -6688,7 +6689,7 @@ function CadChecking({
             {/* History List */}
             <div className="space-y-4">
               {filteredHistory.map((record: any) => (
-                <CadcheckingHistoryItem 
+                <CadastroVtrHistoryItem 
                   key={record.id} 
                   record={record} 
                   isExpanded={expandedHistoryId === record.id}
@@ -7118,7 +7119,7 @@ function CadChecking({
   );
 }
 
-// --- CadChecking Sub-components ---
+// --- Cadastro VTR Sub-components ---
 
 function VehicleCard({ 
   vehicle, 
@@ -7239,7 +7240,7 @@ function VehicleCard({
   );
 }
 
-function CadcheckingHistoryItem({ 
+function CadastroVtrHistoryItem({ 
   record, 
   isExpanded, 
   onToggle, 
