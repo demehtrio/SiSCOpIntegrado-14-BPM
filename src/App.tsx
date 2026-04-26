@@ -1554,7 +1554,7 @@ export default function App() {
 
   const handleResendWhatsApp = (record: RecordEntry) => {
     const message = formatWhatsAppMessage(record);
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     
     try {
       const w = window.open(whatsappUrl, '_blank');
@@ -1618,7 +1618,7 @@ export default function App() {
           source: 'cadchecking'
         };
         const finalMessage = formatWhatsAppMessage(recordToFormat);
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(finalMessage)}`;
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
         
         try {
           const w = window.open(whatsappUrl, '_blank');
@@ -1689,7 +1689,7 @@ export default function App() {
           source: 'standalone_checklist'
         };
         const finalMessage = formatWhatsAppMessage(recordToFormat);
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(finalMessage)}`;
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
         
         try {
           const w = window.open(whatsappUrl, '_blank');
