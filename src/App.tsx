@@ -622,7 +622,7 @@ export default function App() {
   const [operationType, setOperationType] = useState<'check-out' | 'check-in' | null>(null);
   const [cadastroVtrView, setCadastroVtrView] = useState<'list' | 'history' | 'admin'>('list');
   const [cadastroVtrSearchTerm, setCadastroVtrSearchTerm] = useState('');
-  const [cadastroVtrStatusFilter, setCadastroVtrStatusFilter] = useState<'all' | 'available' | 'in_use' | 'maintenance'>('all');
+  const [cadastroVtrStatusFilter, setCadastroVtrStatusFilter] = useState<'all' | 'available' | 'in_use' | 'maintenance'>('available');
   const [cadastroVtrHistoryFilter, setCadastroVtrHistoryFilter] = useState<'all' | 'check-out' | 'check-in' | 'maintenance'>('all');
   const [cadastroVtrDateFilter, setCadastroVtrDateFilter] = useState({
     start: format(new Date(), 'yyyy-MM-dd'),
@@ -3237,7 +3237,7 @@ export default function App() {
               onClick={() => {
                 setActiveTab('cadastro_vtr');
                 setCadastroVtrSearchTerm('');
-                setCadastroVtrStatusFilter('all');
+                setCadastroVtrStatusFilter('available');
               }}
               icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
               label="Cadastro VTR"
@@ -3293,7 +3293,7 @@ export default function App() {
             onClick={() => {
               setActiveTab('cadastro_vtr');
               setCadastroVtrSearchTerm('');
-              setCadastroVtrStatusFilter('all');
+              setCadastroVtrStatusFilter('available');
             }} 
             icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />} 
             label="Cadastro VTR" 
@@ -3426,7 +3426,7 @@ export default function App() {
                     onClick={() => {
                       setActiveTab('cadastro_vtr');
                       setCadastroVtrSearchTerm('');
-                      setCadastroVtrStatusFilter('all');
+                      setCadastroVtrStatusFilter('available');
                     }}
                   />
                   <DashboardCard 
@@ -3522,7 +3522,7 @@ export default function App() {
                     onClick={() => {
                       setActiveTab('cadastro_vtr');
                       setCadastroVtrSearchTerm('');
-                      setCadastroVtrStatusFilter('all');
+                      setCadastroVtrStatusFilter('available');
                     }}
                     className="text-blue-600 font-bold hover:underline flex items-center gap-2"
                   >
@@ -6472,10 +6472,10 @@ function CadastroVTR({
             {/* Fleet Status Summary - Interactive Buttons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', activeBg: 'bg-slate-200', icon: <Truck size={16} />, sub: `${counts.cars} C / ${counts.motos} M` },
                 { id: 'available', label: 'Livres', count: counts.available, color: 'text-emerald-600', bg: 'bg-emerald-50', activeBg: 'bg-emerald-100', icon: <CheckCircle2 size={16} />, sub: `${counts.availableCars} / ${counts.availableMotos}` },
                 { id: 'in_use', label: 'Em Uso', count: counts.in_use, color: 'text-blue-600', bg: 'bg-blue-50', activeBg: 'bg-blue-100', icon: <RefreshCw size={16} />, sub: `${counts.inUseCars} / ${counts.inUseMotos}` },
-                { id: 'maintenance', label: 'Baixa', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', activeBg: 'bg-amber-100', icon: <Wrench size={16} />, sub: `${counts.maintenanceCars} / ${counts.maintenanceMotos}` }
+                { id: 'maintenance', label: 'Baixa', count: counts.maintenance, color: 'text-amber-600', bg: 'bg-amber-50', activeBg: 'bg-amber-100', icon: <Wrench size={16} />, sub: `${counts.maintenanceCars} / ${counts.maintenanceMotos}` },
+                { id: 'all', label: 'Total', count: counts.all, color: 'text-slate-600', bg: 'bg-slate-50', activeBg: 'bg-slate-200', icon: <Truck size={16} />, sub: `${counts.cars} C / ${counts.motos} M` }
               ].map((stat) => (
                 <button 
                   key={stat.id} 
