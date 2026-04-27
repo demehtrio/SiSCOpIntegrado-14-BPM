@@ -1280,7 +1280,7 @@ export default function App() {
     if (record.checklist) {
       const c = record.checklist;
       message += `*ESTADO GERAL*\n`;
-      message += `📑 *Mapa Diário:* ${c.mapaDiario || '---'}\n`;
+      message += `❄️ *Ar Condicionado:* ${c.arCondicionado || '---'}\n`;
       message += `✨ *Limpeza/Conservação:* ${c.limpeza || '---'}\n`;
       message += `🛢️ *Óleo Motor:* ${c.oleoMotor || '---'}\n`;
       if (c.proxTrocaOleoKm) message += `🔜 *Próx. Troca Óleo (Km):* ${c.proxTrocaOleoKm}\n`;
@@ -1463,7 +1463,7 @@ export default function App() {
         
         // Estado Técnico
         addSection('Estado Técnico', [
-          ['Mapa Diário', c.mapaDiario],
+          ['Ar Condicionado', c.arCondicionado],
           ['Limpeza', c.limpeza],
           ['Equipamentos', c.equipamentos.join(', ') || 'Nenhum']
         ]);
@@ -5642,7 +5642,7 @@ function ChecklistModule({
       notes: ''
     },
     checklist: {
-      mapaDiario: 'SIM',
+      arCondicionado: 'FUNCIONANDO',
       limpeza: 'SIM',
       equipamentos: [],
       luzFarolAlto: 'Todos funcionam',
@@ -5898,15 +5898,15 @@ function ChecklistModule({
                   <div className="space-y-12">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                       <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 ml-1">Possui Mapa Diário?</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 ml-1">Ar Condicionado</label>
                         <div className="flex gap-3">
-                          {['SIM', 'NÃO'].map(opt => (
+                          {['FUNCIONANDO', 'COM DEFEITO'].map(opt => (
                             <button
                               key={opt}
                               type="button"
-                              onClick={() => setFormData({...formData, checklist: {...formData.checklist, mapaDiario: opt}})}
+                              onClick={() => setFormData({...formData, checklist: {...formData.checklist, arCondicionado: opt}})}
                               className={`flex-1 py-4 rounded-2xl text-sm font-black transition-all border ${
-                                formData.checklist.mapaDiario === opt 
+                                formData.checklist.arCondicionado === opt 
                                 ? 'bg-slate-900 text-white border-transparent shadow-xl' 
                                 : 'bg-white border-slate-200 text-slate-500 hover:bg-white/80'
                               }`}

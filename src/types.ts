@@ -13,7 +13,7 @@ export interface Vehicle {
 }
 
 export interface ChecklistData {
-  mapaDiario: string;
+  arCondicionado: string;
   limpeza: string;
   equipamentos: string[];
   luzFarolAlto: string;
