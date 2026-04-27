@@ -909,7 +909,7 @@ export default function App() {
 
     // Mapeamento para sincronização - Usamos o registro bruto para evitar perder veículos
     // se houver pequenas variações na string, mas permitimos vincular pela placa se encontrada.
-    const syncMap = new Map<string, { item: string, type: string, plate?: string }>();
+    const syncMap = new Map<string, { item: string, type: string, plate?: string, partsCount: number }>();
     
     const isPlatePattern = (str: string) => {
       const clean = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
@@ -943,8 +943,13 @@ export default function App() {
       }
 
       // Usamos a placa como ID se encontrada, caso contrário usamos um hash da string
-      const syncKey = foundPlate || `v-${entry.item.replace(/[^A-Z0-9]/g, '')}`;
-      syncMap.set(syncKey, { ...entry, plate: foundPlate });
+      const syncKey = (foundPlate || `v-${entry.item.replace(/[^A-Z0-9]/g, '')}`).toUpperCase();
+      
+      // Deduplicação inteligente: se já existe esta placa no mapa, mantemos a versão que tem MAIS informações (mais partes separadas por hífen)
+      const existingInMap = syncMap.get(syncKey);
+      if (!existingInMap || parts.length > existingInMap.partsCount) {
+        syncMap.set(syncKey, { ...entry, plate: foundPlate, partsCount: parts.length });
+      }
     });
 
     console.log(`[Cadastro VTR] Sincronizando ${syncMap.size} itens únicos detectados (de ${allPatrimonioRaw.length} entradas brutas).`);
@@ -969,6 +974,7 @@ export default function App() {
         if (detectedPlate) {
           const plateIndex = parts.findIndex(p => p.replace(/[^A-Z0-9]/g, '').toUpperCase() === detectedPlate);
           if (plateIndex !== -1) {
+            // O prefixo geralmente é a parte que não é a placa. Se a placa for a primeira, pegamos a segunda. Se houver.
             prefix = parts[plateIndex === 0 ? (parts.length > 1 ? 1 : 0) : 0];
           } else {
             prefix = parts[0];
@@ -977,8 +983,14 @@ export default function App() {
           prefix = parts[0] || 'RESERVA';
         }
         
-        const otherParts = parts.filter(p => p !== plate && p !== prefix);
-        const model = otherParts.join(' ') || (type === 'mo' ? 'MOTOCICLETA' : 'Viatura');
+        // Remove a placa e o prefixo das partes para descobrir o modelo
+        const otherParts = parts.filter(p => {
+          const cleanP = p.replace(/[^A-Z0-9]/g, '').toUpperCase();
+          const cleanPlate = plate.replace(/[^A-Z0-9]/g, '').toUpperCase();
+          return cleanP !== cleanPlate && p !== prefix;
+        });
+        
+        const rawModel = otherParts.join(' ');
         
         currentSyncIds.add(vehicleId);
         console.log(`[Cadastro VTR] Sincronizando veículo: ${prefix} | Placa: ${plate} | ID: ${vehicleId}`);
@@ -986,8 +998,8 @@ export default function App() {
         const docRef = doc(db, 'vehicles', vehicleId);
         const existing = existingInFirestore.get(vehicleId);
         
-        let correctedModel = model;
-        const upperModel = model.toUpperCase();
+        let correctedModel = rawModel || (type === 'mo' ? 'MOTOCICLETA' : 'Viatura');
+        const upperModel = correctedModel.toUpperCase();
         
         // Padronização de modelos
         if (upperModel.includes('HILUX') || upperModel.includes('HILLUX')) correctedModel = 'TOYOTA/HILUX';
@@ -999,6 +1011,16 @@ export default function App() {
         else if (upperModel.includes('ONIX')) correctedModel = 'CHEVROLET/ONIX';
         else if (upperModel.includes('L200') || upperModel.includes('L 200')) correctedModel = 'MITSUBISHI/L200';
         else if (type === 'mo' && (upperModel === 'MOTO' || upperModel === 'MOTOCICLETA')) correctedModel = 'MOTOCICLETA';
+
+        // LÓGICA PARA EVITAR SUMIR NOMES:
+        // Se o modelo novo for genérico ('Viatura' ou 'MOTOCICLETA') e o existente já tiver um modelo específico, preservamos o existente.
+        const isGenericNew = correctedModel === 'Viatura' || correctedModel === 'MOTOCICLETA';
+        const existingModel = existing?.model;
+        const isGenericExisting = !existingModel || existingModel === 'Viatura' || existingModel === 'MOTOCICLETA';
+        
+        if (isGenericNew && !isGenericExisting) {
+          correctedModel = existingModel;
+        }
 
         const vehicleData = {
           prefix,
