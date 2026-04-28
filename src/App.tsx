@@ -72,6 +72,7 @@ import {
   MapPin,
   Users,
   Info,
+  Bell,
   Settings as SettingsIcon,
   Trash2,
   Save,
@@ -116,7 +117,7 @@ import {
   LUZES_TRASEIRAS
 } from './constants';
 import { parseChecklistDescription, extractLicensePlateFromImage } from './services/geminiService';
-import { Vehicle, RecordEntry, UserProfile, ChecklistData } from './types';
+import { Vehicle, RecordEntry, UserProfile, ChecklistData, AppNotification } from './types';
 
 // --- Constants ---
 const LOGO_14BPM_URL = "https://i.pinimg.com/originals/28/33/bd/2833bdc504f4fc4f3cb3c2817a664fc9.png";
@@ -805,6 +806,68 @@ export default function App() {
   }, [isAdmin, activeTab, cadastroVtrView]);
 
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
+  const [persistentNotifications, setPersistentNotifications] = useState<AppNotification[]>([]);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+
+  // Notifications listener
+  useEffect(() => {
+    if (!user) {
+      setPersistentNotifications([]);
+      return;
+    }
+    
+    // Subscribe to notifications where targetUser is 'all' or the current user's email
+    const q = query(
+      collection(db, 'notifications'),
+      where('targetUser', 'in', ['all', user.email || '']),
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: AppNotification[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        list.push({ 
+          id: doc.id, 
+          ...data,
+          timestamp: data.timestamp
+        } as AppNotification);
+      });
+      setPersistentNotifications(list);
+    }, (error) => {
+      console.error("Error fetching persistent notifications:", error);
+    });
+    
+    return () => unsubscribe();
+  }, [user]);
+
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'notifications', id), { read: true });
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const unread = persistentNotifications.filter(n => !n.read);
+    for (const n of unread) {
+      if (n.id) await markNotificationAsRead(n.id);
+    }
+  };
+
+  const createAppNotification = async (notif: Omit<AppNotification, 'timestamp' | 'read'>) => {
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        ...notif,
+        timestamp: serverTimestamp(),
+        read: false
+      });
+    } catch (err) {
+      console.error("Error creating notification:", err);
+    }
+  };
 
   const addNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -1139,6 +1202,17 @@ export default function App() {
         });
       }
       addNotification(`Viatura ${newStatus === 'maintenance' ? 'em manutenção' : 'disponível'}`, "info");
+      
+      // Create persistent notification
+      createAppNotification({
+        title: isEnteringMaintenance ? 'Viatura em Manutenção' : 'Viatura Liberada',
+        message: `Viatura ${vehicle.prefix} (${vehicle.plate}) ${isEnteringMaintenance ? 'foi para manutenção' : 'retornou da manutenção'}.${notes ? ' Obs: ' + notes : ''}`,
+        type: isEnteringMaintenance ? 'warning' : 'success',
+        targetUser: 'all',
+        category: 'maintenance',
+        vehicleId: vehicle.id
+      });
+
       setMaintenanceModal(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'vehicles');
@@ -1626,6 +1700,42 @@ export default function App() {
       });
       
       addNotification("Registro salvo com sucesso!", "success");
+
+      // Create persistent notification for operation completion
+      createAppNotification({
+        title: operationType === 'check-out' ? 'Saída de Viatura' : 'Entrada de Viatura',
+        message: `${operationType === 'check-out' ? 'Saída' : 'Entrada'} da viatura ${selectedVehicle.prefix} (${selectedVehicle.plate}) registrada por ${user.displayName || user.email?.split('@')[0]}.`,
+        type: 'success',
+        targetUser: 'all',
+        category: 'operation',
+        vehicleId: selectedVehicle.id
+      });
+
+      // Alert if there are issues in checklist
+      if (cadastroVtrFormData.checklist?.arCondicionado === 'COM DEFEITO') {
+        createAppNotification({
+          title: 'Defeito Reportado: Ar Condicionado',
+          message: `Ar Condicionado da viatura ${selectedVehicle.prefix} reportado COM DEFEITO no checklist.`,
+          type: 'warning',
+          targetUser: 'all',
+          category: 'maintenance',
+          vehicleId: selectedVehicle.id
+        });
+      }
+
+      // Check for maintenance based on mileage threshold (proxTrocaOleoKm)
+      const nextOilChange = Number(cadastroVtrFormData.checklist?.proxTrocaOleoKm);
+      const currentMileageNum = Number(cadastroVtrFormData.mileage.currentMileage);
+      if (!isNaN(nextOilChange) && nextOilChange > 0 && currentMileageNum >= nextOilChange) {
+        createAppNotification({
+          title: 'Manutenção Preditiva: Troca de Óleo',
+          message: `Viatura ${selectedVehicle.prefix} atingiu a quilometragem para troca de óleo (${currentMileageNum}km >= ${nextOilChange}km).`,
+          type: 'error',
+          targetUser: 'all',
+          category: 'maintenance',
+          vehicleId: selectedVehicle.id
+        });
+      }
 
       if (!skipWhatsApp) {
         // Format WhatsApp Message
@@ -3142,6 +3252,15 @@ export default function App() {
   return (
     <ErrorBoundary>
       <LoadingOverlay isVisible={submitting} />
+      
+      <NotificationCenter 
+        isOpen={isNotificationCenterOpen}
+        onClose={() => setIsNotificationCenterOpen(false)}
+        notifications={persistentNotifications}
+        onMarkRead={markNotificationAsRead}
+        onMarkAllRead={markAllAsRead}
+      />
+
       <div className="min-h-screen bg-slate-50 pb-20 md:pb-0 md:pl-64">
         {/* Logout Confirmation Modal */}
         {showLogoutModal && (
@@ -3280,6 +3399,14 @@ export default function App() {
                 label="Configurações"
               />
             )}
+            <div className="h-px bg-slate-100 my-4 mx-2"></div>
+            <SidebarLink 
+              active={isNotificationCenterOpen} 
+              onClick={() => setIsNotificationCenterOpen(true)}
+              icon={<Bell size={20} />}
+              label="Notificações"
+              badge={persistentNotifications.filter(n => !n.read).length > 0 ? String(persistentNotifications.filter(n => !n.read).length) : undefined}
+            />
           </nav>
 
           <div className="mt-auto pt-6 border-t border-slate-100">
@@ -3349,6 +3476,17 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsNotificationCenterOpen(true)}
+              className="relative p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <Bell size={20} />
+              {persistentNotifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-blue-900 animate-pulse">
+                  {persistentNotifications.filter(n => !n.read).length}
+                </span>
+              )}
+            </button>
             <img 
               src={user.photoURL || ""} 
               alt="" 
@@ -4919,6 +5057,122 @@ export default function App() {
 }
 
 // ... (SidebarLink, MobileNavLink, DashboardCard, HistoryItemProps, HistoryItem remain same)
+
+function NotificationCenter({ 
+  isOpen, 
+  onClose, 
+  notifications, 
+  onMarkRead, 
+  onMarkAllRead 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  notifications: AppNotification[], 
+  onMarkRead: (id: string) => void,
+  onMarkAllRead: () => void
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200]"
+          />
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed right-0 top-0 bottom-0 w-full max-w-sm bg-slate-50 shadow-2xl z-[201] flex flex-col"
+          >
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-blue-900 text-white shadow-lg">
+              <div className="flex items-center gap-3">
+                <Bell size={20} />
+                <h2 className="text-xl font-black tracking-tight uppercase">Notificações</h2>
+              </div>
+              <button 
+                onClick={onClose}
+                className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                id="close-notifications"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+              {notifications.length > 0 ? (
+                <>
+                  <div className="flex justify-between items-center mb-2 px-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{notifications.length} Alertas Recentes</span>
+                    <button 
+                      onClick={onMarkAllRead}
+                      className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-tighter"
+                      id="mark-all-read"
+                    >
+                      Marcar todas como lidas
+                    </button>
+                  </div>
+                  {notifications.map((notif) => (
+                    <div 
+                      key={notif.id}
+                      onClick={() => notif.id && !notif.read && onMarkRead(notif.id)}
+                      className={`p-4 rounded-[1.5rem] border transition-all cursor-pointer relative group ${
+                        notif.read ? 'bg-white border-slate-100 opacity-70 scale-[0.98]' : 'bg-white border-blue-100 shadow-md hover:shadow-lg'
+                      }`}
+                      id={`notification-${notif.id}`}
+                    >
+                      {!notif.read && (
+                        <div className="absolute top-4 right-4 w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+                      )}
+                      <div className="flex gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                          notif.type === 'success' ? 'bg-emerald-50 text-emerald-600' :
+                          notif.type === 'warning' ? 'bg-amber-50 text-amber-600' :
+                          notif.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                        }`}>
+                          {notif.category === 'maintenance' ? <Wrench size={22} /> : 
+                           notif.category === 'operation' ? <RefreshCw size={22} /> : <Info size={22} />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className={`text-sm font-black truncate leading-tight ${notif.read ? 'text-slate-600' : 'text-slate-900'}`}>{notif.title}</h3>
+                          <p className="text-xs text-slate-500 mt-1 lines-clamp-3 font-medium leading-relaxed">{notif.message}</p>
+                          <div className="flex items-center gap-2 mt-3">
+                             <div className="px-2 py-0.5 rounded-full bg-slate-100 text-[8px] font-black uppercase text-slate-400 tracking-wider">
+                               {notif.category}
+                             </div>
+                             <p className="text-[9px] text-slate-300 font-bold uppercase tracking-tighter">
+                              {notif.timestamp ? format(notif.timestamp.toDate(), "dd 'de' MMM, HH:mm", { locale: ptBR }) : 'Agora'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40">
+                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                    <Bell size={40} className="text-slate-300" />
+                  </div>
+                  <p className="font-black text-slate-500 uppercase tracking-widest text-sm">Sem novidades!</p>
+                  <p className="text-xs font-medium text-slate-400 mt-1">Sua central de notificações está vazia.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 bg-white border-t border-slate-100 text-center">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-40">Sistema Integrado SisCOpI</p>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
 
 function SidebarLink({ active, onClick, icon, label, badge }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, badge?: string }) {
   return (

@@ -184,6 +184,23 @@
         "displayName": { "type": "string" }
       },
       "required": ["email", "role"]
+    },
+    "Notification": {
+      "title": "Notificação",
+      "description": "Notificações do sistema para os usuários",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "warning", "error", "success"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" },
+        "targetUser": { "type": "string", "description": "E-mail do usuário alvo ou 'all'" },
+        "category": { "type": "string", "enum": ["maintenance", "operation", "system"] },
+        "link": { "type": "string" },
+        "vehicleId": { "type": "string" }
+      },
+      "required": ["title", "message", "type", "timestamp", "read", "targetUser", "category"]
     }
   },
   "firestore": {
@@ -214,6 +231,10 @@
     "/users": {
       "schema": "User",
       "description": "Coleção de perfis de usuários"
+    },
+    "/notifications": {
+      "schema": "Notification",
+      "description": "Coleção de notificações do sistema"
     }
   }
 }

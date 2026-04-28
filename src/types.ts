@@ -59,6 +59,19 @@ export interface RecordEntry {
   source?: 'cadchecking' | 'cadastro_vtr' | 'standalone_checklist' | 'checklist_module';
 }
 
+export interface AppNotification {
+  id?: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  timestamp: any;
+  read: boolean;
+  targetUser: string;
+  category: 'maintenance' | 'operation' | 'system';
+  link?: string;
+  vehicleId?: string;
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
