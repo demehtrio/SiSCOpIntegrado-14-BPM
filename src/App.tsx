@@ -1328,7 +1328,7 @@ export default function App() {
   const formatWhatsAppMessage = (record: RecordEntry) => {
     const isCadVtr = record.source === 'cadchecking' || record.source === 'cadastro_vtr' || record.source === 'checklist_module';
     const isExit = record.type === 'check-out' || record.type === 'maintenance-out';
-    const typeLabel = isExit ? '🚀 SAÍDA' : '📥 ENTRADA/RETORNO';
+    const typeLabel = isExit ? 'SAÍDA' : 'ENTRADA/RETORNO';
     
     // Plate formatting
     const plateFormatted = record.identification?.plate?.replace(/[\s-]/g, '').toUpperCase() || '---';
@@ -1358,7 +1358,8 @@ export default function App() {
     const mileage = record.mileage?.currentMileage || '---';
     msg += `⏲️ *KM:* ${mileage}${mileage !== '---' ? ' km' : ''}\n`;
     
-    msg += `📅 *Data:* ${dateFormatted} às ${record.identification?.time || '---'}\n`;
+    msg += `📅 *Data:* ${dateFormatted}\n`;
+    msg += `⏰ *Hora:* ${record.identification?.time || '---'}\n`;
     msg += `👮 *Responsável:* ${driverFormatted}\n`;
     
     // Only show Employment for non-CadVtr records or if specifically needed
@@ -1391,7 +1392,7 @@ export default function App() {
       msg += `\n📝 *Observações:* ${record.mileage.notes}\n`;
     }
 
-    msg += `\n_Gerado via SisCOpI - ${omeOrigem}_`;
+    msg += `\nGerado via SisCOpI - ${omeOrigem}`;
     return msg;
   };
 
