@@ -1599,18 +1599,32 @@ export default function App() {
     }
   };
 
-  const handleResendWhatsApp = (record: RecordEntry) => {
+  const handleWhatsAppShare = (record: RecordEntry) => {
     const message = formatWhatsAppMessage(record);
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    // Use the official universal link which is more robust across platforms than wa.me
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     
-    try {
-      const w = window.open(whatsappUrl, '_blank');
-      if (!w) {
+    // Check if we're on mobile to use a direct redirect approach which triggers app intents better
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // On mobile, direct assignment is much better for triggering native app intents
+      // without being blocked by popup blockers or stuck in a broken new tab
+      window.location.href = whatsappUrl;
+    } else {
+      try {
+        const w = window.open(whatsappUrl, '_blank');
+        if (!w || w.closed || typeof w.closed === 'undefined') {
+          window.location.href = whatsappUrl;
+        }
+      } catch (e) {
         window.location.href = whatsappUrl;
       }
-    } catch (e) {
-      window.location.href = whatsappUrl;
     }
+  };
+
+  const handleResendWhatsApp = (record: RecordEntry) => {
+    handleWhatsAppShare(record);
   };
 
   const handleSaveCadastroVtrRecord = async (skipWhatsApp = false) => {
@@ -1698,20 +1712,11 @@ export default function App() {
           timestamp: new Date(),
           source: 'cadchecking'
         };
-        const finalMessage = formatWhatsAppMessage(recordToFormat);
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
         
-        try {
-          const w = window.open(whatsappUrl, '_blank');
-          if (!w) {
-            window.location.href = whatsappUrl;
-          }
-        } catch (e) {
-          window.location.href = whatsappUrl;
-        }
+        handleWhatsAppShare(recordToFormat);
         
-        // Add a small delay for mobile browsers to process the window.open/assign before state changes
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Add a small delay for mobile browsers to process the redirect before state changes
+        await new Promise(resolve => setTimeout(resolve, 800));
       }
       // Reset form
       setSelectedVehicle(null);
@@ -1774,20 +1779,11 @@ export default function App() {
           timestamp: new Date(),
           source: 'standalone_checklist'
         };
-        const finalMessage = formatWhatsAppMessage(recordToFormat);
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(finalMessage)}`;
         
-        try {
-          const w = window.open(whatsappUrl, '_blank');
-          if (!w) {
-            window.location.href = whatsappUrl;
-          }
-        } catch (e) {
-          window.location.href = whatsappUrl;
-        }
+        handleWhatsAppShare(recordToFormat);
         
         // Add a small delay for mobile browsers
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
       }
       return true;
     } catch (err: any) {
