@@ -1360,10 +1360,14 @@ export default function App() {
     
     msg += `📅 *Data:* ${dateFormatted} às ${record.identification?.time || '---'}\n`;
     msg += `👮 *Responsável:* ${driverFormatted}\n`;
-    if (record.drivers?.serviceType) msg += `🛞 *Emprego:* ${record.drivers.serviceType}\n`;
     
-    // Checklist Information
-    if (record.checklist) {
+    // Only show Employment for non-CadVtr records or if specifically needed
+    if (!isCadVtr && record.drivers?.serviceType) {
+      msg += `🛞 *Emprego:* ${record.drivers.serviceType}\n`;
+    }
+    
+    // Checklist Information - Only for Technical Checklist, NOT for Cadastro VTR
+    if (record.checklist && !isCadVtr) {
       const c = record.checklist;
       msg += `\n*CONDIÇÕES DO VEÍCULO*\n`;
       msg += `❄️ *Ar Condicionado:* ${c.arCondicionado || '---'}\n`;
@@ -1378,6 +1382,9 @@ export default function App() {
       if (c.descricaoAlteracoes) {
         msg += `\n📝 *Alterações:* ${c.descricaoAlteracoes}\n`;
       }
+    } else if (isCadVtr && record.checklist?.descricaoAlteracoes) {
+      // For CadVtr, only show the "Alterações" description if it exists
+      msg += `\n📝 *Alterações:* ${record.checklist.descricaoAlteracoes}\n`;
     }
 
     if (record.mileage?.notes) {
