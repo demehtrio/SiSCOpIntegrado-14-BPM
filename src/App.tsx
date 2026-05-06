@@ -95,7 +95,16 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const APP_BLUE_DARK = [30, 58, 138];
-const logoPM = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Bras%C3%A3o_da_PMPE.svg/1200px-Bras%C3%A3o_da_PMPE.svg.png';
+
+// Utility to proxy images via wsrv.nl to avoid hotlinking blocks and improve reliability
+const getProxiedUrl = (url: string, width?: number, height?: number) => {
+  if (!url || url.includes('base64') || url.includes('wsrv.nl')) return url;
+  const w = width ? `&w=${width}` : '';
+  const h = height ? `&h=${height}` : '';
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}${w}${h}&output=png&n=-1`;
+};
+
+const logoPM = getProxiedUrl('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Bras%C3%A3o_da_PMPE.svg/1200px-Bras%C3%A3o_da_PMPE.svg.png', 200);
 
 import { 
   MO_LIST, 
@@ -120,8 +129,8 @@ import { parseChecklistDescription, extractLicensePlateFromImage } from './servi
 import { Vehicle, RecordEntry, UserProfile, ChecklistData, AppNotification } from './types';
 
 // --- Constants ---
-const LOGO_14BPM_URL = "https://i.pinimg.com/originals/28/33/bd/2833bdc504f4fc4f3cb3c2817a664fc9.png";
-const LOGO_SISCOPI_URL = "https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png";
+const LOGO_14BPM_URL = getProxiedUrl("https://i.pinimg.com/originals/28/33/bd/2833bdc504f4fc4f3cb3c2817a664fc9.png", 300);
+const LOGO_SISCOPI_URL = getProxiedUrl("https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png", 300);
 const FALLBACK_LOGO = "https://cdn-icons-png.flaticon.com/512/1022/1022330.png";
 
 const removeWhiteBackground = (base64: string): Promise<string> => {
@@ -254,33 +263,46 @@ const loadImage = async (url: string): Promise<string | null> => {
  * Get a proxied URL for an image to avoid CORS and hotlinking issues.
  * Uses images.weserv.nl as primary proxy (very stable).
  */
-const getProxiedUrl = (url: string) => {
-  return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&n=-1`;
-};
+const getProxiedLogoUrl = () => LOGO_14BPM_URL;
+const getProxiedSisCOpILogoUrl = () => LOGO_SISCOPI_URL;
 
-const getProxiedLogoUrl = () => {
-  return getProxiedUrl(LOGO_14BPM_URL);
-};
+function SafeImage({ src, alt, className, width, height, icon: IconFallback = ShieldAlert }: { 
+  src: string, 
+  alt: string, 
+  className?: string, 
+  width?: number,
+  height?: number,
+  icon?: any
+}) {
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const proxiedUrl = getProxiedUrl(src, width, height);
 
-const getProxiedSisCOpILogoUrl = () => {
-  return getProxiedUrl(LOGO_SISCOPI_URL);
-};
-
-const handleLogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-  const target = e.target as HTMLImageElement;
-  const currentSrc = target.src;
-  const originalUrl = LOGO_14BPM_URL;
-  
-  if (currentSrc.includes('weserv.nl')) {
-    target.src = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
-  } else if (currentSrc.includes('corsproxy.io')) {
-    target.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
-  } else if (currentSrc !== originalUrl && !currentSrc.includes('allorigins')) {
-    target.src = `${originalUrl}?cb=${Date.now()}`;
-  } else {
-    target.src = FALLBACK_LOGO;
+  if (!src || error) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-slate-100 text-slate-400`}>
+        <IconFallback size={width ? Math.min(width / 2, 24) : 20} />
+      </div>
+    );
   }
-};
+
+  return (
+    <div className={`relative overflow-hidden flex items-center justify-center ${className}`}>
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 animate-pulse">
+          <IconFallback size={width ? Math.min(width / 3, 20) : 16} className="opacity-20" />
+        </div>
+      )}
+      <img
+        src={proxiedUrl}
+        alt={alt}
+        className={`${className} ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 object-contain`}
+        onLoad={() => setLoading(false)}
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+}
 
 // --- Types ---
 enum OperationType {
@@ -3028,22 +3050,6 @@ export default function App() {
     setTimeout(() => setSuccess(false), 2000);
   };
 
-  const handleSisCOpILogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const target = e.target as HTMLImageElement;
-    const currentSrc = target.src;
-    const originalUrl = LOGO_SISCOPI_URL;
-    
-    if (currentSrc.includes('weserv.nl')) {
-      target.src = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
-    } else if (currentSrc.includes('corsproxy.io')) {
-      target.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
-    } else if (currentSrc !== originalUrl && !currentSrc.includes('allorigins')) {
-      target.src = `${originalUrl}?cb=${Date.now()}`;
-    } else {
-      target.src = FALLBACK_LOGO;
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -3066,23 +3072,21 @@ export default function App() {
           className="bg-white p-10 rounded-[2rem] shadow-2xl max-w-md w-full text-center border border-slate-200 relative z-10"
         >
           <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg p-3">
-            <img 
+            <SafeImage 
               src={getProxiedLogoUrl()} 
               alt={`Logo ${omeOrigem}`} 
-              className="w-full h-full object-contain" 
-              referrerPolicy="no-referrer"
-              onError={handleLogoError}
+              className="w-full h-full" 
+              width={128}
             />
           </div>
           <h1 className="text-4xl font-black text-blue-900 mb-0 uppercase tracking-tighter">{omeOrigem}</h1>
           <p className="text-slate-500 font-black text-xs uppercase tracking-widest mb-2">PMPE</p>
           <p className="text-slate-400 font-medium mb-2 text-[10px]">Batalhão Cel. PM Manoel de Souza Ferraz</p>
-          <img 
-            src={`https://wsrv.nl/?url=${encodeURIComponent(LOGO_SISCOPI_URL)}`} 
+          <SafeImage 
+            src={getProxiedSisCOpILogoUrl()} 
             alt="SisCOpI Logo" 
-            className="h-10 w-auto object-contain mx-auto mb-8" 
-            referrerPolicy="no-referrer"
-            onError={handleSisCOpILogoError}
+            className="h-10 w-auto mx-auto mb-8" 
+            height={40}
           />
           
           <div className="h-px bg-slate-100 w-full mb-8"></div>
@@ -3282,23 +3286,21 @@ export default function App() {
           <div className="flex flex-col bg-blue-900 text-white border-b-4 border-red-600 shadow-lg">
             <div className="p-6 flex items-center gap-3">
               <div className="bg-white p-1.5 rounded-xl shadow-inner">
-                <img 
+                <SafeImage 
                   src={getProxiedLogoUrl()} 
                   alt={`Logo ${omeOrigem}`} 
-                  className="w-12 h-12 object-contain" 
-                  referrerPolicy="no-referrer"
-                  onError={handleLogoError}
+                  className="w-12 h-12" 
+                  width={48}
                 />
               </div>
               <div className="flex flex-col">
                 <span className="font-black text-xl tracking-tighter leading-none">{omeOrigem}</span>
                 <span className="text-[10px] font-bold opacity-80 uppercase tracking-tighter">PMPE</span>
-                <img 
+                <SafeImage 
                   src={getProxiedSisCOpILogoUrl()} 
                   alt="SisCOpI Logo" 
-                  className="h-4 w-auto object-contain mt-0.5" 
-                  referrerPolicy="no-referrer"
-                  onError={handleSisCOpILogoError}
+                  className="h-4 w-auto mt-0.5" 
+                  height={16}
                 />
               </div>
             </div>
@@ -3394,7 +3396,7 @@ export default function App() {
               setCadastroVtrSearchTerm('');
               setCadastroVtrStatusFilter('available');
             }} 
-            icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />} 
+            icon={<SafeImage src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5" width={20} />} 
             label="Cadastro VTR" 
           />
           <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist VTR" />
@@ -3405,23 +3407,21 @@ export default function App() {
         <header className="md:hidden bg-blue-900 text-white border-b-4 border-red-600 p-4 flex items-center justify-between sticky top-0 z-40 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="bg-white p-1 rounded-lg shadow-sm">
-              <img 
+              <SafeImage 
                 src={getProxiedLogoUrl()} 
                 alt={`Logo ${omeOrigem}`} 
-                className="w-10 h-10 object-contain" 
-                referrerPolicy="no-referrer"
-                onError={handleLogoError}
+                className="w-10 h-10" 
+                width={40}
               />
             </div>
             <div className="flex flex-col">
               <span className="font-black text-lg tracking-tighter leading-none">{omeOrigem}</span>
               <span className="text-[9px] font-bold opacity-80 uppercase">PMPE</span>
-              <img 
+              <SafeImage 
                 src={getProxiedSisCOpILogoUrl()} 
                 alt="SisCOpI Logo" 
-                className="h-3.5 w-auto object-contain mt-0.5" 
-                referrerPolicy="no-referrer"
-                onError={handleSisCOpILogoError}
+                className="h-3.5 w-auto mt-0.5" 
+                height={14}
               />
             </div>
           </div>
@@ -3466,23 +3466,22 @@ export default function App() {
               >
                 {/* Watermark Background */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none z-0">
-                  <img 
+                  <SafeImage 
                     src={getProxiedLogoUrl()} 
                     alt="" 
-                    className="w-[500px] h-[500px] object-contain" 
-                    referrerPolicy="no-referrer"
+                    className="w-[500px] h-[500px]" 
+                    width={500}
                   />
                 </div>
 
                 <header className="mb-10 p-10 bg-white rounded-[3rem] border-b-[12px] border-red-600 shadow-2xl relative overflow-hidden flex flex-col items-center text-center z-10">
                   <div className="absolute top-0 left-0 w-full h-2 bg-blue-900"></div>
                   <div className="bg-white p-5 rounded-[2.5rem] shadow-xl mb-6 relative z-10">
-                    <img 
+                    <SafeImage 
                       src={getProxiedLogoUrl()} 
                       alt={`Logo ${omeOrigem}`} 
-                      className="w-32 h-32 object-contain" 
-                      referrerPolicy="no-referrer"
-                      onError={handleLogoError}
+                      className="w-32 h-32" 
+                      width={128}
                     />
                   </div>
                   <div className="relative z-10">
@@ -3492,12 +3491,11 @@ export default function App() {
                     <div className="flex flex-col items-center justify-center gap-2 mt-4">
                       <div className="flex items-center justify-center gap-4">
                         <div className="h-px w-12 bg-slate-200"></div>
-                        <img 
+                        <SafeImage 
                           src={getProxiedSisCOpILogoUrl()} 
                           alt="SisCOpI Logo" 
-                          className="h-12 w-auto object-contain" 
-                          referrerPolicy="no-referrer"
-                          onError={handleSisCOpILogoError}
+                          className="h-12 w-auto" 
+                          height={48}
                         />
                         <div className="h-px w-12 bg-slate-200"></div>
                       </div>
@@ -3532,7 +3530,7 @@ export default function App() {
                     title="Cadastro VTR"
                     description="Cadastramento, check-in/out e manutenção de frota"
                     color="blue"
-                    icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="Cadastro VTR" className="w-10 h-10 object-contain transition-transform group-hover:scale-110" referrerPolicy="no-referrer" />}
+                    icon={<SafeImage src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="Cadastro VTR" className="w-10 h-10 transition-transform group-hover:scale-110" width={40} />}
                     onClick={() => {
                       setActiveTab('cadastro_vtr');
                       setCadastroVtrSearchTerm('');
@@ -3557,14 +3555,14 @@ export default function App() {
                     title="Gestão de Serviços"
                     description="Acesso ao sistema externo de gestão de serviços (Base44)."
                     color="indigo"
-                    icon={<img src={LOGO_14BPM_URL} alt={`Brasão ${omeOrigem}`} className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
+                    icon={<SafeImage src={LOGO_14BPM_URL} alt={`Brasão ${omeOrigem}`} className="w-8 h-8 opacity-70 group-hover:opacity-100 transition-opacity" width={32} />}
                     onClick={() => window.open('https://14-bpm.base44.app/AppLogin', '_blank')}
                   />
                   <DashboardCard 
                     title="Escalas PMPE"
                     description="Acesso ao sistema oficial de escalas da Polícia Militar de Pernambuco."
                     color="blue"
-                    icon={<img src="https://www.pm.pe.gov.br/wp-content/uploads/2020/01/cropped-logo-pmpe-150x150.png" alt="Brasão PMPE" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
+                    icon={<SafeImage src="https://www.pm.pe.gov.br/wp-content/uploads/2020/01/cropped-logo-pmpe-150x150.png" alt="Brasão PMPE" className="w-8 h-8 opacity-70 group-hover:opacity-100 transition-opacity" width={32} />}
                     onClick={() => window.open('https://escalas.sistemas.pm.pe.gov.br/#/login', '_blank')}
                   />
                   {isAdmin && (
@@ -5007,6 +5005,7 @@ export default function App() {
 }
 
 // ... (SidebarLink, MobileNavLink, DashboardCard, HistoryItemProps, HistoryItem remain same)
+
 
 function NotificationCenter({ 
   isOpen, 
