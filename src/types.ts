@@ -25,6 +25,7 @@ export interface ChecklistData {
   sistemaFreio: string;
   oleoMotor: string;
   proxTrocaOleoKm: string;
+  combustivel?: string;
   sistemaTracao: string;
   partesInternas: string[];
   partesExternas: string[];
