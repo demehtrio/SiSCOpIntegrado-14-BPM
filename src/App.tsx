@@ -280,23 +280,23 @@ function SafeImage({ src, alt, className, width, height, icon: IconFallback = Sh
 
   if (!src || error) {
     return (
-      <div className={`${className} flex items-center justify-center bg-slate-100 text-slate-400`}>
+      <div className={`${className} flex items-center justify-center bg-slate-100 text-slate-400 rounded-lg`}>
         <IconFallback size={width ? Math.min(width / 2, 24) : 20} />
       </div>
     );
   }
 
   return (
-    <div className={`relative overflow-hidden flex items-center justify-center ${className}`}>
+    <div className={`relative flex items-center justify-center ${className}`}>
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 animate-pulse">
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 animate-pulse rounded-lg">
           <IconFallback size={width ? Math.min(width / 3, 20) : 16} className="opacity-20" />
         </div>
       )}
       <img
         src={proxiedUrl}
         alt={alt}
-        className={`${className} ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 object-contain`}
+        className={`max-w-full max-h-full ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 object-contain`}
         onLoad={() => setLoading(false)}
         onError={() => setError(true)}
       />
@@ -3092,8 +3092,8 @@ export default function App() {
           <SafeImage 
             src={getProxiedSisCOpILogoUrl()} 
             alt="SisCOpI Logo" 
-            className="h-10 w-auto mx-auto mb-8" 
-            height={40}
+            className="h-12 w-full max-w-[200px] mx-auto mb-8" 
+            height={48}
           />
           
           <div className="h-px bg-slate-100 w-full mb-8"></div>
