@@ -1328,7 +1328,7 @@ export default function App() {
   const formatWhatsAppMessage = (record: RecordEntry) => {
     const isCadVtr = record.source === 'cadchecking' || record.source === 'cadastro_vtr' || record.source === 'checklist_module';
     const isExit = record.type === 'check-out' || record.type === 'maintenance-out';
-    const typeLabel = isExit ? 'SAÍDA' : 'ENTRADA/RETORNO';
+    const typeLabel = isExit ? 'SAÍDA' : 'RETORNO';
     
     // Plate formatting
     const plateFormatted = record.identification?.plate?.replace(/[\s-]/g, '').toUpperCase() || '---';
