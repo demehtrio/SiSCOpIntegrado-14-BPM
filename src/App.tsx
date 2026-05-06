@@ -1650,8 +1650,6 @@ export default function App() {
         currentDriverEmail: operationType === 'check-out' ? user.email : null
       });
       
-      addNotification("Registro salvo com sucesso!", "success");
-
       // Create persistent notification for operation completion
       createAppNotification({
         title: operationType === 'check-out' ? 'Saída de Viatura' : 'Entrada de Viatura',
@@ -1719,7 +1717,12 @@ export default function App() {
       setSelectedVehicle(null);
       setOperationType(null);
       setCurrentCadastroVtrTab(0);
-      setCadastroVtrView('history');
+      
+      // Forces redirection to the fleet list (Em Uso filter)
+      setActiveTab('cadastro_vtr');
+      setCadastroVtrView('list');
+      setCadastroVtrStatusFilter('in_use');
+      
       addNotification("Registro de VTR salvo com sucesso!", "success");
     } catch (err: any) {
       handleFirestoreError(err, OperationType.WRITE, 'checklists');
@@ -5909,7 +5912,8 @@ function ChecklistModule({
     try {
       const success = await onSaveStandalone(formData, skipWhatsApp);
       if (success) {
-        setView('list');
+        // Instead of going to history list, reset form and stay in form view or show success
+        handleStartNew();
       }
     } catch (error) {
       console.error("Erro ao salvar checklist:", error);
