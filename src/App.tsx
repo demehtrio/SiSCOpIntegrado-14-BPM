@@ -105,7 +105,7 @@ const getProxiedUrl = (url: string, width?: number, height?: number) => {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}${w}${h}&output=png&n=-1`;
 };
 
-const logoPM = getProxiedUrl('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Bras%C3%A3o_da_PMPE.svg/1200px-Bras%C3%A3o_da_PMPE.svg.png', 200);
+const logoPM = ASSETS.LOGO_PMPE;
 
 import { 
   MO_LIST, 
@@ -758,7 +758,7 @@ export default function App() {
         const data = doc.data() as Vehicle;
         vehicleList.push({ id: doc.id, ...data } as Vehicle);
       });
-      console.log(`[Cadastro VTR] Vehicles updated: ${vehicleList.length} items`);
+
       
       // Filter out inactive vehicles for the main UI
       const activeVehicles = vehicleList.filter(v => v.status !== 'inactive');
@@ -1353,6 +1353,7 @@ export default function App() {
     // Driver formatting
     let driverFormatted = record.drivers?.driverName || '---';
     if (driverFormatted !== '---') {
+      // Improved driver formatting for military personnel codes
       driverFormatted = driverFormatted.replace(/(\s)(\d{5,})/, ' / $2').replace(/ (\d)/, ' / $1');
     }
 
@@ -1379,7 +1380,8 @@ export default function App() {
     msg += `⏰ *Hora:* ${record.identification?.time || '---'}\n`;
     msg += `👮 *Responsável:* ${driverFormatted}\n`;
     
-    // Only show Employment for non-CadVtr records or if specifically needed
+    // Only show Employment for non-CadVtr records or if specifically requested
+    // Request 3: No cadastro VTR não deve incluir no envio whatsapp dados de Emprego ou Checklist
     if (!isCadVtr && record.drivers?.serviceType) {
       msg += `🛞 *Emprego:* ${record.drivers.serviceType}\n`;
     }
@@ -1401,7 +1403,7 @@ export default function App() {
         msg += `\n📝 *Alterações:* ${c.descricaoAlteracoes}\n`;
       }
     } else if (isCadVtr && record.checklist?.descricaoAlteracoes) {
-      // For CadVtr, only show the "Alterações" description if it exists
+      // For CadVtr, only show the "Alterações" description if it exists, without technical checklist context
       msg += `\n📝 *Alterações:* ${record.checklist.descricaoAlteracoes}\n`;
     }
 
@@ -1649,7 +1651,7 @@ export default function App() {
   const handleWhatsAppShare = (record: RecordEntry) => {
     const message = formatWhatsAppMessage(record);
     // Use the official universal link which is more robust across platforms than wa.me
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     
     // Check if we're on mobile to use a direct redirect approach which triggers app intents better
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -1704,7 +1706,7 @@ export default function App() {
         drivers: cadastroVtrFormData.drivers,
         mileage: cadastroVtrFormData.mileage,
         checklist: cadastroVtrFormData.checklist,
-        source: 'cadchecking'
+        source: 'cadastro_vtr'
       };
       batch.set(checklistRef, recordData);
 
@@ -1778,7 +1780,7 @@ export default function App() {
           userEmail: user.email || '',
           userName: user.displayName || '',
           timestamp: new Date(),
-          source: 'cadchecking'
+          source: 'cadastro_vtr'
         };
         
         handleWhatsAppShare(recordToFormat);
@@ -2415,7 +2417,7 @@ export default function App() {
   };
 
   const generatePDF = async (data: any) => {
-    if (data.type === 'checklists' || data.type === 'standalone_checklists' || data.source === 'standalone_checklist' || data.source === 'cadchecking') {
+    if (data.type === 'checklists' || data.type === 'standalone_checklists' || data.source === 'standalone_checklist' || data.source === 'cadchecking' || data.source === 'cadastro_vtr') {
       return generateDetailedChecklistPDF(data);
     }
 
@@ -2778,7 +2780,7 @@ export default function App() {
         });
       }
 
-      const cadVtr = allData.filter(item => item.type === 'checklists' || item.source === 'cadchecking');
+      const cadVtr = allData.filter(item => item.type === 'checklists' || item.source === 'cadchecking' || item.source === 'cadastro_vtr');
       if (cadVtr.length > 0) {
         checkPageBreak(20);
         doc.setFillColor(APP_BLUE_DARK[0], APP_BLUE_DARK[1], APP_BLUE_DARK[2]);
@@ -3123,7 +3125,7 @@ export default function App() {
         >
           <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg p-3">
             <SafeImage 
-              src={ASSETS.logo_14bpm} 
+              src={ASSETS.LOGO_14BPM} 
               alt={`Logo ${omeOrigem}`} 
               className="w-full h-full object-contain" 
               width={128}
@@ -3132,12 +3134,14 @@ export default function App() {
           <h1 className="text-4xl font-black text-blue-900 mb-0 uppercase tracking-tighter">{omeOrigem}</h1>
           <p className="text-slate-500 font-black text-xs uppercase tracking-widest mb-2">PMPE</p>
           <p className="text-slate-400 font-medium mb-2 text-[10px]">Batalhão Cel. PM Manoel de Souza Ferraz</p>
-          <SafeImage 
-            src={ASSETS.logo_siscopi} 
-            alt="SisCOpI Logo" 
-            className="h-12 w-auto max-w-full mx-auto mb-8 object-contain" 
-            height={48}
-          />
+          <div className="max-w-full px-4 mb-8">
+            <SafeImage 
+              src={ASSETS.LOGO_SISCOPI} 
+              alt="SisCOpI Logo" 
+              className="h-10 w-auto max-w-full mx-auto object-contain" 
+              height={40}
+            />
+          </div>
           
           <div className="h-px bg-slate-100 w-full mb-8"></div>
           
@@ -3337,7 +3341,7 @@ export default function App() {
             <div className="p-6 flex items-center gap-3">
               <div className="bg-white p-1.5 rounded-xl shadow-inner">
                 <SafeImage 
-                  src={ASSETS.logo_14bpm} 
+                  src={ASSETS.LOGO_14BPM} 
                   alt={`Logo ${omeOrigem}`} 
                   className="w-12 h-12 object-contain" 
                   width={48}
@@ -3347,7 +3351,7 @@ export default function App() {
                 <span className="font-black text-xl tracking-tighter leading-none">{omeOrigem}</span>
                 <span className="text-[10px] font-bold opacity-80 uppercase tracking-tighter">PMPE</span>
                 <SafeImage 
-                  src={ASSETS.logo_siscopi} 
+                  src={ASSETS.LOGO_SISCOPI} 
                   alt="SisCOpI Logo" 
                   className="h-4 w-auto mt-0.5 object-contain" 
                   height={16}
@@ -3382,7 +3386,7 @@ export default function App() {
                 setCadastroVtrSearchTerm('');
                 setCadastroVtrStatusFilter('available');
               }}
-              icon={<img src={ASSETS.icone_vtr} alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
+              icon={<img src={ASSETS.ICON_VTR} alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
               label="Cadastro VTR"
               badge="NOVO"
             />
@@ -3446,7 +3450,7 @@ export default function App() {
               setCadastroVtrSearchTerm('');
               setCadastroVtrStatusFilter('available');
             }} 
-            icon={<SafeImage src={ASSETS.icone_vtr} alt="" className="w-5 h-5" width={20} />} 
+            icon={<SafeImage src={ASSETS.ICON_VTR} alt="" className="w-5 h-5" width={20} />} 
             label="Cadastro VTR" 
           />
           <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist VTR" />
@@ -3458,7 +3462,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="bg-white p-1 rounded-lg shadow-sm">
               <SafeImage 
-                src={ASSETS.logo_14bpm} 
+                src={ASSETS.LOGO_14BPM} 
                 alt={`Logo ${omeOrigem}`} 
                 className="w-10 h-10 object-contain" 
                 width={40}
@@ -3468,7 +3472,7 @@ export default function App() {
               <span className="font-black text-lg tracking-tighter leading-none">{omeOrigem}</span>
               <span className="text-[9px] font-bold opacity-80 uppercase">PMPE</span>
               <SafeImage 
-                src={ASSETS.logo_siscopi} 
+                src={ASSETS.LOGO_SISCOPI} 
                 alt="SisCOpI Logo" 
                 className="h-3.5 w-auto mt-0.5 object-contain" 
                 height={14}
@@ -3517,7 +3521,7 @@ export default function App() {
                 {/* Watermark Background */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none z-0">
                   <SafeImage 
-                    src={ASSETS.logo_14bpm} 
+                    src={ASSETS.LOGO_14BPM} 
                     alt="" 
                     className="w-[500px] h-[500px] object-contain" 
                     width={500}
@@ -3528,7 +3532,7 @@ export default function App() {
                   <div className="absolute top-0 left-0 w-full h-2 bg-blue-900"></div>
                   <div className="bg-white p-5 rounded-[2.5rem] shadow-xl mb-6 relative z-10">
                     <SafeImage 
-                      src={ASSETS.logo_14bpm} 
+                      src={ASSETS.LOGO_14BPM} 
                       alt={`Logo ${omeOrigem}`} 
                       className="w-32 h-32 object-contain" 
                       width={128}
@@ -3542,7 +3546,7 @@ export default function App() {
                       <div className="flex items-center justify-center gap-4">
                         <div className="h-px w-12 bg-slate-200"></div>
                         <SafeImage 
-                          src={ASSETS.logo_siscopi} 
+                          src={ASSETS.LOGO_SISCOPI} 
                           alt="SisCOpI Logo" 
                           className="h-12 w-auto object-contain" 
                           height={48}
@@ -3580,7 +3584,7 @@ export default function App() {
                     title="Cadastro VTR"
                     description="Cadastramento, check-in/out e manutenção de frota"
                     color="blue"
-                    icon={<SafeImage src={ASSETS.icone_vtr} alt="Cadastro VTR" className="w-10 h-10 transition-transform group-hover:scale-110 object-contain" width={40} />}
+                    icon={<SafeImage src={ASSETS.ICON_VTR} alt="Cadastro VTR" className="w-10 h-10 transition-transform group-hover:scale-110 object-contain" width={40} />}
                     onClick={() => {
                       setActiveTab('cadastro_vtr');
                       setCadastroVtrSearchTerm('');
@@ -3731,7 +3735,7 @@ export default function App() {
                       title="Checklist VTR"
                       description={`Sistema integrado de conferência de viaturas do ${omeOrigem}.`}
                       color="red"
-                    icon={<img src="https://i.pinimg.com/originals/44/e4/8c/44e48c5ff461edb7623bab64bd898d8d.png" alt="Checklist" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
+                    icon={<img src={ASSETS.ICON_CHECKLIST} alt="Checklist" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />}
                     onClick={() => setActiveTab('checklist')}
                   />
                 </div>
@@ -5407,7 +5411,7 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
     if (item.sourceColl === 'atividades_linha' || item.type === 'atividades_linha') {
       return item.graduacaoNomeMatricula || '';
     }
-    if (item.sourceColl === 'checklists' || item.source === 'cadchecking') {
+    if (item.sourceColl === 'checklists' || item.source === 'cadchecking' || item.source === 'cadastro_vtr') {
       return item.drivers?.driverName || '';
     }
     if (item.sourceColl === 'standalone_checklists' || item.source === 'standalone_checklist') {
@@ -6636,7 +6640,7 @@ function CadastroVTR({
   onGenerateDetailedPDF: (record: RecordEntry) => void;
   omeOrigemList: string[];
 }) {  
-  console.log(`[Cadastro VTR] Rendering with ${vehicles.length} total vehicles`);
+
   
   const counts = React.useMemo(() => {
     const cars = vehicles.filter((v: Vehicle) => (v.category === 'car' || !v.category));
@@ -6675,7 +6679,7 @@ function CadastroVTR({
     return matchesSearch && matchesStatus;
   }), [vehicles, searchTerm, statusFilter]);
 
-  console.log(`[Cadastro VTR] Filtered to ${filteredVehicles.length} vehicles (Search: "${searchTerm}", Status: "${statusFilter}")`);
+
 
   const filteredHistory = React.useMemo(() => history.filter((h: RecordEntry) => {
     // Type filter
