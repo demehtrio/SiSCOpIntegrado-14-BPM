@@ -87,7 +87,9 @@ import {
   Lightbulb,
   Camera,
   MessageCircle,
-  ChevronLeft
+  ChevronLeft,
+  ArrowRight,
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { jsPDF } from 'jspdf';
@@ -5990,30 +5992,47 @@ function ChecklistModule({
           {view === 'form' && (
             <button 
               onClick={() => setView('list')}
-              className="px-6 py-3 bg-white text-slate-700 rounded-2xl font-bold shadow-lg border border-slate-100 hover:bg-slate-50 transition-all flex items-center gap-2"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 rounded-2xl font-bold shadow-lg border border-slate-100 hover:bg-slate-50 transition-all flex items-center gap-2 active:scale-95"
             >
-              <History size={20} />
-              Ver Histórico
+              <History size={18} />
+              <span className="text-sm sm:text-base">Ver Histórico</span>
             </button>
           )}
         </div>
       </div>
 
       {view === 'list' ? (
-        <div className="space-y-6">
+        <div className="space-y-8">
+          {/* Main Action Card */}
+          <motion.button 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={handleStartNew}
+            className="w-full p-6 sm:p-10 bg-gradient-to-br from-red-600 to-red-700 text-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl shadow-red-200 hover:shadow-red-300 transition-all group overflow-hidden relative text-left"
+          >
+            <div className="absolute top-0 right-0 p-16 sm:p-24 bg-white/10 rounded-full -mr-12 -mt-12 blur-3xl group-hover:scale-110 transition-transform duration-500"></div>
+            <div className="absolute bottom-0 left-0 p-12 sm:p-20 bg-black/10 rounded-full -ml-10 -mb-10 blur-2xl"></div>
+            
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-md rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-inner group-hover:rotate-12 transition-transform duration-300">
+                <PlusCircle size={36} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-2xl sm:text-4xl font-black tracking-tight mb-1 sm:mb-2 text-white">Novo Checklist de VTR</h3>
+                <p className="text-red-100/80 font-bold uppercase tracking-widest text-[10px] sm:text-xs">Iniciar nova conferência técnica agora</p>
+              </div>
+              <div className="hidden sm:flex w-12 h-12 bg-white/10 rounded-full items-center justify-center group-hover:translate-x-2 transition-transform">
+                <ArrowRight size={24} />
+              </div>
+            </div>
+          </motion.button>
+
           <div className="bg-white p-4 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-10">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Histórico de Conferência</h3>
-                <p className="text-slate-500 font-medium">Veja os checklists realizados anteriormente.</p>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Histórico de Conferência</h3>
+                <p className="text-slate-500 font-medium text-sm sm:text-base text-balance">Confira os últimos checklists realizados.</p>
               </div>
-              <button 
-                onClick={handleStartNew}
-                className="w-full sm:w-auto px-8 py-4 bg-red-600 text-white rounded-[1.5rem] font-black hover:bg-red-700 transition-all shadow-xl shadow-red-100 flex items-center justify-center gap-3 active:scale-95"
-              >
-                <PlusCircle size={24} />
-                Realizar Novo Checklist
-              </button>
             </div>
 
             <div className="space-y-4">
@@ -6045,11 +6064,30 @@ function ChecklistModule({
           <div className="bg-slate-900 p-4 sm:p-10 text-white relative">
             <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
             <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4 sm:mb-8">
+                <button 
+                  onClick={() => setView('list')}
+                  className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
+                >
+                  <ArrowLeft size={16} />
+                  Voltar
+                </button>
+                <div className="hidden sm:block">
+                  <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block text-blue-400">
+                    Novo Checklist
+                  </span>
+                </div>
+              </div>
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block text-blue-400">
-                    ETAPA {currentTab + 1} DE 7
-                  </span>
+                  <div className="flex flex-col gap-1 mb-2">
+                    <span className="px-3 py-1 w-fit bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-blue-400 sm:hidden">
+                      Novo Checklist
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                      ETAPA {currentTab + 1} DE 7
+                    </span>
+                  </div>
                   <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
                     {[
                       'Identificação Básica',
