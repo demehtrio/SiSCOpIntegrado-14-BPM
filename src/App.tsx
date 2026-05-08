@@ -1771,11 +1771,14 @@ export default function App() {
       // Execute all together
       await batch.commit();
 
+      // IMPORTANT: Success notification moved BEFORE resetting state to ensure visibility
+      addNotification("Registro de VTR salvo com sucesso!", "success");
+
       if (!skipWhatsApp) {
         // Format WhatsApp Message using current data (since serverTimestamp isn't available yet locally)
         const recordToFormat: RecordEntry = {
           ...cadastroVtrFormData,
-          id: '', 
+          id: checklistRef.id, 
           vehicleId: selectedVehicle.id,
           type: operationType as 'check-in' | 'check-out',
           userEmail: user.email || '',
@@ -1799,11 +1802,17 @@ export default function App() {
       setActiveTab('cadastro_vtr');
       setCadastroVtrView('list');
       setCadastroVtrStatusFilter(operationType === 'check-out' ? 'in_use' : 'available');
-      
-      addNotification("Registro de VTR salvo com sucesso!", "success");
     } catch (err: any) {
-      handleFirestoreError(err, OperationType.WRITE, 'checklists');
-      addNotification("Erro ao salvar registro.", "error");
+      console.error("Erro ao salvar registro de VTR:", err);
+      // We still want to show a visible notification even if we log to firestore-error
+      const errorMessage = err.message || "Erro desconhecido";
+      addNotification(`Erro ao salvar registro: ${errorMessage}`, "error");
+      
+      try {
+        handleFirestoreError(err, OperationType.WRITE, 'checklists');
+      } catch (e) {
+        // handleFirestoreError throws, but we already notified the user
+      }
     } finally {
       setSubmitting(false);
     }
@@ -6109,7 +6118,7 @@ function ChecklistModule({
                         variant="blue"
                       />
                       <ChecklistSearchableSelect 
-                        label="Prefixo / VTR"
+                        label="Patrimônio"
                         value={formData.identification.prefix}
                         onChange={(val: string) => {
                           const vehicle = uniqueVehicles.find((v: Vehicle) => v.prefix === val);
@@ -7108,9 +7117,9 @@ function CadastroVTR({
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Viatura</label>
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Patrimônio</label>
                             <ChecklistSearchableSelect 
-                              label="Viatura"
+                              label="Patrimônio"
                               value={formData.identification.prefix}
                               onChange={(val: string) => {
                                 const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
