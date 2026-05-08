@@ -1690,11 +1690,12 @@ export default function App() {
     setSubmitting(true);
     try {
       const batch = writeBatch(db);
+      const mileageVal = Number(cadastroVtrFormData.mileage.currentMileage);
       
       // 1. Add record to database
       const checklistRef = doc(collection(db, 'checklists'));
       const recordData = {
-        data: cadastroVtrFormData.identification.date || todayStr,
+        data: cadastroVtrFormData.identification.date || new Date().toISOString().split('T')[0],
         vehicleId: selectedVehicle.id,
         type: operationType,
         timestamp: serverTimestamp(),
@@ -1714,7 +1715,7 @@ export default function App() {
       const vehicleRef = doc(db, 'vehicles', selectedVehicle.id);
       const vehicleUpdate: any = {
         status: operationType === 'check-out' ? 'in_use' : 'available',
-        lastMileage: currentMileage,
+        lastMileage: mileageVal,
         currentDriver: operationType === 'check-out' ? cadastroVtrFormData.drivers.driverName : null,
         currentDriverEmail: operationType === 'check-out' ? user.email : null,
         currentOperationalPrefix: operationType === 'check-out' ? cadastroVtrFormData.identification.operationalPrefix : null,
@@ -1753,11 +1754,11 @@ export default function App() {
 
       // 5. Check for maintenance based on mileage threshold
       const nextOilChange = Number(cadastroVtrFormData.checklist?.proxTrocaOleoKm);
-      if (!isNaN(nextOilChange) && nextOilChange > 0 && currentMileage >= nextOilChange) {
+      if (!isNaN(nextOilChange) && nextOilChange > 0 && mileageVal >= nextOilChange) {
         const maintNotifRef = doc(collection(db, 'notifications'));
         batch.set(maintNotifRef, {
           title: 'Manutenção Preditiva: Troca de Óleo',
-          message: `Viatura ${selectedVehicle.prefix} atingiu a quilometragem para troca de óleo (${currentMileage}km >= ${nextOilChange}km).`,
+          message: `Viatura ${selectedVehicle.prefix} atingiu a quilometragem para troca de óleo (${mileageVal}km >= ${nextOilChange}km).`,
           type: 'error',
           targetUser: 'all',
           category: 'maintenance',
@@ -1776,7 +1777,7 @@ export default function App() {
           ...cadastroVtrFormData,
           id: '', 
           vehicleId: selectedVehicle.id,
-          type: operationType!,
+          type: operationType as 'check-in' | 'check-out',
           userEmail: user.email || '',
           userName: user.displayName || '',
           timestamp: new Date(),
@@ -1785,11 +1786,8 @@ export default function App() {
         
         handleWhatsAppShare(recordToFormat);
         
-        // Only delay on mobile to allow intent transition
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile) {
-          await new Promise(resolve => setTimeout(resolve, 800));
-        }
+        // Wait a bit to ensure WhatsApp intent starts
+        await new Promise(resolve => setTimeout(resolve, 800));
       }
       
       // Reset form
