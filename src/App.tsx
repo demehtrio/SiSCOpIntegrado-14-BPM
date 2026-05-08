@@ -3515,7 +3515,7 @@ export default function App() {
         </header>
 
         {/* Main Content */}
-        <main className="p-6 max-w-5xl mx-auto">
+        <main className="p-3 sm:p-6 max-w-5xl mx-auto">
           <AnimatePresence mode="wait">
             {activeTab === 'dashboard' && (
               <motion.div 
@@ -5979,11 +5979,11 @@ function ChecklistModule({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
+    <div className="w-full max-w-5xl mx-auto px-1 sm:px-6 pb-20">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-6 md:mb-10">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Checklist de Viaturas</h2>
+          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-1 sm:mb-2">Checklist de Viaturas</h2>
           <p className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-60">Sistema de Conferência {omeOrigem}</p>
         </div>
         <div className="flex gap-3">
@@ -6001,7 +6001,7 @@ function ChecklistModule({
 
       {view === 'list' ? (
         <div className="space-y-6">
-          <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+          <div className="bg-white p-4 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-10">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Histórico de Conferência</h3>
@@ -6040,9 +6040,9 @@ function ChecklistModule({
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
+        <div className="bg-white rounded-3xl sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
           {/* Progress Header */}
-          <div className="bg-slate-900 p-6 sm:p-10 text-white relative">
+          <div className="bg-slate-900 p-4 sm:p-10 text-white relative">
             <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-8">
@@ -6085,7 +6085,7 @@ function ChecklistModule({
           </div>
 
           {/* Form Content */}
-          <div className="p-8 sm:p-12 flex-1 overflow-y-auto max-h-[70vh] custom-scrollbar">
+          <div className="p-4 sm:p-12 flex-1 overflow-y-auto max-h-[80vh] custom-scrollbar">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentTab}
@@ -6097,7 +6097,7 @@ function ChecklistModule({
               >
                 {currentTab === 0 && (
                   <div className="space-y-8">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       <ChecklistSearchableSelect 
                         label="Placa da Viatura"
                         value={formData.identification.plate}
@@ -6137,7 +6137,7 @@ function ChecklistModule({
                         variant="blue"
                       />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 p-4 sm:p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                       <div className="space-y-2">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
                         <input 
@@ -6183,8 +6183,8 @@ function ChecklistModule({
 
                 {currentTab === 2 && (
                   <div className="space-y-12">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                      <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+                      <div className="bg-slate-50 p-4 sm:p-6 rounded-[2rem] border border-slate-100">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 ml-1">Ar Condicionado</label>
                         <div className="flex gap-3">
                           {['FUNCIONANDO', 'COM DEFEITO'].map(opt => (
@@ -6203,7 +6203,7 @@ function ChecklistModule({
                           ))}
                         </div>
                       </div>
-                      <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                      <div className="bg-slate-50 p-4 sm:p-6 rounded-[2rem] border border-slate-100">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 ml-1">Viatura Higienizada?</label>
                         <div className="flex gap-3">
                           {['SIM', 'NÃO'].map(opt => (
@@ -6256,7 +6256,7 @@ function ChecklistModule({
 
                 {currentTab === 3 && (
                   <div className="space-y-10">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       {[
                         { label: 'Farol Alto', field: 'luzFarolAlto', icon: <Sparkles size={16} /> },
                         { label: 'Farol Baixo', field: 'luzFarolBaixo', icon: <Lightbulb size={16} /> },
@@ -6315,7 +6315,7 @@ function ChecklistModule({
 
                 {currentTab === 4 && (
                   <div className="space-y-10">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       <div className="space-y-3">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Pneus</label>
                         <select 
@@ -6342,7 +6342,7 @@ function ChecklistModule({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 p-4 sm:p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100">
                       <div className="space-y-3">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Condição do Óleo do Motor</label>
                         <select 
