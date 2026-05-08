@@ -35,7 +35,8 @@ import {
   getDoc,
   deleteDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
 import { 
   LayoutDashboard, 
@@ -129,8 +130,8 @@ import { parseChecklistDescription, extractLicensePlateFromImage } from './servi
 import { Vehicle, RecordEntry, UserProfile, ChecklistData, AppNotification } from './types';
 
 // --- Constants ---
-const LOGO_14BPM_URL = getProxiedUrl("https://i.pinimg.com/originals/28/33/bd/2833bdc504f4fc4f3cb3c2817a664fc9.png", 300);
-const LOGO_SISCOPI_URL = getProxiedUrl("https://i.pinimg.com/originals/87/a3/ed/87a3ed9f8a7288c126367864ac2a7663.png", 300);
+const LOGO_14BPM_URL = ASSETS.LOGO_14BPM;
+const LOGO_SISCOPI_URL = ASSETS.LOGO_SISCOPI;
 const FALLBACK_LOGO = "https://cdn-icons-png.flaticon.com/512/1022/1022330.png";
 
 const removeWhiteBackground = (base64: string): Promise<string> => {
@@ -597,6 +598,8 @@ const ChecklistSearchableSelect = ({
     </div>
   );
 };
+
+import { ASSETS } from './assets/logos';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -1242,7 +1245,7 @@ export default function App() {
     }
   };
 
-  const handleStartCadastroVtrRecord = async (vehicle: Vehicle | null, type: 'check-out' | 'check-in' | null) => {
+  const handleStartCadastroVtrRecord = (vehicle: Vehicle | null, type: 'check-out' | 'check-in' | null) => {
     if (!vehicle || !type) {
       setSelectedVehicle(null);
       setOperationType(null);
@@ -1255,46 +1258,24 @@ export default function App() {
       return;
     }
     
-    setSubmitting(true);
-    let lastCheckOut: RecordEntry | null = null;
-    
-    if (type === 'check-in') {
-      try {
-        const queryConstraints: any[] = [
-          where('vehicleId', '==', vehicle.id),
-          where('type', '==', 'check-out')
-        ];
-
-        // Add ordering and limit
-        queryConstraints.push(orderBy('timestamp', 'desc'));
-        queryConstraints.push(limit(1));
-
-        const q = query(collection(db, 'checklists'), ...queryConstraints);
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          lastCheckOut = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as RecordEntry;
-        }
-      } catch (err) {
-        console.error("Error fetching last check-out:", err);
-      }
-    }
     setSelectedVehicle(vehicle);
     setOperationType(type);
     // Para check-in (Retorno), abre direto na tela de quilometragem (aba 2)
     setCurrentCadastroVtrTab(type === 'check-in' ? 2 : 0);
+    
+    // Set initial data immediately for best UX
     setCadastroVtrFormData({
       identification: {
         prefix: vehicle.prefix || 'RESERVA',
-        operationalPrefix: lastCheckOut?.identification?.operationalPrefix || '',
+        operationalPrefix: (vehicle as any).currentOperationalPrefix || '',
         plate: vehicle.plate,
         model: vehicle.model,
         date: format(new Date(), 'yyyy-MM-dd'),
         time: format(new Date(), 'HH:mm')
       },
       drivers: {
-        driverName: lastCheckOut?.drivers?.driverName || '',
-        serviceType: lastCheckOut?.drivers?.serviceType || ''
+        driverName: (vehicle as any).currentDriver || '',
+        serviceType: (vehicle as any).currentServiceType || ''
       },
       mileage: {
         currentMileage: '',
@@ -1317,12 +1298,48 @@ export default function App() {
         partesExternas: ['Sem Alteração'],
         limpeza: 'SIM',
         descricaoAlteracoes: '',
-        fotos: []
+        fotos: [],
+        arCondicionado: 'SIM',
+        limpezaCons: 'SIM',
+        nivelCombustivel: '⛽ CHEIO',
+        iluminação: '✅ OK'
       },
       source: 'cadchecking'
     });
-    setCadastroVtrView('list');
-    setSubmitting(false);
+
+    if (type === 'check-in' && (!(vehicle as any).currentOperationalPrefix || !(vehicle as any).currentServiceType)) {
+      // Async fetch remaining info in the background
+      (async () => {
+        try {
+          const q = query(
+            collection(db, 'checklists'), 
+            where('vehicleId', '==', vehicle.id),
+            where('type', '==', 'check-out'),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+          );
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const lastCheckOut = querySnapshot.docs[0].data() as RecordEntry;
+            setCadastroVtrFormData(prev => ({
+              ...prev,
+              identification: {
+                ...prev.identification,
+                operationalPrefix: lastCheckOut.identification?.operationalPrefix || prev.identification.operationalPrefix
+              },
+              drivers: {
+                ...prev.drivers,
+                driverName: lastCheckOut.drivers?.driverName || prev.drivers.driverName,
+                serviceType: lastCheckOut.drivers?.serviceType || prev.drivers.serviceType
+              }
+            }));
+          }
+        } catch (err) {
+          console.error("Error fetching background info:", err);
+        }
+      })();
+    }
   };
 
   const formatWhatsAppMessage = (record: RecordEntry) => {
@@ -1350,7 +1367,7 @@ export default function App() {
     let msg = `*${title} - ${typeLabel}*\n\n`;
 
     // Core identification
-    if (record.identification?.prefix) msg += `🚩 *Patrimônio:* ${record.identification.prefix}\n`;
+    msg += `🚩 *Patrimônio:* ${record.identification?.prefix || '---'}\n`;
     msg += `🔢 *Placa:* ${plateFormatted}\n`;
     if (record.identification?.operationalPrefix) msg += `🏷️ *Opm/Prefixo:* ${record.identification.operationalPrefix}\n`;
     if (record.identification?.model) msg += `🚔 *Modelo:* ${record.identification.model}\n`;
@@ -1670,71 +1687,92 @@ export default function App() {
 
     setSubmitting(true);
     try {
-      // Add record to database
-      await addDoc(collection(db, 'checklists'), {
+      const batch = writeBatch(db);
+      
+      // 1. Add record to database
+      const checklistRef = doc(collection(db, 'checklists'));
+      const recordData = {
         data: cadastroVtrFormData.identification.date || todayStr,
         vehicleId: selectedVehicle.id,
         type: operationType,
         timestamp: serverTimestamp(),
-        createdAt: serverTimestamp(), // For compatibility with main history
+        createdAt: serverTimestamp(),
         userEmail: user.email,
         userName: user.displayName || user.email?.split('@')[0],
-        unidade: omeOrigem, // Use configured OME
+        unidade: omeOrigem,
         identification: cadastroVtrFormData.identification,
         drivers: cadastroVtrFormData.drivers,
         mileage: cadastroVtrFormData.mileage,
         checklist: cadastroVtrFormData.checklist,
         source: 'cadchecking'
-      });
-      // Update vehicle status
-      await updateDoc(doc(db, 'vehicles', selectedVehicle.id), {
+      };
+      batch.set(checklistRef, recordData);
+
+      // 2. Update vehicle status and cached operational data
+      const vehicleRef = doc(db, 'vehicles', selectedVehicle.id);
+      const vehicleUpdate: any = {
         status: operationType === 'check-out' ? 'in_use' : 'available',
-        lastMileage: cadastroVtrFormData.mileage.currentMileage,
+        lastMileage: currentMileage,
         currentDriver: operationType === 'check-out' ? cadastroVtrFormData.drivers.driverName : null,
-        currentDriverEmail: operationType === 'check-out' ? user.email : null
-      });
-      
-      // Create persistent notification for operation completion
-      createAppNotification({
+        currentDriverEmail: operationType === 'check-out' ? user.email : null,
+        currentOperationalPrefix: operationType === 'check-out' ? cadastroVtrFormData.identification.operationalPrefix : null,
+        currentServiceType: operationType === 'check-out' ? cadastroVtrFormData.drivers.serviceType : null,
+        updatedAt: serverTimestamp()
+      };
+      batch.update(vehicleRef, vehicleUpdate);
+
+      // 3. Create persistent notification for operation completion (via batch too!)
+      const operationNotifRef = doc(collection(db, 'notifications'));
+      batch.set(operationNotifRef, {
         title: operationType === 'check-out' ? 'Saída de Viatura' : 'Entrada de Viatura',
         message: `${operationType === 'check-out' ? 'Saída' : 'Entrada'} da viatura ${selectedVehicle.prefix} (${selectedVehicle.plate}) registrada por ${user.displayName || user.email?.split('@')[0]}.`,
         type: 'success',
         targetUser: 'all',
         category: 'operation',
-        vehicleId: selectedVehicle.id
+        vehicleId: selectedVehicle.id,
+        timestamp: serverTimestamp(),
+        read: false
       });
 
-      // Alert if there are issues in checklist
+      // 4. Alert if there are issues in checklist
       if (cadastroVtrFormData.checklist?.arCondicionado === 'COM DEFEITO') {
-        createAppNotification({
+        const issueNotifRef = doc(collection(db, 'notifications'));
+        batch.set(issueNotifRef, {
           title: 'Defeito Reportado: Ar Condicionado',
           message: `Ar Condicionado da viatura ${selectedVehicle.prefix} reportado COM DEFEITO no checklist.`,
           type: 'warning',
           targetUser: 'all',
           category: 'maintenance',
-          vehicleId: selectedVehicle.id
+          vehicleId: selectedVehicle.id,
+          timestamp: serverTimestamp(),
+          read: false
         });
       }
 
-      // Check for maintenance based on mileage threshold (proxTrocaOleoKm)
+      // 5. Check for maintenance based on mileage threshold
       const nextOilChange = Number(cadastroVtrFormData.checklist?.proxTrocaOleoKm);
-      const currentMileageNum = Number(cadastroVtrFormData.mileage.currentMileage);
-      if (!isNaN(nextOilChange) && nextOilChange > 0 && currentMileageNum >= nextOilChange) {
-        createAppNotification({
+      if (!isNaN(nextOilChange) && nextOilChange > 0 && currentMileage >= nextOilChange) {
+        const maintNotifRef = doc(collection(db, 'notifications'));
+        batch.set(maintNotifRef, {
           title: 'Manutenção Preditiva: Troca de Óleo',
-          message: `Viatura ${selectedVehicle.prefix} atingiu a quilometragem para troca de óleo (${currentMileageNum}km >= ${nextOilChange}km).`,
+          message: `Viatura ${selectedVehicle.prefix} atingiu a quilometragem para troca de óleo (${currentMileage}km >= ${nextOilChange}km).`,
           type: 'error',
           targetUser: 'all',
           category: 'maintenance',
-          vehicleId: selectedVehicle.id
+          vehicleId: selectedVehicle.id,
+          timestamp: serverTimestamp(),
+          read: false
         });
       }
 
+      // Execute all together
+      await batch.commit();
+
       if (!skipWhatsApp) {
-        // Format WhatsApp Message
+        // Format WhatsApp Message using current data (since serverTimestamp isn't available yet locally)
         const recordToFormat: RecordEntry = {
           ...cadastroVtrFormData,
-          id: '', // Not needed for formatting
+          id: '', 
           vehicleId: selectedVehicle.id,
           type: operationType!,
           userEmail: user.email || '',
@@ -1745,18 +1783,22 @@ export default function App() {
         
         handleWhatsAppShare(recordToFormat);
         
-        // Add a small delay for mobile browsers to process the redirect before state changes
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Only delay on mobile to allow intent transition
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
       }
+      
       // Reset form
       setSelectedVehicle(null);
       setOperationType(null);
       setCurrentCadastroVtrTab(0);
       
-      // Forces redirection to the fleet list (Em Uso filter)
+      // Forces redirection to the fleet list (Em Uso filter if was check-out, Available if was check-in)
       setActiveTab('cadastro_vtr');
       setCadastroVtrView('list');
-      setCadastroVtrStatusFilter('in_use');
+      setCadastroVtrStatusFilter(operationType === 'check-out' ? 'in_use' : 'available');
       
       addNotification("Registro de VTR salvo com sucesso!", "success");
     } catch (err: any) {
@@ -3081,9 +3123,9 @@ export default function App() {
         >
           <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg p-3">
             <SafeImage 
-              src={getProxiedLogoUrl()} 
+              src={ASSETS.logo_14bpm} 
               alt={`Logo ${omeOrigem}`} 
-              className="w-full h-full" 
+              className="w-full h-full object-contain" 
               width={128}
             />
           </div>
@@ -3091,9 +3133,9 @@ export default function App() {
           <p className="text-slate-500 font-black text-xs uppercase tracking-widest mb-2">PMPE</p>
           <p className="text-slate-400 font-medium mb-2 text-[10px]">Batalhão Cel. PM Manoel de Souza Ferraz</p>
           <SafeImage 
-            src={getProxiedSisCOpILogoUrl()} 
+            src={ASSETS.logo_siscopi} 
             alt="SisCOpI Logo" 
-            className="h-12 w-full max-w-[200px] mx-auto mb-8" 
+            className="h-12 w-auto max-w-full mx-auto mb-8 object-contain" 
             height={48}
           />
           
@@ -3295,9 +3337,9 @@ export default function App() {
             <div className="p-6 flex items-center gap-3">
               <div className="bg-white p-1.5 rounded-xl shadow-inner">
                 <SafeImage 
-                  src={getProxiedLogoUrl()} 
+                  src={ASSETS.logo_14bpm} 
                   alt={`Logo ${omeOrigem}`} 
-                  className="w-12 h-12" 
+                  className="w-12 h-12 object-contain" 
                   width={48}
                 />
               </div>
@@ -3305,9 +3347,9 @@ export default function App() {
                 <span className="font-black text-xl tracking-tighter leading-none">{omeOrigem}</span>
                 <span className="text-[10px] font-bold opacity-80 uppercase tracking-tighter">PMPE</span>
                 <SafeImage 
-                  src={getProxiedSisCOpILogoUrl()} 
+                  src={ASSETS.logo_siscopi} 
                   alt="SisCOpI Logo" 
-                  className="h-4 w-auto mt-0.5" 
+                  className="h-4 w-auto mt-0.5 object-contain" 
                   height={16}
                 />
               </div>
@@ -3340,7 +3382,7 @@ export default function App() {
                 setCadastroVtrSearchTerm('');
                 setCadastroVtrStatusFilter('available');
               }}
-              icon={<img src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
+              icon={<img src={ASSETS.icone_vtr} alt="" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />}
               label="Cadastro VTR"
               badge="NOVO"
             />
@@ -3404,7 +3446,7 @@ export default function App() {
               setCadastroVtrSearchTerm('');
               setCadastroVtrStatusFilter('available');
             }} 
-            icon={<SafeImage src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="" className="w-5 h-5" width={20} />} 
+            icon={<SafeImage src={ASSETS.icone_vtr} alt="" className="w-5 h-5" width={20} />} 
             label="Cadastro VTR" 
           />
           <MobileNavLink active={activeTab === 'checklist'} onClick={() => setActiveTab('checklist')} icon={<ClipboardList size={20} />} label="Checklist VTR" />
@@ -3416,9 +3458,9 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="bg-white p-1 rounded-lg shadow-sm">
               <SafeImage 
-                src={getProxiedLogoUrl()} 
+                src={ASSETS.logo_14bpm} 
                 alt={`Logo ${omeOrigem}`} 
-                className="w-10 h-10" 
+                className="w-10 h-10 object-contain" 
                 width={40}
               />
             </div>
@@ -3426,9 +3468,9 @@ export default function App() {
               <span className="font-black text-lg tracking-tighter leading-none">{omeOrigem}</span>
               <span className="text-[9px] font-bold opacity-80 uppercase">PMPE</span>
               <SafeImage 
-                src={getProxiedSisCOpILogoUrl()} 
+                src={ASSETS.logo_siscopi} 
                 alt="SisCOpI Logo" 
-                className="h-3.5 w-auto mt-0.5" 
+                className="h-3.5 w-auto mt-0.5 object-contain" 
                 height={14}
               />
             </div>
@@ -3475,9 +3517,9 @@ export default function App() {
                 {/* Watermark Background */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none z-0">
                   <SafeImage 
-                    src={getProxiedLogoUrl()} 
+                    src={ASSETS.logo_14bpm} 
                     alt="" 
-                    className="w-[500px] h-[500px]" 
+                    className="w-[500px] h-[500px] object-contain" 
                     width={500}
                   />
                 </div>
@@ -3486,9 +3528,9 @@ export default function App() {
                   <div className="absolute top-0 left-0 w-full h-2 bg-blue-900"></div>
                   <div className="bg-white p-5 rounded-[2.5rem] shadow-xl mb-6 relative z-10">
                     <SafeImage 
-                      src={getProxiedLogoUrl()} 
+                      src={ASSETS.logo_14bpm} 
                       alt={`Logo ${omeOrigem}`} 
-                      className="w-32 h-32" 
+                      className="w-32 h-32 object-contain" 
                       width={128}
                     />
                   </div>
@@ -3500,9 +3542,9 @@ export default function App() {
                       <div className="flex items-center justify-center gap-4">
                         <div className="h-px w-12 bg-slate-200"></div>
                         <SafeImage 
-                          src={getProxiedSisCOpILogoUrl()} 
+                          src={ASSETS.logo_siscopi} 
                           alt="SisCOpI Logo" 
-                          className="h-12 w-auto" 
+                          className="h-12 w-auto object-contain" 
                           height={48}
                         />
                         <div className="h-px w-12 bg-slate-200"></div>
@@ -3538,7 +3580,7 @@ export default function App() {
                     title="Cadastro VTR"
                     description="Cadastramento, check-in/out e manutenção de frota"
                     color="blue"
-                    icon={<SafeImage src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" alt="Cadastro VTR" className="w-10 h-10 transition-transform group-hover:scale-110" width={40} />}
+                    icon={<SafeImage src={ASSETS.icone_vtr} alt="Cadastro VTR" className="w-10 h-10 transition-transform group-hover:scale-110 object-contain" width={40} />}
                     onClick={() => {
                       setActiveTab('cadastro_vtr');
                       setCadastroVtrSearchTerm('');
@@ -6656,10 +6698,9 @@ function CadastroVTR({
         <div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
             <img 
-              src="https://i.pinimg.com/originals/a4/9d/1b/a49d1bc945d9d701a572668f6ffc99b8.png" 
+              src={ASSETS.ICON_VTR} 
               alt="Cadastro VTR Logo" 
               className="w-10 h-10 object-contain" 
-              referrerPolicy="no-referrer"
             />
             Cadastro VTR <span className="text-blue-600/20">|</span> <span className="text-slate-400 text-lg font-bold">Controle de Frota</span>
           </h2>
