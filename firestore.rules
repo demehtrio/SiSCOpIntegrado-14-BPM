@@ -71,10 +71,12 @@ service cloud.firestore {
              data.model is string && data.model.size() > 0 && data.model.size() < 100 &&
              data.prefix is string && data.prefix.size() > 0 && data.prefix.size() < 50 &&
              data.status in ['available', 'in_use', 'maintenance'] &&
-             data.lastMileage is number && data.lastMileage >= 0;
+             data.lastMileage is number && data.lastMileage >= 0 &&
+             isValidOptionalString('currentDriver', 200) &&
+             isValidOptionalString('currentDriverEmail', 100);
     }
 
-    function isValidChecklist(data) {
+    function isValidRecord(data) {
       return hasRequiredFields(['vehicleId', 'type', 'timestamp', 'userEmail', 'identification', 'drivers', 'mileage']) &&
              data.vehicleId is string &&
              data.type in ['check-out', 'check-in', 'maintenance-in', 'maintenance-out'] &&
@@ -204,15 +206,29 @@ service cloud.firestore {
 
     match /checklists/{docId} {
       allow read: if isAuthorized();
-      allow create: if isAuthorized() && isValidChecklist(request.resource.data);
+      allow create: if isAuthorized() && isValidRecord(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /records/{docId} {
+      allow read: if isAuthorized();
+      allow create: if isAuthorized() && isValidRecord(request.resource.data);
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     match /standalone_checklists/{docId} {
       allow read: if isAuthorized();
-      allow create: if isAuthorized() && isValidChecklist(request.resource.data);
+      allow create: if isAuthorized() && isValidRecord(request.resource.data);
       allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{docId} {
+      allow read: if isAuthorized();
+      allow create: if isAuthorized();
+      allow update: if isAuthorized() && (isAdmin() || resource.data.targetUser == request.auth.uid);
       allow delete: if isAdmin();
     }
 
