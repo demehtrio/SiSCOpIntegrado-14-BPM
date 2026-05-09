@@ -648,8 +648,7 @@ export default function App() {
   const [standaloneHistory, setStandaloneHistory] = useState<RecordEntry[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [operationType, setOperationType] = useState<'check-out' | 'check-in' | null>(null);
-  const [cadastroVtrView, setCadastroVtrView] = useState<'list' | 'history' | 'admin' | 'form'>('list');
-  const [checklistView, setChecklistView] = useState<'list' | 'form'>('list');
+  const [cadastroVtrView, setCadastroVtrView] = useState<'list' | 'history' | 'admin'>('list');
   const [cadastroVtrSearchTerm, setCadastroVtrSearchTerm] = useState('');
   const [cadastroVtrStatusFilter, setCadastroVtrStatusFilter] = useState<'all' | 'available' | 'in_use' | 'maintenance'>('available');
   const [cadastroVtrHistoryFilter, setCadastroVtrHistoryFilter] = useState<'all' | 'check-out' | 'check-in' | 'maintenance'>('all');
@@ -3518,7 +3517,7 @@ export default function App() {
         </header>
 
         {/* Main Content */}
-        <main className={`w-full ${(activeTab === 'checklist' && checklistView === 'form') || (activeTab === 'cadastro_vtr' && cadastroVtrView === 'form') ? 'p-0' : 'p-3 sm:p-6'}`}>
+        <main className="p-3 sm:p-6 max-w-5xl mx-auto">
           <AnimatePresence mode="wait">
             {activeTab === 'dashboard' && (
               <motion.div 
@@ -3526,7 +3525,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="relative max-w-5xl mx-auto"
+                className="relative"
               >
                 {/* Watermark Background */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none z-0">
@@ -4604,7 +4603,6 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="max-w-5xl mx-auto"
               >
                 <header className="mb-6 md:mb-8">
                   <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Relatórios Consolidados</h1>
@@ -4738,7 +4736,6 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="max-w-5xl mx-auto"
               >
                 <header className="mb-8">
                   <h1 className="text-3xl font-bold text-slate-900">Configurações do Sistema</h1>
@@ -5025,8 +5022,6 @@ export default function App() {
                   onResendWhatsApp={handleResendWhatsApp}
                   onSaveStandalone={handleSaveStandaloneChecklist}
                   history={standaloneHistory}
-                  view={checklistView}
-                  setView={setChecklistView}
                 />
               </motion.div>
             )}
@@ -5869,9 +5864,7 @@ function ChecklistModule({
   onGenerateDetailedPDF,
   onResendWhatsApp,
   onSaveStandalone,
-  history,
-  view,
-  setView
+  history
 }: {
   user: User | null;
   vehicles: Vehicle[];
@@ -5888,9 +5881,8 @@ function ChecklistModule({
   onResendWhatsApp: (record: RecordEntry) => void;
   onSaveStandalone: (formData: any, skipWhatsApp?: boolean) => Promise<boolean>;
   history: RecordEntry[];
-  view: 'list' | 'form';
-  setView: (v: 'list' | 'form') => void;
 }) {
+  const [view, setView] = useState<'list' | 'form'>('list');
   const [currentTab, setCurrentTab] = useState(0);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -5989,7 +5981,7 @@ function ChecklistModule({
   };
 
   return (
-    <div className={`w-full ${view === 'form' ? 'max-w-none px-0' : 'max-w-5xl px-1 sm:px-6'} mx-auto pb-20`}>
+    <div className="w-full max-w-5xl mx-auto px-1 sm:px-6 pb-20">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-6 md:mb-10">
         <div>
@@ -6067,7 +6059,7 @@ function ChecklistModule({
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[calc(100vh-250px)]">
+        <div className="bg-white rounded-3xl sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
           {/* Progress Header */}
           <div className="bg-slate-900 p-4 sm:p-10 text-white relative">
             <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
@@ -6131,7 +6123,7 @@ function ChecklistModule({
           </div>
 
           {/* Form Content */}
-          <div className="p-4 sm:p-12 flex-1 overflow-y-auto max-h-[calc(100vh-350px)] custom-scrollbar">
+          <div className="p-4 sm:p-12 flex-1 overflow-y-auto max-h-[80vh] custom-scrollbar">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentTab}
@@ -6749,7 +6741,7 @@ function CadastroVTR({
   }), [history, historyFilter, dateFilter]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20 md:pb-0">
+    <div className="space-y-6 pb-20 md:pb-0">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
         <div>
@@ -7094,7 +7086,7 @@ function CadastroVTR({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-               className="bg-white sm:rounded-[2.5rem] shadow-2xl w-full max-w-4xl flex flex-col border border-slate-200 min-h-[80vh] sm:h-auto sm:my-auto overflow-hidden"
+              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl flex flex-col border border-slate-200 my-auto"
             >
               {/* Modal Header */}
               <div className={`p-6 sm:p-8 text-white relative overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
