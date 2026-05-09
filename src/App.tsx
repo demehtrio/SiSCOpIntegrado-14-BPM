@@ -648,7 +648,7 @@ export default function App() {
   const [standaloneHistory, setStandaloneHistory] = useState<RecordEntry[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [operationType, setOperationType] = useState<'check-out' | 'check-in' | null>(null);
-  const [cadastroVtrView, setCadastroVtrView] = useState<'list' | 'history' | 'admin'>('list');
+  const [cadastroVtrView, setCadastroVtrView] = useState<'list' | 'history' | 'admin' | 'form'>('list');
   const [cadastroVtrSearchTerm, setCadastroVtrSearchTerm] = useState('');
   const [cadastroVtrStatusFilter, setCadastroVtrStatusFilter] = useState<'all' | 'available' | 'in_use' | 'maintenance'>('available');
   const [cadastroVtrHistoryFilter, setCadastroVtrHistoryFilter] = useState<'all' | 'check-out' | 'check-in' | 'maintenance'>('all');
@@ -1251,6 +1251,7 @@ export default function App() {
     if (!vehicle || !type) {
       setSelectedVehicle(null);
       setOperationType(null);
+      setCadastroVtrView('list');
       return;
     }
     
@@ -1262,6 +1263,7 @@ export default function App() {
     
     setSelectedVehicle(vehicle);
     setOperationType(type);
+    setCadastroVtrView('form');
     // Para check-in (Retorno), abre direto na tela de quilometragem (aba 2)
     setCurrentCadastroVtrTab(type === 'check-in' ? 2 : 0);
     
@@ -6026,7 +6028,7 @@ function ChecklistModule({
               </div>
             </div>
           </motion.button>
-
+          
           <div className="bg-white p-4 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-10">
               <div>
@@ -6059,71 +6061,59 @@ function ChecklistModule({
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
-          {/* Progress Header */}
-          <div className="bg-slate-900 p-4 sm:p-10 text-white relative">
-            <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4 sm:mb-8">
-                <button 
-                  onClick={() => setView('list')}
-                  className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
-                >
-                  <ArrowLeft size={16} />
-                  Voltar
-                </button>
-                <div className="hidden sm:block">
-                  <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block text-blue-400">
-                    Novo Checklist
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <div className="flex flex-col gap-1 mb-2">
-                    <span className="px-3 py-1 w-fit bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-blue-400 sm:hidden">
-                      Novo Checklist
-                    </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                      ETAPA {currentTab + 1} DE 7
-                    </span>
-                  </div>
-                  <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
-                    {[
-                      'Identificação Básica',
-                      'Responsável Técnico',
-                      'Estado Técnico & Equipamentos',
-                      'Sistema de Iluminação',
-                      'Mecânica & Fluidos',
-                      'Conservação Interna/Externa',
-                      'Conferência Final & Fotos'
-                    ][currentTab]}
-                  </h3>
-                </div>
-                <button 
-                   onClick={() => setView('list')}
-                   className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all text-white/60 hover:text-white"
-                >
-                  <X size={24} />
-                </button>
-              </div>
+        <div className="space-y-6">
+          <button 
+            onClick={() => setView('list')}
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 mb-2 transition-colors font-bold"
+          >
+            <ChevronLeft size={20} />
+            Voltar ao Histórico
+          </button>
 
-              {/* Step Navigation Dots/Bar */}
-              <div className="flex gap-2">
-                {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
-                  <div 
-                    key={idx}
-                    className={`h-2 flex-1 rounded-full transition-all duration-500 ${
-                      idx <= currentTab ? 'bg-blue-500' : 'bg-white/10'
-                    } ${idx === currentTab ? 'shadow-[0_0_15px_rgba(59,130,246,0.5)]' : ''}`}
-                  />
-                ))}
+          <div className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
+            {/* Progress Header */}
+            <div className="bg-white p-6 sm:p-10 border-b border-slate-100 relative">
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                       <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
+                        Novo Checklist
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        ETAPA {currentTab + 1} DE 7
+                      </span>
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-slate-900">
+                      {[
+                        'Identificação Básica',
+                        'Responsável Técnico',
+                        'Estado Técnico & Equipamentos',
+                        'Sistema de Iluminação',
+                        'Mecânica & Fluidos',
+                        'Conservação Interna/Externa',
+                        'Conferência Final & Fotos'
+                      ][currentTab]}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Step Navigation Dots/Bar */}
+                <div className="flex gap-2">
+                  {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
+                    <div 
+                      key={idx}
+                      className={`h-2 flex-1 rounded-full transition-all duration-500 ${
+                        idx <= currentTab ? 'bg-blue-600' : 'bg-slate-100'
+                      } ${idx === currentTab ? 'shadow-[0_0_10px_rgba(37,99,235,0.2)]' : ''}`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Form Content */}
-          <div className="p-4 sm:p-12 flex-1 overflow-y-auto max-h-[80vh] custom-scrollbar">
+            {/* Form Content */}
+            <div className="p-4 sm:p-12 flex-1">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentTab}
@@ -6592,6 +6582,7 @@ function ChecklistModule({
             )}
           </div>
         </div>
+      </div>
       )}
     </div>
   );
@@ -6648,8 +6639,8 @@ function CadastroVTR({
   history: RecordEntry[];
   selectedVehicle: Vehicle | null;
   operationType: 'check-out' | 'check-in' | null;
-  view: 'list' | 'history' | 'admin';
-  setView: (view: 'list' | 'history' | 'admin') => void;
+  view: 'list' | 'history' | 'admin' | 'form';
+  setView: (view: 'list' | 'history' | 'admin' | 'form') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   statusFilter: 'all' | 'available' | 'in_use' | 'maintenance';
@@ -6785,6 +6776,250 @@ function CadastroVTR({
 
       {/* Main Content */}
       <AnimatePresence mode="wait">
+        {view === 'form' && selectedVehicle && operationType && (
+          <motion.div 
+            key="form"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <button 
+              onClick={() => onStartRecord(null, null)}
+              className="flex items-center gap-2 text-slate-500 hover:text-slate-900 mb-2 transition-colors font-bold"
+            >
+              <ChevronLeft size={20} />
+              Voltar para Frota
+            </button>
+
+            <div className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
+              {/* Modal Header */}
+              <div className={`p-6 sm:p-10 text-white relative overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                <div className="absolute top-0 right-0 p-12 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+                <div className="relative z-10 flex items-center justify-between">
+                  <div>
+                    <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">
+                      {operationType === 'check-out' ? 'SAÍDA (Cautelar Viatura)' : 'RETORNO (Devolução Viatura)'}
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight">{selectedVehicle?.prefix}</h3>
+                    <p className="opacity-90 font-bold text-sm sm:text-lg">{selectedVehicle?.model} • <span className="font-mono">{selectedVehicle?.plate}</span></p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Body - Multi-step Form */}
+              <div className="p-6 sm:p-10 flex-1">
+                  <div className="flex gap-2 mb-8 bg-slate-50 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar">
+                    {[
+                      { icon: <Siren size={18} />, label: 'Identificação' },
+                      { icon: <UserRound size={18} />, label: 'Condutor' },
+                      { icon: <RefreshCw size={18} />, label: 'Quilometragem' }
+                    ].map((step, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentTab(idx)}
+                        className={`flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${currentTab === idx ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        {step.icon}
+                        <span className="hidden sm:inline">{step.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="min-h-[400px]">
+                    {currentTab === 0 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Placa</label>
+                            <ChecklistSearchableSelect 
+                              label="Placa"
+                              value={formData.identification.plate}
+                              onChange={(val: string) => {
+                                const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
+                                setFormData({
+                                  ...formData, 
+                                  identification: {
+                                    ...formData.identification, 
+                                    plate: val, 
+                                    prefix: vehicle?.prefix || formData.identification.prefix,
+                                    model: vehicle?.model || formData.identification.model
+                                  }
+                                });
+                              }}
+                              options={vehicles.map((v: Vehicle) => v.plate)}
+                              placeholder="Selecione a placa..."
+                              variant="blue"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Patrimônio</label>
+                            <ChecklistSearchableSelect 
+                              label="Patrimônio"
+                              value={formData.identification.prefix}
+                              onChange={(val: string) => {
+                                const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
+                                setFormData({
+                                  ...formData, 
+                                  identification: {
+                                    ...formData.identification, 
+                                    prefix: val, 
+                                    plate: vehicle?.plate || formData.identification.plate,
+                                    model: vehicle?.model || formData.identification.model
+                                  }
+                                });
+                              }}
+                              options={vehicles.map((v: Vehicle) => v.prefix)}
+                              placeholder="Selecione a viatura..."
+                              variant="blue"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Prefixo Operacional</label>
+                            <ChecklistSearchableSelect 
+                              label="Prefixo Operacional"
+                              value={formData.identification.operationalPrefix}
+                              onChange={(val: string) => setFormData({...formData, identification: {...formData.identification, operationalPrefix: val}})}
+                              options={[...prefixoVtList, ...moList]}
+                              placeholder="Selecione o Prefixo..."
+                              variant="blue"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                            <input 
+                              type="date"
+                              value={formData.identification.date}
+                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
+                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
+                            <input 
+                              type="time"
+                              value={formData.identification.time}
+                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
+                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {currentTab === 1 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Motorista / Matrícula</label>
+                          <ChecklistSearchableSelect 
+                            label="Motorista"
+                            value={formData.drivers.driverName}
+                            onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, driverName: val}})}
+                            options={personnelList}
+                            placeholder="Selecione o Motorista..."
+                            variant="blue"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">OME de Origem do Efetivo</label>
+                          <ChecklistSearchableSelect 
+                            label="OME de Origem"
+                            value={formData.drivers.serviceType}
+                            onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, serviceType: val}})}
+                            options={omeOrigemList}
+                            placeholder="Selecione a OME..."
+                            variant="blue"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {currentTab === 2 && (
+                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-center gap-4">
+                          <div className="bg-blue-600 p-3 rounded-2xl text-white">
+                            <RefreshCw size={24} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-blue-600 uppercase tracking-widest">KM Anterior</p>
+                            <p className="text-2xl font-black text-blue-900">{selectedVehicle?.lastMileage} <span className="text-sm font-bold opacity-60">km</span></p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Quilometragem Atual</label>
+                          <input 
+                            type="number"
+                            placeholder="Digite a KM do painel..."
+                            value={formData.mileage.currentMileage}
+                            onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value === '' ? '' : Number(e.target.value)}})}
+                            className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-3xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none font-black text-3xl text-slate-900 transition-all"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observações / Avarias</label>
+                          <textarea 
+                            placeholder="Descreva aqui qualquer detalhe adicional, avarias em lataria, vidros, bancos, etc."
+                            value={formData.checklist.descricaoAlteracoes}
+                            onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, descricaoAlteracoes: e.target.value}})}
+                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700 min-h-[100px]"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                <div className="mt-10 flex flex-col sm:flex-row gap-4">
+                  {currentTab > 0 ? (
+                    <button 
+                      onClick={() => setCurrentTab(currentTab - 1)}
+                      className="w-full sm:flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                    >
+                      Voltar
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => onStartRecord(null, null)}
+                      className="w-full sm:flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                  
+                  {currentTab < 2 ? (
+                    <button 
+                      onClick={() => setCurrentTab(currentTab + 1)}
+                      className="w-full sm:flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                    >
+                      Próximo Passo
+                    </button>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:flex-[2]">
+                      <button 
+                        onClick={() => onSaveRecord(true)}
+                        disabled={submitting || formData.mileage.currentMileage === ''}
+                        className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                        Apenas Salvar
+                      </button>
+                      <button 
+                        onClick={() => onSaveRecord()}
+                        disabled={submitting || formData.mileage.currentMileage === ''}
+                        className={`flex-[1.5] py-4 text-white rounded-2xl font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 ${operationType === 'check-in' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                      >
+                        {submitting ? <Loader2 className="animate-spin" size={20} /> : <Check size={20} />}
+                        Salvar e Enviar WhatsApp
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {view === 'list' && (
           <motion.div 
             key="list"
@@ -7078,251 +7313,8 @@ function CadastroVTR({
         )}
       </AnimatePresence>
 
-      {/* Operation Modal (Check-in / Check-out) */}
-      <AnimatePresence>
-        {selectedVehicle && operationType && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl flex flex-col border border-slate-200 my-auto"
-            >
-              {/* Modal Header */}
-              <div className={`p-6 sm:p-8 text-white relative overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
-                <div className="absolute top-0 right-0 p-12 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
-                <div className="relative z-10 flex items-center justify-between">
-                  <div>
-                    <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">
-                      {operationType === 'check-out' ? 'SAÍDA (Cautelar Viatura)' : 'RETORNO (Devolução Viatura)'}
-                    </span>
-                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight">{selectedVehicle?.prefix}</h3>
-                    <p className="opacity-90 font-bold text-sm sm:text-lg">{selectedVehicle?.model} • <span className="font-mono">{selectedVehicle?.plate}</span></p>
-                  </div>
-                  <button 
-                    onClick={() => onStartRecord(null, null)}
-                    className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
-                  >
-                    <X size={24} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Modal Body - Multi-step Form */}
-              <div className="p-6 sm:p-8">
-
-                  <div className="flex gap-2 mb-8 bg-slate-50 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar">
-                    {[
-                      { icon: <Siren size={18} />, label: 'Identificação' },
-                      { icon: <UserRound size={18} />, label: 'Condutor' },
-                      { icon: <RefreshCw size={18} />, label: 'Quilometragem' }
-                    ].map((step, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setCurrentTab(idx)}
-                        className={`flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${currentTab === idx ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                      >
-                        {step.icon}
-                        <span className="hidden sm:inline">{step.label}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="min-h-[400px]">
-                    {currentTab === 0 && (
-                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Placa</label>
-                            <ChecklistSearchableSelect 
-                              label="Placa"
-                              value={formData.identification.plate}
-                              onChange={(val: string) => {
-                                const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
-                                setFormData({
-                                  ...formData, 
-                                  identification: {
-                                    ...formData.identification, 
-                                    plate: val, 
-                                    prefix: vehicle?.prefix || formData.identification.prefix,
-                                    model: vehicle?.model || formData.identification.model
-                                  }
-                                });
-                              }}
-                              options={vehicles.map((v: Vehicle) => v.plate)}
-                              placeholder="Selecione a placa..."
-                              variant="blue"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Patrimônio</label>
-                            <ChecklistSearchableSelect 
-                              label="Patrimônio"
-                              value={formData.identification.prefix}
-                              onChange={(val: string) => {
-                                const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
-                                setFormData({
-                                  ...formData, 
-                                  identification: {
-                                    ...formData.identification, 
-                                    prefix: val, 
-                                    plate: vehicle?.plate || formData.identification.plate,
-                                    model: vehicle?.model || formData.identification.model
-                                  }
-                                });
-                              }}
-                              options={vehicles.map((v: Vehicle) => v.prefix)}
-                              placeholder="Selecione a viatura..."
-                              variant="blue"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Prefixo Operacional</label>
-                            <ChecklistSearchableSelect 
-                              label="Prefixo Operacional"
-                              value={formData.identification.operationalPrefix}
-                              onChange={(val: string) => setFormData({...formData, identification: {...formData.identification, operationalPrefix: val}})}
-                              options={[...prefixoVtList, ...moList]}
-                              placeholder="Selecione o Prefixo..."
-                              variant="blue"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                            <input 
-                              type="date"
-                              value={formData.identification.date}
-                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, date: e.target.value}})}
-                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
-                            <input 
-                              type="time"
-                              value={formData.identification.time}
-                              onChange={(e) => setFormData({...formData, identification: {...formData.identification, time: e.target.value}})}
-                              className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {currentTab === 1 && (
-                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                        <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Motorista / Matrícula</label>
-                          <ChecklistSearchableSelect 
-                            label="Motorista"
-                            value={formData.drivers.driverName}
-                            onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, driverName: val}})}
-                            options={personnelList}
-                            placeholder="Selecione o Motorista..."
-                            variant="blue"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">OME de Origem do Efetivo</label>
-                          <ChecklistSearchableSelect 
-                            label="OME de Origem"
-                            value={formData.drivers.serviceType}
-                            onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, serviceType: val}})}
-                            options={omeOrigemList}
-                            placeholder="Selecione a OME..."
-                            variant="blue"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {currentTab === 2 && (
-                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                        <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-center gap-4">
-                          <div className="bg-blue-600 p-3 rounded-2xl text-white">
-                            <RefreshCw size={24} />
-                          </div>
-                          <div>
-                            <p className="text-xs font-black text-blue-600 uppercase tracking-widest">KM Anterior</p>
-                            <p className="text-2xl font-black text-blue-900">{selectedVehicle?.lastMileage} <span className="text-sm font-bold opacity-60">km</span></p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Quilometragem Atual</label>
-                          <input 
-                            type="number"
-                            placeholder="Digite a KM do painel..."
-                            value={formData.mileage.currentMileage}
-                            onChange={(e) => setFormData({...formData, mileage: {...formData.mileage, currentMileage: e.target.value === '' ? '' : Number(e.target.value)}})}
-                            className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-3xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none font-black text-3xl text-slate-900 transition-all"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observações / Avarias</label>
-                          <textarea 
-                            placeholder="Descreva aqui qualquer detalhe adicional, avarias em lataria, vidros, bancos, etc."
-                            value={formData.checklist.descricaoAlteracoes}
-                            onChange={(e) => setFormData({...formData, checklist: {...formData.checklist, descricaoAlteracoes: e.target.value}})}
-                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700 min-h-[100px]"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-
-                <div className="mt-10 flex flex-col sm:flex-row gap-4">
-                  {currentTab > 0 ? (
-                    <button 
-                      onClick={() => setCurrentTab(currentTab - 1)}
-                      className="w-full sm:flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
-                    >
-                      Voltar
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => onStartRecord(null, null)}
-                      className="w-full sm:flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                  
-                  {currentTab < 2 ? (
-                    <button 
-                      onClick={() => setCurrentTab(currentTab + 1)}
-                      className="w-full sm:flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
-                    >
-                      Próximo Passo
-                    </button>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:flex-[2]">
-                      <button 
-                        onClick={() => onSaveRecord(true)}
-                        disabled={submitting || formData.mileage.currentMileage === ''}
-                        className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                      >
-                        {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                        Apenas Salvar
-                      </button>
-                      <button 
-                        onClick={() => onSaveRecord()}
-                        disabled={submitting || formData.mileage.currentMileage === ''}
-                        className={`flex-[1.5] py-4 text-white rounded-2xl font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 ${operationType === 'check-in' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
-                      >
-                        {submitting ? <Loader2 className="animate-spin" size={20} /> : <Check size={20} />}
-                        Salvar e Enviar WhatsApp
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
+      {/* Operation Modal - REMOVED (Now inline) */}
+      
       {/* Maintenance Observation Modal */}
       <AnimatePresence>
         {maintenanceModal && (
