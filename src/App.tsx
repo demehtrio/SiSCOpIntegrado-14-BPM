@@ -520,8 +520,8 @@ const ChecklistSearchableSelect = ({
 
   const getLabelStyles = () => {
     if (variant === 'dark') return 'text-white/70';
-    if (variant === 'blue') return 'text-blue-600/60';
-    return 'opacity-50';
+    if (variant === 'blue') return 'text-blue-600 font-black';
+    return 'text-slate-500 font-black';
   };
 
   const getInputStyles = () => {
@@ -6113,7 +6113,7 @@ function ChecklistModule({
             </div>
 
             {/* Form Content */}
-            <div className="p-6 sm:p-12 pb-32 sm:pb-32 flex-1">
+            <div className="p-8 sm:p-12 pb-32 sm:pb-32 flex-1">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentTab}
@@ -6167,7 +6167,7 @@ function ChecklistModule({
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 p-4 sm:p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Data do Registro</label>
                         <input 
                           type="date"
                           value={formData.identification.date}
@@ -6176,7 +6176,7 @@ function ChecklistModule({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Hora do Registro</label>
                         <input 
                           type="time"
                           value={formData.identification.time}
@@ -6213,7 +6213,7 @@ function ChecklistModule({
                   <div className="space-y-12">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       <div className="bg-slate-50 p-4 sm:p-6 rounded-[2rem] border border-slate-100">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 ml-1">Ar Condicionado</label>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-4 ml-1">Ar Condicionado</label>
                         <div className="flex gap-3">
                           {['FUNCIONANDO', 'COM DEFEITO'].map(opt => (
                             <button
@@ -6232,7 +6232,7 @@ function ChecklistModule({
                         </div>
                       </div>
                       <div className="bg-slate-50 p-4 sm:p-6 rounded-[2rem] border border-slate-100">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 ml-1">Viatura Higienizada?</label>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-4 ml-1">Viatura Higienizada?</label>
                         <div className="flex gap-3">
                           {['SIM', 'NÃO'].map(opt => (
                             <button
@@ -6292,7 +6292,7 @@ function ChecklistModule({
                         { label: 'Luz de Placa', field: 'luzPlaca', icon: <Car size={16} /> }
                       ].map(item => (
                         <div key={item.field} className="space-y-3">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                          <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
                              {item.icon} {item.label}
                           </label>
                           <select 
@@ -6345,7 +6345,7 @@ function ChecklistModule({
                   <div className="space-y-10">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       <div className="space-y-3">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Pneus</label>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Pneus</label>
                         <select 
                           className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
                           value={formData.checklist.pneus}
@@ -6357,7 +6357,7 @@ function ChecklistModule({
                         </select>
                       </div>
                       <div className="space-y-3">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Sistema de Freio</label>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Sistema de Freio</label>
                         <select 
                           className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
                           value={formData.checklist.sistemaFreio}
@@ -6372,7 +6372,7 @@ function ChecklistModule({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 p-4 sm:p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100">
                       <div className="space-y-3">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Condição do Óleo do Motor</label>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Condição do Óleo do Motor</label>
                         <select 
                           className="w-full p-5 bg-white border border-blue-100 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
                           value={formData.checklist.oleoMotor}
@@ -6384,7 +6384,7 @@ function ChecklistModule({
                         </select>
                       </div>
                       <div className="space-y-3">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Previsão Próx. Troca (KM)</label>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Previsão Próx. Troca (KM)</label>
                         <input 
                           type="number"
                           placeholder="Ex: 85000"
@@ -6471,7 +6471,7 @@ function ChecklistModule({
                     </div>
                     
                     <div className="space-y-4">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Descrição de Avarias / Observações</label>
+                      <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Descrição de Avarias / Observações</label>
                       <textarea 
                         placeholder="Relate detalhadamente qualquer divergência ou observação importante..."
                         value={formData.mileage.notes}
@@ -6481,7 +6481,7 @@ function ChecklistModule({
                     </div>
 
                     <div className="space-y-6">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                      <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
                         <Camera size={16} />
                         Galeria de Fotos (Obrigatórias em casos de avaria)
                       </label>
@@ -6808,7 +6808,7 @@ function CadastroVTR({
               </div>
 
                   {/* Form Body - Multi-step Form */}
-                  <div className="p-6 sm:p-12 pb-32 sm:pb-32 flex-1 min-h-[400px]">
+                  <div className="p-8 sm:p-12 pb-32 sm:pb-32 flex-1 min-h-[400px]">
                   <div className="flex gap-2 mb-8 bg-slate-50 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar">
                     {[
                       { icon: <Siren size={18} />, label: 'Identificação' },
@@ -6832,9 +6832,8 @@ function CadastroVTR({
                       <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Placa</label>
                             <ChecklistSearchableSelect 
-                              label="Placa"
+                              label="Placa da Viatura"
                               value={formData.identification.plate}
                               onChange={(val: string) => {
                                 const vehicle = vehicles.find((v: Vehicle) => v.plate === val);
@@ -6854,9 +6853,8 @@ function CadastroVTR({
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Patrimônio</label>
                             <ChecklistSearchableSelect 
-                              label="Patrimônio"
+                              label="Patrimônio / Viatura"
                               value={formData.identification.prefix}
                               onChange={(val: string) => {
                                 const vehicle = vehicles.find((v: Vehicle) => v.prefix === val);
@@ -6876,9 +6874,8 @@ function CadastroVTR({
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Prefixo Operacional</label>
                             <ChecklistSearchableSelect 
-                              label="Prefixo Operacional"
+                              label="Prefixo Operacional (Efetivo)"
                               value={formData.identification.operationalPrefix}
                               onChange={(val: string) => setFormData({...formData, identification: {...formData.identification, operationalPrefix: val}})}
                               options={[...prefixoVtList, ...moList]}
@@ -6887,7 +6884,7 @@ function CadastroVTR({
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                            <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Data do Registro</label>
                             <input 
                               type="date"
                               value={formData.identification.date}
@@ -6896,7 +6893,7 @@ function CadastroVTR({
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Hora do Registro</label>
+                            <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Hora do Registro</label>
                             <input 
                               type="time"
                               value={formData.identification.time}
@@ -6911,9 +6908,8 @@ function CadastroVTR({
                     {currentTab === 1 && (
                       <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Motorista / Matrícula</label>
                           <ChecklistSearchableSelect 
-                            label="Motorista"
+                            label="Motorista Responsável / Matrícula"
                             value={formData.drivers.driverName}
                             onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, driverName: val}})}
                             options={personnelList}
@@ -6922,9 +6918,8 @@ function CadastroVTR({
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">OME de Origem do Efetivo</label>
                           <ChecklistSearchableSelect 
-                            label="OME de Origem"
+                            label="OME de Origem do Efetivo"
                             value={formData.drivers.serviceType}
                             onChange={(val: string) => setFormData({...formData, drivers: {...formData.drivers, serviceType: val}})}
                             options={omeOrigemList}
