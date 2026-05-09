@@ -538,7 +538,7 @@ const ChecklistSearchableSelect = ({
   return (
     <div className={`space-y-2 relative ${isOpen ? 'z-[100]' : 'z-10'}`} ref={containerRef}>
       <div className="flex items-center justify-between">
-        <label className={`text-xs font-bold uppercase ${getLabelStyles()}`}>{label}</label>
+        <label className={`text-sm font-black uppercase tracking-wider ${getLabelStyles()}`}>{label}</label>
         {rightElement}
       </div>
       <div className="relative">
@@ -6070,7 +6070,7 @@ function ChecklistModule({
             Voltar ao Histórico
           </button>
 
-          <div className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
+          <div className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-slate-100 flex flex-col min-h-[600px]">
             {/* Progress Header */}
             <div className="bg-white/90 backdrop-blur-xl p-6 sm:p-10 border-b border-slate-100 sticky top-[72px] md:top-0 z-30 shadow-sm">
               <div className="relative z-10">
@@ -6167,7 +6167,7 @@ function ChecklistModule({
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 p-4 sm:p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Data do Registro</label>
+                        <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Data do Registro</label>
                         <input 
                           type="date"
                           value={formData.identification.date}
@@ -6176,7 +6176,7 @@ function ChecklistModule({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Hora do Registro</label>
+                        <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Hora do Registro</label>
                         <input 
                           type="time"
                           value={formData.identification.time}
@@ -6213,7 +6213,7 @@ function ChecklistModule({
                   <div className="space-y-12">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       <div className="bg-slate-50 p-4 sm:p-6 rounded-[2rem] border border-slate-100">
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-4 ml-1">Ar Condicionado</label>
+                        <label className="text-sm font-black text-slate-700 uppercase tracking-wider block mb-4 ml-1">Ar Condicionado</label>
                         <div className="flex gap-3">
                           {['FUNCIONANDO', 'COM DEFEITO'].map(opt => (
                             <button
@@ -6232,7 +6232,7 @@ function ChecklistModule({
                         </div>
                       </div>
                       <div className="bg-slate-50 p-4 sm:p-6 rounded-[2rem] border border-slate-100">
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-4 ml-1">Viatura Higienizada?</label>
+                        <label className="text-sm font-black text-slate-700 uppercase tracking-wider block mb-4 ml-1">Viatura Higienizada?</label>
                         <div className="flex gap-3">
                           {['SIM', 'NÃO'].map(opt => (
                             <button
@@ -6292,7 +6292,7 @@ function ChecklistModule({
                         { label: 'Luz de Placa', field: 'luzPlaca', icon: <Car size={16} /> }
                       ].map(item => (
                         <div key={item.field} className="space-y-3">
-                          <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
+                          <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1 flex items-center gap-2">
                              {item.icon} {item.label}
                           </label>
                           <select 
@@ -6345,7 +6345,7 @@ function ChecklistModule({
                   <div className="space-y-10">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       <div className="space-y-3">
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Pneus</label>
+                        <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Pneus</label>
                         <select 
                           className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
                           value={formData.checklist.pneus}
@@ -6357,7 +6357,7 @@ function ChecklistModule({
                         </select>
                       </div>
                       <div className="space-y-3">
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Sistema de Freio</label>
+                        <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Sistema de Freio</label>
                         <select 
                           className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
                           value={formData.checklist.sistemaFreio}
@@ -6372,7 +6372,7 @@ function ChecklistModule({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 p-4 sm:p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100">
                       <div className="space-y-3">
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Condição do Óleo do Motor</label>
+                        <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Condição do Óleo do Motor</label>
                         <select 
                           className="w-full p-5 bg-white border border-blue-100 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer appearance-none"
                           value={formData.checklist.oleoMotor}
@@ -6384,7 +6384,7 @@ function ChecklistModule({
                         </select>
                       </div>
                       <div className="space-y-3">
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Previsão Próx. Troca (KM)</label>
+                        <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Previsão Próx. Troca (KM)</label>
                         <input 
                           type="number"
                           placeholder="Ex: 85000"
@@ -6460,7 +6460,7 @@ function ChecklistModule({
                 {currentTab === 6 && (
                   <div className="space-y-10">
                     <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col items-center gap-6 shadow-2xl">
-                      <label className="text-xs font-black text-blue-400 uppercase tracking-widest text-center">Quilometragem no Painel</label>
+                      <label className="text-sm font-black text-blue-500 uppercase tracking-wider text-center">Quilometragem no Painel</label>
                       <input 
                         type="number"
                         placeholder="000.000"
@@ -6471,7 +6471,7 @@ function ChecklistModule({
                     </div>
                     
                     <div className="space-y-4">
-                      <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Descrição de Avarias / Observações</label>
+                      <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Descrição de Avarias / Observações</label>
                       <textarea 
                         placeholder="Relate detalhadamente qualquer divergência ou observação importante..."
                         value={formData.mileage.notes}
@@ -6481,7 +6481,7 @@ function ChecklistModule({
                     </div>
 
                     <div className="space-y-6">
-                      <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
+                      <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1 flex items-center gap-2">
                         <Camera size={16} />
                         Galeria de Fotos (Obrigatórias em casos de avaria)
                       </label>
@@ -6792,7 +6792,7 @@ function CadastroVTR({
               Voltar para Frota
             </button>
 
-            <div className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
+            <div className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-slate-100 flex flex-col min-h-[600px]">
               {/* Modal Header */}
               <div className={`p-6 sm:p-10 text-white sticky top-[64px] md:top-0 z-20 overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
                 <div className="absolute top-0 right-0 p-12 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
@@ -6884,7 +6884,7 @@ function CadastroVTR({
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Data do Registro</label>
+                            <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Data do Registro</label>
                             <input 
                               type="date"
                               value={formData.identification.date}
@@ -6893,7 +6893,7 @@ function CadastroVTR({
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-600 uppercase tracking-widest ml-1">Hora do Registro</label>
+                            <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Hora do Registro</label>
                             <input 
                               type="time"
                               value={formData.identification.time}
@@ -6937,13 +6937,13 @@ function CadastroVTR({
                             <RefreshCw size={24} />
                           </div>
                           <div>
-                            <p className="text-xs font-black text-blue-600 uppercase tracking-widest">KM Anterior</p>
+                            <p className="text-sm font-black text-blue-700 uppercase tracking-wider">KM Anterior</p>
                             <p className="text-2xl font-black text-blue-900">{selectedVehicle?.lastMileage} <span className="text-sm font-bold opacity-60">km</span></p>
                           </div>
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Quilometragem Atual</label>
+                          <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Quilometragem Atual</label>
                           <input 
                             type="number"
                             placeholder="Digite a KM do painel..."
@@ -6954,7 +6954,7 @@ function CadastroVTR({
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observações / Avarias</label>
+                          <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Observações / Avarias</label>
                           <textarea 
                             placeholder="Descreva aqui qualquer detalhe adicional, avarias em lataria, vidros, bancos, etc."
                             value={formData.checklist.descricaoAlteracoes}
@@ -7132,7 +7132,7 @@ function CadastroVTR({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
                 <div>
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">Tipo de Movimentação</label>
+                  <label className="text-sm font-black text-slate-400 uppercase tracking-wider block mb-4">Tipo de Movimentação</label>
                   <div className="flex flex-wrap gap-2">
                     {[
                       { id: 'all', label: 'Todos' },
@@ -7158,7 +7158,7 @@ function CadastroVTR({
 
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
                 <div>
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">Período de Consulta</label>
+                  <label className="text-sm font-black text-slate-400 uppercase tracking-wider block mb-4">Período de Consulta</label>
                   <div className="flex flex-col sm:flex-row items-center gap-3">
                     <div className="w-full sm:flex-1 space-y-1">
                        <span className="text-[10px] font-bold text-slate-400 ml-1">DE:</span>
@@ -7340,7 +7340,7 @@ function CadastroVTR({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Observação / Motivo da Baixa</label>
+                  <label className="text-sm font-black text-slate-700 uppercase tracking-wider ml-1">Observação / Motivo da Baixa</label>
                   <textarea 
                     placeholder="Descreva o motivo da manutenção (ex: Troca de óleo, pneu furado, revisão...)"
                     value={maintenanceModal.notes}
