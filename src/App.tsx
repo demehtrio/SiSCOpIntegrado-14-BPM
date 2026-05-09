@@ -3283,7 +3283,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 pb-20 md:pb-0 md:pl-64">
         {/* Logout Confirmation Modal */}
         {showLogoutModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="p-8 text-center">
                 <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -3312,7 +3312,7 @@ export default function App() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="p-8 text-center">
                 <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -3469,7 +3469,7 @@ export default function App() {
         </nav>
 
         {/* Mobile Header */}
-        <header className="md:hidden bg-blue-900 text-white border-b-4 border-red-600 p-4 flex items-center justify-between sticky top-0 z-40 shadow-lg">
+        <header className="md:hidden bg-blue-900 text-white border-b-4 border-red-600 p-4 flex items-center justify-between sticky top-0 z-[150] shadow-lg">
           <div className="flex items-center gap-3">
             <div className="bg-white p-1 rounded-lg shadow-sm">
               <SafeImage 
@@ -6061,7 +6061,7 @@ function ChecklistModule({
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="max-w-3xl mx-auto space-y-6">
           <button 
             onClick={() => setView('list')}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-900 mb-2 transition-colors font-bold"
@@ -6072,7 +6072,7 @@ function ChecklistModule({
 
           <div className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
             {/* Progress Header */}
-            <div className="bg-white p-6 sm:p-10 border-b border-slate-100 relative">
+            <div className="bg-white/90 backdrop-blur-xl p-6 sm:p-10 border-b border-slate-100 sticky top-[72px] md:top-0 z-30 shadow-sm">
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-8">
                   <div>
@@ -6113,7 +6113,7 @@ function ChecklistModule({
             </div>
 
             {/* Form Content */}
-            <div className="p-4 sm:p-12 flex-1">
+            <div className="p-6 sm:p-12 pb-32 sm:pb-32 flex-1">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentTab}
@@ -6542,7 +6542,7 @@ function ChecklistModule({
           </div>
 
           {/* Fixed Bottom Footer */}
-          <div className="p-8 sm:px-12 sm:py-10 bg-slate-50 border-t border-slate-100 flex gap-4">
+          <div className="p-6 sm:px-12 sm:py-8 bg-slate-50/90 backdrop-blur-md border-t border-slate-100 flex gap-4 sticky bottom-[72px] md:bottom-0 z-20">
             {currentTab > 0 && (
               <button 
                 onClick={() => setCurrentTab(currentTab - 1)}
@@ -6782,7 +6782,7 @@ function CadastroVTR({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="max-w-3xl mx-auto space-y-6"
           >
             <button 
               onClick={() => onStartRecord(null, null)}
@@ -6794,7 +6794,7 @@ function CadastroVTR({
 
             <div className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col min-h-[600px]">
               {/* Modal Header */}
-              <div className={`p-6 sm:p-10 text-white relative overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+              <div className={`p-6 sm:p-10 text-white sticky top-[64px] md:top-0 z-20 overflow-hidden ${operationType === 'check-in' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
                 <div className="absolute top-0 right-0 p-12 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
@@ -6807,8 +6807,8 @@ function CadastroVTR({
                 </div>
               </div>
 
-              {/* Form Body - Multi-step Form */}
-              <div className="p-6 sm:p-10 flex-1">
+                  {/* Form Body - Multi-step Form */}
+                  <div className="p-6 sm:p-12 pb-32 sm:pb-32 flex-1 min-h-[400px]">
                   <div className="flex gap-2 mb-8 bg-slate-50 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar">
                     {[
                       { icon: <Siren size={18} />, label: 'Identificação' },
@@ -6826,8 +6826,9 @@ function CadastroVTR({
                     ))}
                   </div>
 
-                  <div className="min-h-[400px]">
-                    {currentTab === 0 && (
+                  <AnimatePresence mode="wait">
+                    <div className="min-h-[400px]">
+                      {currentTab === 0 && (
                       <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                           <div className="space-y-2">
@@ -6968,20 +6969,22 @@ function CadastroVTR({
                         </div>
                       </motion.div>
                     )}
-                  </div>
+                    </div>
+                  </AnimatePresence>
+                </div>
 
-                <div className="mt-10 flex flex-col sm:flex-row gap-4">
+                <div className="p-6 sm:p-10 bg-slate-50/90 backdrop-blur-md border-t border-slate-100 flex flex-col sm:flex-row gap-4 sticky bottom-[72px] md:bottom-0 z-20">
                   {currentTab > 0 ? (
                     <button 
                       onClick={() => setCurrentTab(currentTab - 1)}
-                      className="w-full sm:flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                      className="w-full sm:flex-1 py-4 bg-white text-slate-700 border border-slate-200 rounded-2xl font-bold hover:bg-slate-100 transition-all"
                     >
                       Voltar
                     </button>
                   ) : (
                     <button 
                       onClick={() => onStartRecord(null, null)}
-                      className="w-full sm:flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                      className="w-full sm:flex-1 py-4 bg-white text-slate-500 border border-slate-200 rounded-2xl font-bold hover:bg-slate-100 transition-all"
                     >
                       Cancelar
                     </button>
@@ -6990,14 +6993,14 @@ function CadastroVTR({
                   {currentTab < 2 ? (
                     <button 
                       onClick={() => setCurrentTab(currentTab + 1)}
-                      className="w-full sm:flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                      className="w-full sm:flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl active:scale-95"
                     >
                       Próximo Passo
                     </button>
                   ) : (
                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:flex-[2]">
-                      <button 
-                        onClick={() => onSaveRecord(true)}
+                    <button 
+                      onClick={() => onSaveRecord(true)}
                         disabled={submitting || formData.mileage.currentMileage === ''}
                         className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                       >
@@ -7016,9 +7019,8 @@ function CadastroVTR({
                   )}
                 </div>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
 
         {view === 'list' && (
           <motion.div 
@@ -7318,7 +7320,7 @@ function CadastroVTR({
       {/* Maintenance Observation Modal */}
       <AnimatePresence>
         {maintenanceModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -7623,7 +7625,7 @@ function PDFPreviewModal({ url, onClose }: { url: string, onClose: () => void })
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
