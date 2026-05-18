@@ -6416,12 +6416,16 @@ function ChecklistModule({
                             }}
                             className={`p-4 rounded-2xl text-xs text-left font-bold transition-all border flex items-center justify-between ${
                               formData.checklist.partesInternas.includes(item) 
-                              ? 'bg-red-50 text-red-700 border-red-100' 
+                              ? (item.toUpperCase() === 'SEM ALTERAÇÃO' ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-red-50 text-red-700 border-red-100')
                               : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
                             }`}
                           >
                             <span>{item}</span>
-                            {formData.checklist.partesInternas.includes(item) && <AlertTriangle size={16} className="text-red-500" />}
+                            {formData.checklist.partesInternas.includes(item) && (
+                              item.toUpperCase() === 'SEM ALTERAÇÃO' 
+                              ? <CheckCircle2 size={16} className="text-blue-600" />
+                              : <AlertTriangle size={16} className="text-red-500" />
+                            )}
                           </button>
                         ))}
                       </div>
@@ -6444,12 +6448,16 @@ function ChecklistModule({
                             }}
                             className={`p-4 rounded-2xl text-xs text-left font-bold transition-all border flex items-center justify-between ${
                               formData.checklist.partesExternas.includes(item) 
-                              ? 'bg-red-50 text-red-700 border-red-100' 
+                              ? (item.toUpperCase() === 'SEM ALTERAÇÃO' ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-red-50 text-red-700 border-red-100')
                               : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
                             }`}
                           >
                             <span>{item}</span>
-                            {formData.checklist.partesExternas.includes(item) && <AlertTriangle size={16} className="text-red-500" />}
+                            {formData.checklist.partesExternas.includes(item) && (
+                              item.toUpperCase() === 'SEM ALTERAÇÃO'
+                              ? <CheckCircle2 size={16} className="text-blue-600" />
+                              : <AlertTriangle size={16} className="text-red-500" />
+                            )}
                           </button>
                         ))}
                       </div>
