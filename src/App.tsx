@@ -1443,7 +1443,7 @@ export default function App() {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      const isCadastroVTR = record.source === 'cadchecking';
+      const isCadastroVTR = record.source === 'cadchecking' || record.source === 'cadastro_vtr' || record.source === 'checklist_module';
       doc.text(isCadastroVTR ? 'CADASTRO VTR' : 'CHECKLIST DE VIATURA', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(10);
