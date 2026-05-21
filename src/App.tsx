@@ -5453,7 +5453,7 @@ function HistoryItem({ item, onDownload, onDelete, onEdit, isAdmin, isLast, user
   };
 
   const effectiveNames = getEffectiveNames();
-  const patrimony = item.identification?.plate || item.plate || item.patrimony || item.patrimonioViatura || item.patrimonioR1 || item.patrimonioR2 || item.patrimonioR3 || item.patrimonioR4 || '';
+  const patrimony = item.identification?.plate || item.plate || item.patrimonio || item.patrimony || item.patrimonioViatura || item.patrimonioR1 || item.patrimonioR2 || item.patrimonioR3 || item.patrimonioR4 || '';
   const city = item.cidade || '';
   const spec = item.especificacaoEfetivo || '';
 
