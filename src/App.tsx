@@ -3576,7 +3576,7 @@ export default function App() {
                   <div className="absolute bottom-0 left-0 p-16 bg-indigo-500/10 rounded-full -ml-12 -mb-12 blur-2xl"></div>
                   
                   <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left flex-1">
-                    <div className="w-14 h-14 bg-white/5 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/10 shadow-inner overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300 p-1">
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center border border-white/20 shadow-md overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300 p-2">
                       <SafeImage 
                         src="https://i.pinimg.com/originals/60/28/a5/6028a5b89ac1ab7f4ca8d2abf0712fc2.png" 
                         alt="Polícia Ágil Logo" 
