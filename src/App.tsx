@@ -3592,7 +3592,7 @@ export default function App() {
                         <span className="text-[10px] sm:text-xs font-black bg-yellow-500/25 border border-yellow-500/30 text-yellow-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">SDS PE</span>
                       </div>
                       <p className="text-blue-200/85 text-sm font-medium leading-relaxed max-w-xl">
-                        Acesse a plataforma oficial Polícia Ágil da Secretaria de Defesa Social de Pernambuco para policiamento rápido, inteligente e registro de ocorrências.
+                        Acesse a plataforma Polícia Ágil para realizar suas consultas junto à Secretaria de Defesa Social de Pernambuco.
                       </p>
                     </div>
                   </div>
