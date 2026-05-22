@@ -3569,6 +3569,40 @@ export default function App() {
                   </div>
                 </header>
 
+                {/* Banner Polícia Ágil */}
+                <div className="mb-8 p-6 sm:p-8 bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 text-white rounded-[2.5rem] border border-blue-800/50 shadow-2xl overflow-hidden relative flex flex-col md:flex-row items-center justify-between gap-6 group">
+                  {/* Decorative background visual elements */}
+                  <div className="absolute top-0 right-0 p-24 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-blue-500/15 transition-all duration-500"></div>
+                  <div className="absolute bottom-0 left-0 p-16 bg-indigo-500/10 rounded-full -ml-12 -mb-12 blur-2xl"></div>
+                  
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left flex-1">
+                    <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/15 shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-300">
+                      <Siren size={28} className="text-yellow-400" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">Polícia Ágil</h3>
+                        <span className="text-[10px] sm:text-xs font-black bg-yellow-500/25 border border-yellow-500/30 text-yellow-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">SDS PE</span>
+                      </div>
+                      <p className="text-blue-200/85 text-sm font-medium leading-relaxed max-w-xl">
+                        Acesse a plataforma oficial Polícia Ágil da Secretaria de Defesa Social de Pernambuco para policiamento rápido, inteligente e registro de ocorrências.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="relative z-10 shrink-0 w-full md:w-auto">
+                    <a 
+                      href="https://policiaagil.sds.pe.gov.br/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full md:w-auto px-6 py-3.5 bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-black rounded-2xl shadow-xl shadow-yellow-500/10 hover:shadow-yellow-500/25 transition-all text-center flex items-center justify-center gap-2 active:scale-98 group/btn"
+                    >
+                      <span>Acessar Polícia Ágil</span>
+                      <ExternalLink size={16} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+                    </a>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <DashboardCard 
                     title="Atividade Linha"
