@@ -3520,6 +3520,36 @@ export default function App() {
 
         {/* Main Content */}
         <main className="p-3 sm:p-6 max-w-5xl mx-auto">
+          {/* Aviso de Desativação e Migração */}
+          <div className="mb-8 p-5 sm:p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-3xl shadow-md text-amber-900 relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-5">
+            <div className="absolute top-0 right-0 p-12 bg-amber-400/10 rounded-full -mr-8 -mt-8 blur-2xl"></div>
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left relative z-10">
+              <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex items-center justify-center shrink-0">
+                <AlertTriangle size={24} className="text-amber-600" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-extrabold text-amber-950 uppercase tracking-tight flex items-center justify-center sm:justify-start gap-1.5">
+                  <span className="inline-block w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
+                  Atenção • Nova Versão Disponível
+                </h3>
+                <p className="text-amber-800 text-sm font-semibold leading-relaxed max-w-2xl">
+                  Este aplicativo <strong className="text-red-700 font-extrabold">não receberá novas atualizações e será desativado em breve</strong>. Todos os usuários devem acessar e utilizar a nova versão para continuar registrando suas atividades e relatórios.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 w-full sm:w-auto relative z-10">
+              <a 
+                href="https://siscopi14bpm.vercel.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-5 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-lg transition-all text-center flex items-center justify-center gap-2 active:scale-95 group/warn-btn"
+              >
+                <span>Acessar Nova Versão</span>
+                <ArrowRight size={16} className="group-hover/warn-btn:translate-x-0.5 transition-transform" />
+              </a>
+            </div>
+          </div>
+
           <AnimatePresence mode="wait">
             {activeTab === 'dashboard' && (
               <motion.div 
